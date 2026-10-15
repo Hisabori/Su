@@ -4,6 +4,7 @@
 
 ## 구현된 흐름
 - PUT 로그인, SHA-256 비밀번호 처리, 요청별 packetid, 토큰·사용자 식별자 보관
+- 원본 MainActivity의 화면 꺼짐 방지를 iOS idle timer 설정으로 반영
 - 저장된 세션 검증, 작업 정보 조회 및 display_order 정렬
 - 작업 시작 시각 대기, 단계별 안내와 work_seconds 확인, 예/아니요 및 한국어 음성 답변
 - HTTPS 동영상·YouTube 재생, 재생 결과 기록, 백그라운드 전환 시 음성·영상 중지
