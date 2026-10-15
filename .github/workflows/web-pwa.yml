@@ -1,0 +1,32 @@
+name: Web PWA Build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: web-pwa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze
+      - run: flutter test
+      - run: bash scripts/build-web.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: suhoangel-web-pwa
+          path: build/web/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

@@ -6,13 +6,16 @@
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
   "server_contract_source": "APK AOT ARM64 analysis",
-  "version": "1.0.2+3",
-  "tests_passed": 15,
+  "version": "1.1.0+4",
+  "tests_passed": 19,
   "stability_checks": [
     "concurrent local writes",
     "pending history retention",
     "deduplicated submission",
     "receipt survives history failure",
     "confirmed result cannot downgrade"
-  ]
+  ],
+  "web_build": "passed",
+  "browser_mock_flow": "passed: login, answer, refresh resume, result once, history, offline shell",
+  "vercel_deployment": "blocked: target team authorization 403; domain DEPLOYMENT_PAUSED"
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../config/api_config.dart';
 
 class WorkVideo extends StatefulWidget {
@@ -15,12 +15,15 @@ class WorkVideo extends StatefulWidget {
 class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
   VideoPlayerController? video;
   YoutubePlayerController? youtube;
+  StreamSubscription<YoutubePlayerValue>? youtubeEvents;
   String? error;
   bool reported = false, foreground = true;
   void report(bool success) {
     if (!reported && mounted) {
       reported = true;
-      widget.onFinished?.call(success);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onFinished?.call(success);
+      });
     }
   }
 
@@ -32,21 +35,31 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
   }
 
   Future<void> initialize() async {
-    final uri = Uri.parse(ApiConfig.baseUrl).resolve(widget.source);
+    final source = Uri.tryParse(widget.source);
+    if (source == null) {
+      setState(() => error = '영상 주소를 확인할 수 없습니다.');
+      report(false);
+      return;
+    }
+    final uri = Uri.parse(ApiConfig.baseUrl).resolveUri(source);
     final host = uri.host.toLowerCase();
     if (host == 'youtu.be' ||
         host == 'youtube.com' ||
         host.endsWith('.youtube.com')) {
-      final id = YoutubePlayer.convertUrlToId(uri.toString());
+      final id = YoutubePlayerController.convertUrlToId(uri.toString());
       if (id == null) {
         setState(() => error = '영상 주소를 확인할 수 없습니다.');
         report(false);
         return;
       }
-      youtube = YoutubePlayerController(
-          initialVideoId: id, flags: const YoutubePlayerFlags(autoPlay: true));
-      youtube!.addListener(() {
-        if (youtube!.value.hasError) report(false);
+      youtube = YoutubePlayerController.fromVideoId(
+          videoId: id,
+          autoPlay: false,
+          params: const YoutubePlayerParams(
+              showControls: true, showFullscreenButton: true));
+      youtubeEvents = youtube!.listen((value) {
+        if (value.hasError) report(false);
+        if (value.playerState == PlayerState.ended) report(true);
       });
       setState(() {});
       return;
@@ -61,7 +74,6 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
     try {
       await controller.initialize().timeout(const Duration(seconds: 20));
       if (!mounted) return;
-      if (foreground) await controller.play();
       controller.addListener(() {
         if (controller.value.hasError) {
           report(false);
@@ -82,8 +94,14 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
     foreground = state == AppLifecycleState.resumed;
     if (!foreground) {
       unawaited(pauseVideo());
-      youtube?.pause();
+      unawaited(pauseYoutube());
     }
+  }
+
+  Future<void> pauseYoutube() async {
+    try {
+      await youtube?.pauseVideo();
+    } catch (_) {}
   }
 
   Future<void> pauseVideo() async {
@@ -96,7 +114,8 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     video?.dispose();
-    youtube?.dispose();
+    youtubeEvents?.cancel();
+    youtube?.close();
     super.dispose();
   }
 
@@ -106,7 +125,7 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
       return Padding(padding: const EdgeInsets.all(24), child: Text(error!));
     }
     if (youtube != null) {
-      return YoutubePlayer(controller: youtube!, onEnded: (_) => report(true));
+      return YoutubePlayer(controller: youtube!);
     }
     final controller = video;
     if (controller == null || !controller.value.isInitialized) {
@@ -121,10 +140,17 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
       IconButton(
           tooltip: '재생 / 일시정지',
           onPressed: () async {
-            if (controller.value.isPlaying) {
-              await controller.pause();
-            } else {
-              await controller.play();
+            try {
+              if (controller.value.isPlaying) {
+                await controller.pause();
+              } else {
+                await controller.play();
+              }
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('재생을 시작하지 못했습니다. 다시 눌러 주세요.')));
+              }
             }
             if (mounted) setState(() {});
           },

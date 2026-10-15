@@ -1,0 +1,27 @@
+{
+  "name": "수호천사",
+  "short_name": "수호천사",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "lang": "ko",
+  "display": "standalone",
+  "background_color": "#f7fbfa",
+  "theme_color": "#357b77",
+  "description": "수호천사 작업 안내와 결과 기록",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "mascot.png",
+      "sizes": "286x286",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+ios/
+test/
+build/
+.dart_tool/
+.git/
+*.ipa
+*.zip

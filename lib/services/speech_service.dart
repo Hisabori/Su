@@ -5,8 +5,10 @@ class SpeechService {
   Future<bool> listen(void Function(String) onResult) async {
     if (!await speech.initialize()) return false;
     await speech.listen(
-      listenOptions: SpeechListenOptions(localeId: 'ko_KR'),
-      onResult: (r) => onResult(r.recognizedWords),
+      listenOptions: SpeechListenOptions(localeId: 'ko-KR'),
+      onResult: (r) {
+        if (r.finalResult) onResult(r.recognizedWords);
+      },
     );
     return true;
   }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="수호천사 작업 안내와 결과 기록">
+  <meta name="theme-color" content="#357b77">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="수호천사">
+  <link rel="apple-touch-icon" href="mascot.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>수호천사</title>
+  <style>
+    html,body {margin:0;height:100%;background:#f7fbfa;font-family:system-ui,sans-serif;color:#235852}
+    #loading {height:100%;display:flex;align-items:center;justify-content:center;text-align:center}
+    #loading img {width:100px;height:100px;object-fit:contain}
+    #reload {color:#235852;padding:12px;margin:16px;display:none}
+  </style>
+</head>
+<body>
+  <div id="loading" role="status"><div><img src="mascot.png" alt=""><p id="loading-text">수호천사를 준비하고 있어요.</p><button id="reload" onclick="location.reload()">다시 불러오기</button></div></div>
+  <noscript>수호천사를 사용하려면 브라우저에서 JavaScript를 켜 주세요.</noscript>
+  <script src="pwa.js" defer></script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

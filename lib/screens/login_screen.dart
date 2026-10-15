@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
 import 'work_screen.dart';
@@ -118,6 +119,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                    if (kIsWeb) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                          '홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
+                          textAlign: TextAlign.center),
+                    ],
                     const SizedBox(height: 24),
                     FilledButton(
                       onPressed: busy ? null : login,

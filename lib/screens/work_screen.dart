@@ -8,6 +8,7 @@ import '../services/token_storage_service.dart';
 import '../services/tts_service.dart';
 import '../services/speech_service.dart';
 import '../services/work_log_service.dart';
+import '../services/work_draft_service.dart';
 import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
 import 'result_log_screen.dart';
@@ -23,6 +24,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final tts = TtsService();
   final speech = SpeechService();
   final logs = WorkLogService();
+  final drafts = WorkDraftService();
+  int? sessionUser;
+  DateTime? lastCheckpoint;
+  bool draftWarning = false;
   WorkInfo? work;
   String? error;
   bool loading = true,
@@ -75,6 +80,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     foreground = state == AppLifecycleState.resumed;
     if (!foreground) {
       unawaited(stopAudio());
+      unawaited(checkpoint());
       if (mounted) setState(() => listening = false);
     } else if (mounted) {
       tick();
@@ -88,6 +94,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
     try {
       final data = await api.getWorkInfo();
+      sessionUser = await api.tokens.userId();
       if (mounted) {
         setState(() {
           work = data;
@@ -98,6 +105,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   : work!.startTime,
               DateTime.now());
         });
+        await restoreDraft();
       }
     } catch (e) {
       if (mounted) {
@@ -111,6 +119,75 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         timer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
       }
     }
+  }
+
+  Future<void> checkpoint() async {
+    if (work == null || !started || complete || sessionUser == null) return;
+    lastCheckpoint = DateTime.now();
+    try {
+      await drafts.save(sessionUser!, work!, {
+        'index': index,
+        'question_index': questionIndex,
+        'started_at': startedAt!.toIso8601String(),
+        'step_started_at': stepStartedAt!.toIso8601String(),
+        'schedule_anchor': scheduleAnchor!.toIso8601String(),
+        'rest_started_at': restStartedAt?.toIso8601String(),
+        'rest_until': restUntil?.toIso8601String(),
+        'rest_seconds': restSeconds,
+        'step_rest_seconds': stepRestSeconds,
+        'answers': answers,
+        'device_checks': deviceChecks,
+        'pending_record': pendingRecord,
+        'awaiting_save': awaitingSave,
+        'prompt_pending': promptPending,
+        'automatic_end': automaticEnd,
+        'video_result': pendingVideoResult,
+      });
+      draftWarning = false;
+    } catch (_) {
+      if (!draftWarning) notice('기기 내 자동 저장에 실패했습니다. 창을 닫기 전에 작업을 완료해 주세요.');
+      draftWarning = true;
+    }
+  }
+
+  Future<void> restoreDraft() async {
+    if (sessionUser == null || work!.steps.isEmpty) return;
+    Map<String, dynamic>? state;
+    try {
+      state = await drafts.load(sessionUser!, work!);
+    } catch (_) {
+      notice('이전 작업의 자동 저장을 확인하지 못했습니다.');
+      return;
+    }
+    if (state == null || !mounted) return;
+    final restored = state;
+    setState(() {
+      index = restored['index'] as int;
+      questionIndex = restored['question_index'] as int;
+      startedAt = DateTime.parse(restored['started_at'] as String);
+      stepStartedAt = DateTime.parse(restored['step_started_at'] as String);
+      scheduleAnchor = DateTime.parse(restored['schedule_anchor'] as String);
+      restStartedAt =
+          DateTime.tryParse(restored['rest_started_at']?.toString() ?? '');
+      restUntil = DateTime.tryParse(restored['rest_until']?.toString() ?? '');
+      restSeconds = restored['rest_seconds'] as int;
+      stepRestSeconds = restored['step_rest_seconds'] as int;
+      answers
+          .addAll((restored['answers'] as List).cast<Map<String, dynamic>>());
+      deviceChecks.addAll(
+          (restored['device_checks'] as List).cast<Map<String, dynamic>>());
+      pendingRecord = restored['pending_record'] as Map<String, dynamic>?;
+      awaitingSave = restored['awaiting_save'] == true || pendingRecord != null;
+      promptPending = restored['prompt_pending'] == true;
+      automaticEnd = restored['automatic_end'] == true;
+      pendingVideoResult = restored['video_result'] is bool
+          ? restored['video_result'] as bool
+          : null;
+      started = true;
+    });
+    notice(awaitingSave
+        ? '저장 대기 중인 작업을 복구했습니다. 결과 저장을 확인해 주세요.'
+        : '진행 중이던 작업을 복구했습니다.');
   }
 
   void tick() {
@@ -184,6 +261,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       unawaited(
           answer(result, outcome: result ? 'video_completed' : 'video_error'));
     }
+    if (started &&
+        !complete &&
+        !saving &&
+        (lastCheckpoint == null ||
+            DateTime.now().difference(lastCheckpoint!).inSeconds >= 10)) {
+      unawaited(checkpoint());
+    }
     if (mounted) setState(() {});
   }
 
@@ -204,6 +288,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
     timer?.cancel();
     timer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+    unawaited(checkpoint());
     readPrompt();
   }
 
@@ -373,7 +458,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   void videoFinished(bool success) {
     if (!mounted || !started || complete || awaitingSave) return;
-    pendingVideoResult = success;
+    pendingVideoResult = pendingVideoResult == true || success;
+    unawaited(checkpoint());
     tick();
   }
 
@@ -425,6 +511,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         await finish();
         return;
       }
+      await checkpoint();
       await readPrompt();
     } catch (_) {
       notice('답변 처리를 완료하지 못했습니다. 다시 시도해 주세요.');
@@ -465,6 +552,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           'server_submitted': false
         };
       }
+      await checkpoint();
       final outcome =
           await ResultSubmissionService(api, logs).send(id, pendingRecord!);
       pendingRecord!['server_submitted'] = true;
@@ -477,6 +565,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         complete = true;
         awaitingSave = false;
       });
+      try {
+        await drafts.clear(id);
+      } catch (_) {}
     } catch (e) {
       notice(
           e is ApiFailure ? e.message : '결과 저장에 실패했습니다. 기록에서 다시 전송할 수 있습니다.');
@@ -529,7 +620,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           context: context,
           builder: (context) => AlertDialog(
                   title: const Text('작업을 중단할까요?'),
-                  content: const Text('진행 중인 답변은 저장되지 않습니다.'),
+                  content: const Text(
+                      '현재 진행 상태는 기기에 보관됩니다. 같은 계정으로 다시 로그인하면 이어서 진행할 수 있습니다.'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -541,6 +633,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (ok != true) return;
     }
     try {
+      await checkpoint();
       await stopAudio();
       try {
         await api.logout();
@@ -606,6 +699,22 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           Text(
               '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}'),
       ]);
+    }
+    if (awaitingSave) {
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.cloud_upload_outlined, size: 64),
+                const SizedBox(height: 16),
+                const Text('작업이 끝났습니다. 서버 저장을 확인해 주세요.'),
+                const SizedBox(height: 12),
+                const Text('응답을 받지 못했다면 이미 저장됐을 수 있습니다. 서버 기록 확인 후 다시 전송하세요.'),
+                const SizedBox(height: 16),
+                FilledButton(
+                    onPressed: saving ? null : finish,
+                    child: Text(saving ? '저장 확인 중…' : '결과 저장 다시 시도')),
+              ])));
     }
     if (restUntil != null) {
       return Center(
