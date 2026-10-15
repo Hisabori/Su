@@ -11,6 +11,7 @@ import '../services/work_log_service.dart';
 import '../services/work_draft_service.dart';
 import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
+import '../widgets/work_message.dart';
 import 'result_log_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
@@ -663,6 +664,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
+  String timeLabel(DateTime time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
   Widget content() {
     if (loading) return const Center(child: CircularProgressIndicator());
     if (error != null) {
@@ -675,32 +679,50 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     final info = work!;
     if (complete) {
-      return Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.check_circle, size: 72),
+      return WorkMessage(title: '수고하셨습니다.', children: [
+        const Text('오늘도 수고하셨습니다!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF5A83A7), fontSize: 22)),
         const SizedBox(height: 16),
-        const Text('서버에 작업 결과를 저장했습니다.'),
-        TextButton(
+        const Text('서버에 작업 결과를 저장했습니다.', textAlign: TextAlign.center),
+        if (startedAt != null) ...[
+          const SizedBox(height: 16),
+          Text(
+              '${timeLabel(startedAt!)}에 일을 시작 하셨고,\n'
+              '${timeLabel(DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? '') ?? DateTime.now())}에 일을 마무리 하셨습니다.',
+              textAlign: TextAlign.center),
+        ],
+        const SizedBox(height: 24),
+        OutlinedButton(
             onPressed: saving || awaitingSave
                 ? null
                 : () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
                         builder: (_) => const ResultLogScreen())),
-            child: const Text('작업 기록 보기'))
-      ]));
+            child: const Text('근무기록 자세히 보기')),
+        const SizedBox(height: 12),
+        FilledButton(
+            onPressed: saving ? null : logout, child: const Text('퇴근하기')),
+      ]);
     }
     if (!started) {
-      return ListView(padding: const EdgeInsets.all(24), children: [
-        Text(info.name, style: Theme.of(context).textTheme.headlineMedium),
+      return WorkMessage(title: '안녕하세요!', children: [
+        Text(info.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
         const SizedBox(height: 16),
-        if (info.startTime != null) Text('시작: ${info.startTime}'),
-        if (info.endTime != null) Text('종료: ${info.endTime}'),
-        if (info.workMinutes != null) Text('기준 작업 시간: ${info.workMinutes}분'),
-        if (info.restMinutes != null) Text('기준 휴식 시간: ${info.restMinutes}분'),
+        if (info.startTime != null)
+          Text('시작: ${info.startTime}', textAlign: TextAlign.center),
+        if (info.endTime != null)
+          Text('종료: ${info.endTime}', textAlign: TextAlign.center),
+        if (info.workMinutes != null)
+          Text('기준 작업 시간: ${info.workMinutes}분', textAlign: TextAlign.center),
+        if (info.restMinutes != null)
+          Text('기준 휴식 시간: ${info.restMinutes}분', textAlign: TextAlign.center),
         const SizedBox(height: 24),
         if (info.steps.isEmpty)
-          const Text('진행할 작업 단계가 없습니다.')
+          const Text('진행할 작업 단계가 없습니다.', textAlign: TextAlign.center)
         else
           FilledButton(
               onPressed:
@@ -710,7 +732,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               child: const Text('작업 시작')),
         if (plannedStart != null && DateTime.now().isBefore(plannedStart!))
           Text(
-              '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}'),
+              '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}',
+              textAlign: TextAlign.center),
       ]);
     }
     if (awaitingSave) {
@@ -730,21 +753,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               ])));
     }
     if (restUntil != null) {
-      return Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('휴식 중'),
+      return WorkMessage(title: '휴식 중', children: [
+        const Text('편하게 쉬고 오세요!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
+        const SizedBox(height: 16),
         Text(clock(restUntil!.difference(DateTime.now()).inSeconds),
-            style: Theme.of(context).textTheme.displayLarge),
-      ]));
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.displayMedium),
+      ]);
     }
     final stepAt = stepSchedule;
     if (stepAt != null && DateTime.now().isBefore(stepAt)) {
-      return Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('${step.name} 시작 대기'),
+      return WorkMessage(title: '${step.name} 시작 대기', children: [
         Text(clock(stepAt.difference(DateTime.now()).inSeconds),
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.displayMedium)
-      ]));
+      ]);
     }
     final elapsed =
         DateTime.now().difference(startedAt!).inSeconds - restSeconds;
@@ -802,7 +827,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) => PopScope(
       canPop: !started || complete,
       child: Scaffold(
+          backgroundColor: const Color(0xFFF2F2F2),
           appBar: AppBar(
+              backgroundColor: const Color(0xFFF2F2F2),
               automaticallyImplyLeading: false,
               title: const Text('수호천사'),
               actions: [

@@ -25,6 +25,15 @@ const assert=require('node:assert/strict');
  await page.locator('input').nth(1).click();await page.keyboard.type('fake-password');
  await page.getByRole('button',{name:'로그인',exact:true}).click();
 
+ await page.getByText('안녕하세요!',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'작업 시작',exact:true}).waitFor();
+ if(process.env.PWA_SCREENSHOT_DIR) {
+  await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-waiting-portrait.png')});
+  await page.setViewportSize({width:844,height:390});
+  await page.waitForTimeout(500);
+  await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-waiting-landscape.png')});
+  await page.setViewportSize({width:390,height:844});
+ }
  await page.getByRole('button',{name:'작업 시작',exact:true}).click();
  await page.getByRole('button',{name:'네',exact:true}).click();
  await page.getByText('두 번째 확인',{exact:true}).waitFor();
@@ -33,11 +42,14 @@ const assert=require('node:assert/strict');
  console.log('PASS refresh restores step 2 with previous answer');
  await page.getByRole('button',{name:'네',exact:true}).click();
  await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'퇴근하기',exact:true}).waitFor();
+ await page.getByText('수고하셨습니다.',{exact:true}).waitFor();
+ if(process.env.PWA_SCREENSHOT_DIR) await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-complete.png')});
  assert.equal(saves,1);
  const result=calls.find(c=>c.path.endsWith('/work_result'));
  assert.equal(result.method,'PUT');assert.equal(JSON.parse(result.body.result_json).length,2);
  assert.equal(JSON.parse(result.body.result_json)[0]['비고'],1);
- await page.getByRole('button',{name:'작업 기록 보기',exact:true}).click();
+ await page.getByRole('button',{name:'근무기록 자세히 보기',exact:true}).click();
  await page.getByText('서버 저장 완료',{exact:false}).waitFor();
  assert.equal(await page.getByRole('button',{name:'결과 재전송'}).count(),0);
  console.log('PASS result acknowledged once; history has no retry');

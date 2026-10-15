@@ -34,3 +34,19 @@ B(l)utter를 해당 Dart 3.8.1 런타임과 함께 빌드하여 AOT 메서드, O
 ## 로그인 화면 대조 (1.2.0)
 원본 `_LoginScreenState.build`(0x426774), `buildLoginForm`(0x427b58), `_LoginTextField.build`(0x4a2688), `AppButton.build`(0x4a6ef0)과 객체 풀을 대조했습니다. 원본 배경 #F2F2F2, 라벨 #636363·w600, 입력 글자 #616161·힌트 #A0A0A0, 무테 입력칸 채움 #E9E9EF, loginPrimary #104B83을 반영했습니다. 짧은 변/390의 0.8~1.08 스케일, 로고 기본 180(140~210), 세로 폼 폭 84%(260~430), 가로 폼 폭 42%(280~420)와 좌우 배치, 로그인 버튼 높이 54(46~58)를 반영했습니다. 원본의 모든 오프셋·키보드 상태·픽셀 위치를 동일하게 복제한 것은 아닙니다. PWA 설치·패스키 안내는 추가 기능입니다. 작업 본문·상태·결과 화면은 계속 재작성한 복원 화면이며 원본 전체 UI와 동일하지 않습니다.
 원본 `AngelApp.build`(0x424fa0 부근)의 ColorScheme seed #00C896도 반영했습니다. 원본은 Pretendard를 지정하지만 APK FontManifest에는 해당 글꼴 파일이 없으므로 Android 시스템 대체 글꼴이 사용됩니다. 웹의 한글 깨짐 방지를 위한 포함 글꼴은 유지하며 플랫폼 글꼴 차이는 남아 있습니다.
+
+### 1.2.1: work status and completion layout
+
+Reconstructed the common logo/message structure used by `AppMessageScreenLayout`
+(AOT build at 0x4a84xx), `WorkStatusScreen` (0x4a5d08) and `ResultScreen`
+(0x4a45xx). Portrait stacks logo and message; landscape places them side by side.
+The original logo heights (138 portrait / 118 landscape), 390-based scale,
+#111111 heading and #5A83A7 supporting text come from the AOT/heap data.
+Recovered copy includes “안녕하세요!”, “편하게 쉬고 오세요!”,
+“오늘도 수고하셨습니다!”, “근무기록 자세히 보기” and “퇴근하기”.
+Completion includes actual recorded work start/end times and a checkout action.
+User names are not invented because the recovered session does not expose one.
+The scrollable layout preserves access to controls on compact screens and at large
+text sizes. Scheduling, draft recovery, submission receipts and retries are retained.
+The active question/video screen and history remain partial reconstructions;
+this release does not claim pixel-perfect restoration of all original screens.
