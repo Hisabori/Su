@@ -199,6 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10 * scale)),
                       textStyle: TextStyle(
+                          fontFamily: 'NanumGothic',
                           fontSize: (17 * scale).clamp(15, 19),
                           fontWeight: FontWeight.w500)),
                   child: busy
