@@ -26,3 +26,4 @@ flutter:
         - asset: assets/fonts/NanumGothic-Regular.ttf
   assets:
     - assets/images/
+    - assets/fonts/OFL-NanumGothic.txt

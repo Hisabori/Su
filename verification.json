@@ -17,5 +17,6 @@
   ],
   "web_build": "passed",
   "browser_mock_flow": "passed: login, answer, refresh resume, result once, history, offline shell",
-  "vercel_deployment": "blocked: target team authorization 403; domain DEPLOYMENT_PAUSED"
+  "vercel_deployment": "blocked: target team authorization 403; domain DEPLOYMENT_PAUSED",
+  "pwa_installability": "passed: Chromium regular profile, zero installability errors"
 }

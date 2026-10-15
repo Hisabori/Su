@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib
 import json
 root = Path('build/web')
-files = sorted(p for p in root.rglob('*') if p.is_file() and p.name not in {'service-worker.js', '.DS_Store'} and not p.name.endswith('.map'))
+files = sorted(p for p in root.rglob('*') if p.is_file() and p.name not in {'service-worker.js', '.DS_Store', '.nojekyll'} and not p.name.endswith('.map'))
 revision = hashlib.sha256()
 for path in files:
     revision.update(path.relative_to(root).as_posix().encode())
