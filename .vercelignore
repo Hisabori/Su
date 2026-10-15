@@ -5,3 +5,5 @@ build/
 .git/
 *.ipa
 *.zip
+
+browser-tests/

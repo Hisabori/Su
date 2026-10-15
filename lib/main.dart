@@ -13,7 +13,7 @@ class SuhoAngelApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           fontFamily: 'NanumGothic',
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF357B77)),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00C896)),
           inputDecorationTheme: const InputDecorationTheme(
             border: OutlineInputBorder(),
           ),

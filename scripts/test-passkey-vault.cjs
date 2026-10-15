@@ -1,0 +1,64 @@
+// WebAuthn + PRF integration checks; only fake session data is used.
+const {chromium} = require('playwright');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+(async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage']});
+  try {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.route('http://localhost:8765/vault-test', route => route.fulfill({contentType: 'text/html', body: '<html lang="ko"><title>Vault test</title></html>'}));
+    await page.goto('http://localhost:8765/vault-test');
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('WebAuthn.enable');
+    await cdp.send('WebAuthn.addVirtualAuthenticator', {options: {protocol: 'ctap2', ctap2Version: 'ctap2_1', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true, hasPrf: true}});
+    const script = path.join(__dirname, '../web/passkeys.js');
+    const fake = {jwt_access_token: 'vault-test-token-never-real', auth_user_id: '42', auth_device: '{}'};
+    await page.addScriptTag({path: script});
+    const enrollment = await page.evaluate(async data => JSON.parse(await suhoPasskeys.enroll(JSON.stringify(data), '검증용 계정')), fake);
+    assert.equal(enrollment.ok, true, JSON.stringify(enrollment));
+    const encrypted = await page.evaluate(() => localStorage.getItem('suho.passkey.session.v1'));
+    assert.ok(!encrypted.includes(fake.jwt_access_token));
+    await page.evaluate(() => suhoPasskeys.lock());
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), null);
+    assert.equal(await page.evaluate(async () => JSON.parse(await suhoPasskeys.unlock()).ok), true);
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), fake.jwt_access_token);
+    console.log('PASS real virtual authenticator PRF encrypts and unlocks session');
+    await page.reload();
+    await page.addScriptTag({path: script});
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), null);
+    assert.equal(await page.evaluate(async () => JSON.parse(await suhoPasskeys.unlock()).ok), true);
+    console.log('PASS reload locks memory; the same credential derives the vault key');
+    const other = await page.evaluate(async data => JSON.parse(await suhoPasskeys.refresh(JSON.stringify(data))), {...fake, auth_user_id: '43'});
+    assert.equal(other.code, 'different_account');
+    assert.equal(await page.evaluate(() => localStorage.getItem('suho.passkey.session.v1')), encrypted);
+    const refreshed = await page.evaluate(async data => JSON.parse(await suhoPasskeys.refresh(JSON.stringify(data))), {...fake, jwt_access_token: 'updated-fake-token'});
+    assert.equal(refreshed.ok, true);
+    await page.evaluate(() => suhoPasskeys.lock());
+    assert.equal(await page.evaluate(async () => JSON.parse(await suhoPasskeys.unlock()).ok), true);
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), 'updated-fake-token');
+    console.log('PASS same-account token refresh; a different account cannot overwrite the vault');
+    await page.evaluate(() => {
+      const v = JSON.parse(localStorage.getItem('suho.passkey.session.v1'));
+      v.cipher = (v.cipher[0] === 'a' ? 'b' : 'a') + v.cipher.slice(1);
+      localStorage.setItem('suho.passkey.session.v1', JSON.stringify(v));
+    });
+    const tampered = await page.evaluate(async () => JSON.parse(await suhoPasskeys.unlock()));
+    assert.equal(tampered.code, 'invalid_vault');
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), null);
+    console.log('PASS altered ciphertext cannot unlock or retain an old in-memory session');
+    await page.evaluate(value => localStorage.setItem('suho.passkey.session.v1', value), encrypted);
+    await page.evaluate(() => Object.defineProperty(navigator.credentials, 'get', {configurable: true, value: () => Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))}));
+    const cancelled = await page.evaluate(async () => JSON.parse(await suhoPasskeys.unlock()));
+    assert.equal(cancelled.code, 'NotAllowedError');
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), null);
+    console.log('PASS cancelled authentication remains locked');
+    await page.evaluate(async () => suhoPasskeys.forget());
+    await page.evaluate(() => Object.defineProperty(navigator.credentials, 'create', {configurable: true, value: async () => ({getClientExtensionResults: () => ({prf: {enabled: false}})})}));
+    const unsupported = await page.evaluate(async data => JSON.parse(await suhoPasskeys.enroll(JSON.stringify(data), '미지원')), fake);
+    assert.equal(unsupported.code, 'prf_unsupported');
+    assert.equal(await page.evaluate(() => suhoPasskeys.isEnrolled()), false);
+    assert.equal(await page.evaluate(() => suhoPasskeys.read('jwt_access_token')), null);
+    console.log('PASS unsupported PRF never persists the session');
+  } finally { await browser.close(); }
+})().catch(error => {console.error(error); process.exit(1);});

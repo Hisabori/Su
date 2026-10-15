@@ -6,8 +6,8 @@
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
   "server_contract_source": "APK AOT ARM64 analysis",
-  "version": "1.1.0+4",
-  "tests_passed": 19,
+  "version": "1.2.0+5",
+  "tests_passed": 21,
   "stability_checks": [
     "concurrent local writes",
     "pending history retention",
@@ -17,6 +17,10 @@
   ],
   "web_build": "passed",
   "browser_mock_flow": "passed: login, answer, refresh resume, result once, history, offline shell",
-  "vercel_deployment": "blocked: target team authorization 403; domain DEPLOYMENT_PAUSED",
-  "pwa_installability": "passed: Chromium regular profile, zero installability errors"
+  "pwa_installability": "passed: Chromium regular profile, zero installability errors",
+  "passkey_mode": "device-local WebAuthn PRF session vault; not server account passkeys",
+  "passkey_virtual_authenticator": "passed: PRF roundtrip, reload lock, cross-account rejection, tamper rejection, cancel, unsupported PRF",
+  "passkey_browser_ui": "passed: enrollment, legacy cleanup, lock, unlock, server expiry rejection, refresh, disable",
+  "native_ipa_passkeys": "not_supported",
+  "login_ui_source": "APK AOT layout/colors and original assets; partial visual restoration, not pixel-identical"
 }

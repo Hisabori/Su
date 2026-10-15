@@ -23,6 +23,8 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - run: bash scripts/build-web.sh
+      - name: WebAuthn and browser flow checks
+        run: bash scripts/ci-browser-tests.sh
       - uses: actions/upload-artifact@v4
         with:
           name: suhoangel-web-pwa

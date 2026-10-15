@@ -12,6 +12,8 @@ import '../services/work_draft_service.dart';
 import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
 import 'result_log_screen.dart';
+import 'passkey_screen.dart';
+import '../services/passkey_service.dart';
 
 class WorkScreen extends StatefulWidget {
   const WorkScreen({super.key});
@@ -614,6 +616,17 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> lockApp() async {
+    if (saving) return;
+    await checkpoint();
+    await stopAudio();
+    if (!mounted) return;
+    PasskeyService().lock();
+    setState(() => started = false);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> logout() async {
     if (started && !complete) {
       final ok = await showDialog<bool>(
@@ -793,6 +806,20 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               automaticallyImplyLeading: false,
               title: const Text('수호천사'),
               actions: [
+                if (PasskeyService().enrolled)
+                  IconButton(
+                      tooltip: '앱 잠그기',
+                      onPressed: saving ? null : lockApp,
+                      icon: const Icon(Icons.lock_outline)),
+                IconButton(
+                    tooltip: '패스키 로그인 설정',
+                    onPressed: saving || awaitingSave
+                        ? null
+                        : () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                                builder: (_) => const PasskeyScreen())),
+                    icon: const Icon(Icons.key)),
                 IconButton(
                     tooltip: '기기 상태',
                     onPressed: saving || awaitingSave ? null : showDevice,
