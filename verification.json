@@ -5,5 +5,14 @@
   "analyze": "passed",
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
-  "server_contract_source": "APK AOT ARM64 analysis"
+  "server_contract_source": "APK AOT ARM64 analysis",
+  "version": "1.0.2+3",
+  "tests_passed": 15,
+  "stability_checks": [
+    "concurrent local writes",
+    "pending history retention",
+    "deduplicated submission",
+    "receipt survives history failure",
+    "confirmed result cannot downgrade"
+  ]
 }

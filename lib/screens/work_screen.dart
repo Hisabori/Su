@@ -8,6 +8,7 @@ import '../services/token_storage_service.dart';
 import '../services/tts_service.dart';
 import '../services/speech_service.dart';
 import '../services/work_log_service.dart';
+import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
 import 'result_log_screen.dart';
 
@@ -32,7 +33,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       awaitingSave = false;
   int index = 0, questionIndex = 0;
   DateTime? startedAt, stepStartedAt, restStartedAt, restUntil;
-  int restSeconds = 0;
+  int restSeconds = 0, stepRestSeconds = 0;
+  bool foreground = true, submitting = false;
+  bool? pendingVideoResult;
   final answers = <Map<String, dynamic>>[];
   final deviceChecks = <Map<String, dynamic>>[];
   Map<String, dynamic>? pendingRecord;
@@ -43,7 +46,11 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       automaticEnd = false;
   DateTime? get stepSchedule =>
       started ? WorkSchedule.timeOnDay(step.startTime, startedAt!) : null;
-  Timer? timer, videoCompletionTimer;
+  Timer? timer;
+  int get remainingSeconds =>
+      step.workSeconds -
+      DateTime.now().difference(stepStartedAt!).inSeconds +
+      stepRestSeconds;
   WorkStep get step => work!.steps[index];
   String get prompt =>
       step.questions.isEmpty ? step.prompt : step.questions[questionIndex];
@@ -58,18 +65,16 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
-    videoCompletionTimer?.cancel();
-    speech.stop();
-    tts.stop();
+    unawaited(stopAudio());
     api.close();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
-      speech.stop();
-      tts.stop();
+    foreground = state == AppLifecycleState.resumed;
+    if (!foreground) {
+      unawaited(stopAudio());
       if (mounted) setState(() => listening = false);
     } else if (mounted) {
       tick();
@@ -109,7 +114,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   void tick() {
-    if (!mounted) return;
+    if (!mounted || !foreground) return;
     if (complete &&
         !loggingOut &&
         scheduleAnchor != null &&
@@ -132,6 +137,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     if (started &&
         promptPending &&
+        !complete &&
+        !awaitingSave &&
         !saving &&
         restUntil == null &&
         (stepSchedule == null || !DateTime.now().isBefore(stepSchedule!))) {
@@ -163,6 +170,20 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       }
     }
     if (restUntil != null && !DateTime.now().isBefore(restUntil!)) endRest();
+    if (pendingVideoResult != null &&
+        started &&
+        !saving &&
+        !enteringRest &&
+        !complete &&
+        !awaitingSave &&
+        restUntil == null &&
+        !promptPending &&
+        remainingSeconds <= 0) {
+      final result = pendingVideoResult!;
+      pendingVideoResult = null;
+      unawaited(
+          answer(result, outcome: result ? 'video_completed' : 'video_error'));
+    }
     if (mounted) setState(() {});
   }
 
@@ -277,8 +298,18 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> stopAudio() async {
-    await speech.stop();
-    await tts.stop();
+    await Future.wait([
+      (() async {
+        try {
+          await speech.stop().timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      })(),
+      (() async {
+        try {
+          await tts.stop().timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      })(),
+    ]);
     if (mounted) setState(() => listening = false);
   }
 
@@ -341,27 +372,22 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   void videoFinished(bool success) {
-    final currentIndex = index;
-    if (stepSchedule != null && DateTime.now().isBefore(stepSchedule!)) return;
-    final remaining =
-        step.workSeconds - DateTime.now().difference(stepStartedAt!).inSeconds;
-    videoCompletionTimer?.cancel();
-    videoCompletionTimer =
-        Timer(Duration(seconds: remaining > 0 ? remaining : 0), () {
-      if (mounted &&
-          index == currentIndex &&
-          !awaitingSave &&
-          !complete &&
-          restUntil == null) {
-        answer(success, outcome: success ? 'video_completed' : 'video_error');
-      }
-    });
+    if (!mounted || !started || complete || awaitingSave) return;
+    pendingVideoResult = success;
+    tick();
   }
 
   Future<void> answer(bool yes, {String? outcome, String? recognized}) async {
-    if (saving || complete || awaitingSave || restUntil != null) return;
-    final remaining =
-        step.workSeconds - DateTime.now().difference(stepStartedAt!).inSeconds;
+    if (!foreground ||
+        saving ||
+        complete ||
+        awaitingSave ||
+        restUntil != null ||
+        enteringRest ||
+        promptPending) {
+      return;
+    }
+    final remaining = remainingSeconds;
     if (remaining > 0) {
       notice('작업 시간이 ${clock(remaining)} 남았습니다.');
       return;
@@ -388,6 +414,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         setState(() => questionIndex++);
       } else if (index + 1 < work!.steps.length) {
         setState(() {
+          pendingVideoResult = null;
+          stepRestSeconds = 0;
           index++;
           questionIndex = 0;
           stepStartedAt = DateTime.now();
@@ -406,7 +434,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> finish() async {
-    if (complete || pendingRecord?['server_submitted'] == true) return;
+    if (submitting || complete || pendingRecord?['server_submitted'] == true) {
+      return;
+    }
+    submitting = true;
     setState(() => saving = true);
     try {
       final id = await TokenStorageService().userId();
@@ -434,23 +465,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           'server_submitted': false
         };
       }
-      await logs.save(id, pendingRecord!);
-      final resultId = await api.submitWorkResult(
-          Map<String, dynamic>.from(pendingRecord!['request'] as Map));
+      final outcome =
+          await ResultSubmissionService(api, logs).send(id, pendingRecord!);
       pendingRecord!['server_submitted'] = true;
-      pendingRecord!['result_id'] = resultId;
-      // Server success is retained even if updating the local history fails.
-      try {
-        await logs.save(id, pendingRecord!);
-      } catch (_) {
+      pendingRecord!['result_id'] = outcome.resultId;
+      if (!outcome.persistedLocally) {
         notice('서버에 저장됐지만 기기 내 기록 갱신에 실패했습니다.');
       }
       if (!mounted) return;
-      setState(() => complete = true);
+      setState(() {
+        complete = true;
+        awaitingSave = false;
+      });
     } catch (e) {
       notice(
           e is ApiFailure ? e.message : '결과 저장에 실패했습니다. 기록에서 다시 전송할 수 있습니다.');
     } finally {
+      submitting = false;
       if (mounted) setState(() => saving = false);
     }
   }
@@ -458,7 +489,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   Future<void> beginScheduledRest(RestWindow window) async {
     try {
       await stopAudio();
-      if (!mounted) return;
+      if (!mounted || !DateTime.now().isBefore(window.end)) return;
       setState(() {
         restStartedAt = DateTime.now();
         restUntil = window.end;
@@ -485,7 +516,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       'ended_at': end.toIso8601String(),
       'work_seconds': seconds
     });
-    stepStartedAt = stepStartedAt?.add(Duration(seconds: seconds));
+    stepRestSeconds += seconds;
     setState(() {
       restStartedAt = null;
       restUntil = null;

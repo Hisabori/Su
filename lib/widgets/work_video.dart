@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -15,7 +16,7 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
   VideoPlayerController? video;
   YoutubePlayerController? youtube;
   String? error;
-  bool reported = false;
+  bool reported = false, foreground = true;
   void report(bool success) {
     if (!reported && mounted) {
       reported = true;
@@ -58,9 +59,9 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
     final controller = VideoPlayerController.networkUrl(uri);
     video = controller;
     try {
-      await controller.initialize();
+      await controller.initialize().timeout(const Duration(seconds: 20));
       if (!mounted) return;
-      await controller.play();
+      if (foreground) await controller.play();
       controller.addListener(() {
         if (controller.value.hasError) {
           report(false);
@@ -78,10 +79,17 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
-      video?.pause();
+    foreground = state == AppLifecycleState.resumed;
+    if (!foreground) {
+      unawaited(pauseVideo());
       youtube?.pause();
     }
+  }
+
+  Future<void> pauseVideo() async {
+    try {
+      await video?.pause();
+    } catch (_) {}
   }
 
   @override

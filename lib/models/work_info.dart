@@ -24,10 +24,13 @@ class WorkStep {
     final question = json['question'];
     return WorkStep(
         order: integer(json['display_order']) ?? 0,
-        workSeconds: integer(json['work_seconds']) ?? 0,
+        workSeconds: (integer(json['work_seconds']) ?? 0).clamp(0, 86400),
         id: '$id',
         name: name,
-        prompt: (json['start_ment'] ?? json['description'] ?? name).toString(),
+        prompt: [json['start_ment'], json['description'], name]
+            .whereType<String>()
+            .map((s) => s.trim())
+            .firstWhere((s) => s.isNotEmpty, orElse: () => '단계를 확인해 주세요.'),
         videoPath: json['video_path']?.toString(),
         startTime: json['start_time']?.toString(),
         questions: question is String && question.trim().isNotEmpty

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/token_storage_service.dart';
 import '../services/work_log_service.dart';
+import '../services/result_submission_service.dart';
 
 class ResultLogScreen extends StatefulWidget {
   const ResultLogScreen({super.key});
@@ -52,13 +53,14 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
     try {
       final id = await TokenStorageService().userId();
       if (id == null) throw ApiFailure('다시 로그인해 주세요.');
-      final request = record['request'];
-      if (request is! Map) throw ApiFailure('전송할 결과 정보가 없습니다.');
-      final resultId =
-          await api.submitWorkResult(Map<String, dynamic>.from(request));
+      final outcome =
+          await ResultSubmissionService(api, WorkLogService()).send(id, record);
       record['server_submitted'] = true;
-      record['result_id'] = resultId;
-      await WorkLogService().save(id, record);
+      record['result_id'] = outcome.resultId;
+      if (!outcome.persistedLocally && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('서버 저장 완료. 기기 내 기록 갱신에 실패했습니다.')));
+      }
       if (mounted) setState(() => records = load());
     } catch (e) {
       if (mounted) {
