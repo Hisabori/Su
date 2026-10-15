@@ -1,0 +1,55 @@
+name: iOS Sideload IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-sideload-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - name: Tool versions
+        run: |
+          flutter --version
+          xcodebuild -version
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+      - name: Build unsigned IPA
+        run: bash scripts/build-sideload.sh
+      - name: Verify package
+        run: |
+          unzip -t build/ios/ipa/suhoangel-unsigned.ipa
+          test -f build/ios/iphoneos/Runner.app/Runner
+          /usr/bin/lipo -archs build/ios/iphoneos/Runner.app/Runner
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: suhoangel-unsigned-ipa
+          path: build/ios/ipa/suhoangel-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build summary
+        run: |
+          echo '### Sideload build' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download suhoangel-unsigned-ipa from this run, extract the IPA and re-sign with AltStore or Sideloadly.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This is an initial app reconstruction. Server integration remains unverified and is disabled by default.' >> "$GITHUB_STEP_SUMMARY"
