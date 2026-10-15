@@ -50,3 +50,13 @@ The scrollable layout preserves access to controls on compact screens and at lar
 text sizes. Scheduling, draft recovery, submission receipts and retries are retained.
 The active question/video screen and history remain partial reconstructions;
 this release does not claim pixel-perfect restoration of all original screens.
+
+### 1.2.2: identify and apply PWA updates
+
+The login screen displays v1.2.2 / build 7 to identify the loaded Flutter bundle.
+A waiting service worker now presents “새 버전 적용”. Only explicit confirmation
+sends ACTIVATE_UPDATE, activates the worker and reloads the requesting tab once.
+Other tabs are not forcibly reloaded. Existing drafts, session vault and local
+work records are preserved. The index requests a revised pwa.js URL so an older
+asset allowlist cannot hide the new update UI after a network navigation.
+This is an update-delivery fix; it is not a full redesign of the original APK UI.

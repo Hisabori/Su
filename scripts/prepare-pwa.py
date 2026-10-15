@@ -16,6 +16,11 @@ const urls = ASSETS.map(path => new URL(path, self.registration.scope).href);
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(urls)));
 });
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'ACTIVATE_UPDATE') {
+    event.waitUntil(self.skipWaiting());
+  }
+});
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(
     keys.filter(key => key.startsWith('suho-shell-') && key !== CACHE).map(key => caches.delete(key))

@@ -18,6 +18,8 @@
     html,body {margin:0;height:100%;background:#f7fbfa;font-family:system-ui,sans-serif;color:#235852}
     #loading {height:100%;display:flex;align-items:center;justify-content:center;text-align:center}
     #loading img {width:100px;height:100px;object-fit:contain}
+    #pwa-update {position:fixed;bottom:12px;left:12px;right:12px;z-index:2147483647;padding:14px;background:#fff;color:#111;box-shadow:0 2px 12px #0003;border-radius:12px;display:flex;gap:12px;align-items:center;font-size:14px}
+    #pwa-update button {background:#104b83;color:white;border:0;border-radius:8px;padding:12px;flex-shrink:0}
     #reload {color:#235852;padding:12px;margin:16px;display:none}
   </style>
 </head>
@@ -25,7 +27,7 @@
   <div id="loading" role="status"><div><img src="mascot.png" alt=""><p id="loading-text">수호천사를 준비하고 있어요.</p><button id="reload" onclick="location.reload()">다시 불러오기</button></div></div>
   <noscript>수호천사를 사용하려면 브라우저에서 JavaScript를 켜 주세요.</noscript>
   <script src="passkeys.js"></script>
-  <script src="pwa.js" defer></script>
+  <script src="pwa.js?update=2" defer></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

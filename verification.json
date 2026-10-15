@@ -6,7 +6,7 @@
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
   "server_contract_source": "APK AOT ARM64 analysis",
-  "version": "1.2.1+6",
+  "version": "1.2.2+7",
   "tests_passed": 22,
   "stability_checks": [
     "concurrent local writes",
@@ -23,5 +23,6 @@
   "passkey_browser_ui": "passed: enrollment, legacy cleanup, lock, unlock, server expiry rejection, refresh, disable",
   "native_ipa_passkeys": "not_supported",
   "login_ui_source": "APK AOT layout/colors and original assets; partial visual restoration, not pixel-identical",
-  "status_ui_source": "APK AppMessageScreenLayout, WorkStatusScreen and ResultScreen AOT: logo, portrait/landscape grouping, message colors and recovered copy; partial reconstruction"
+  "status_ui_source": "APK AppMessageScreenLayout, WorkStatusScreen and ResultScreen AOT: logo, portrait/landscape grouping, message colors and recovered copy; partial reconstruction",
+  "pwa_update": "explicit consent before activation; waiting worker banner; no automatic reload"
 }
