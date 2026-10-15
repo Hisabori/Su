@@ -52,4 +52,4 @@ jobs:
         run: |
           echo '### Sideload build' >> "$GITHUB_STEP_SUMMARY"
           echo 'Download suhoangel-unsigned-ipa from this run, extract the IPA and re-sign with AltStore or Sideloadly.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'This is an initial app reconstruction. Server integration remains unverified and is disabled by default.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Reconstructed from APK AOT evidence. Live-account and physical-iPhone validation is still required.' >> "$GITHUB_STEP_SUMMARY"

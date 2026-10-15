@@ -6,9 +6,10 @@ import 'package:suho_angel/services/api_service.dart';
 import 'package:suho_angel/utils/password_utils.dart';
 
 void main() {
-  test('unverified API contract makes no login request', () async {
+  test('disabled API makes no login request', () async {
     var calls = 0;
     final api = ApiService(
+      enabled: false,
       client: MockClient((_) async {
         calls++;
         return http.Response('{}', 200);

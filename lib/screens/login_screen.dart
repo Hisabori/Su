@@ -16,6 +16,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool busy = false;
   String? error;
   @override
+  void initState() {
+    super.initState();
+    restoreSession();
+  }
+
+  Future<void> restoreSession() async {
+    setState(() => busy = true);
+    try {
+      final token = await api.tokens.read();
+      if (token == null || token.isEmpty) return;
+      await api.validateToken();
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const WorkScreen()));
+    } catch (_) {
+      /* Network failure keeps local credentials for a later attempt. */
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
   void dispose() {
     username.dispose();
     password.dispose();

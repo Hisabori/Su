@@ -1,9 +1,9 @@
 {
   "flutter": "3.47.7",
   "dart": "3.13.5",
+  "source_apk_dart": "3.8.1",
   "analyze": "passed",
-  "tests": 4,
-  "ios_build": "not_run_linux_no_xcode",
-  "server_integration": "unverified",
-  "ipa": "not_generated"
+  "live_account_tests": "not_run",
+  "physical_iphone_tests": "not_run",
+  "server_contract_source": "APK AOT ARM64 analysis"
 }
