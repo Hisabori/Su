@@ -51,10 +51,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final deviceChecks = <Map<String, dynamic>>[];
   Map<String, dynamic>? pendingRecord;
   DateTime? scheduleAnchor, plannedStart;
-  bool enteringRest = false,
-      promptPending = false,
-      loggingOut = false,
-      automaticEnd = false;
+  bool enteringRest = false, promptPending = false, automaticEnd = false;
   DateTime? get stepSchedule =>
       started ? WorkSchedule.timeOnDay(step.startTime, startedAt!) : null;
   Timer? timer;
@@ -119,7 +116,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   : work!.startTime,
               DateTime.now());
         });
-        await restoreDraft();
+        if (!await restoreCompletion()) await restoreDraft();
       }
     } catch (e) {
       if (mounted) {
@@ -161,6 +158,25 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     } catch (_) {
       if (!draftWarning) notice('기기 내 자동 저장에 실패했습니다. 창을 닫기 전에 작업을 완료해 주세요.');
       draftWarning = true;
+    }
+  }
+
+  Future<bool> restoreCompletion() async {
+    if (sessionUser == null) return false;
+    try {
+      final record = await logs.completedAssignment(
+          sessionUser!, drafts.signature(work!), DateTime.now());
+      if (record == null || !mounted) return false;
+      setState(() {
+        pendingRecord = record;
+        startedAt = DateTime.parse(record['started_at'] as String);
+        complete = true;
+        started = false;
+        awaitingSave = false;
+      });
+      return true;
+    } catch (_) {
+      throw ApiFailure('완료 기록을 확인하지 못했습니다. 기기 저장 공간을 확인한 뒤 다시 시도해 주세요.');
     }
   }
 
@@ -206,16 +222,6 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   void tick() {
     if (!mounted || !foreground) return;
-    if (complete &&
-        !loggingOut &&
-        scheduleAnchor != null &&
-        !DateTime.now().isBefore(scheduleAnchor!
-            .add(WorkSchedule.workDuration + WorkSchedule.checkoutGrace)) &&
-        ModalRoute.of(context)?.isCurrent == true) {
-      loggingOut = true;
-      logout();
-      return;
-    }
     if (started &&
         !complete &&
         !awaitingSave &&
@@ -238,6 +244,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       readPrompt();
     }
     if (!started &&
+        !complete &&
         !loading &&
         error == null &&
         work!.steps.isNotEmpty &&
@@ -554,6 +561,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
             deviceChecks: deviceChecks);
         pendingRecord = {
           'record_id': payload.request['packetid'],
+          'assignment_signature': drafts.signature(work!),
           'work_id': work!.id,
           'work_name': work!.name,
           'started_at': startedAt!.toIso8601String(),

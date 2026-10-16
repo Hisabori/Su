@@ -84,3 +84,17 @@ kiosk_info response; the example name and 0/1000 are not production defaults.
 Invalid/missing capacities display “용량 미확인”, not a false 0% reading.
 Closing the modal keeps the active question and existing device-check logging.
 The video step behind the supplied modal remains outside this dialog change.
+
+### 1.3.2: checkout login errors and durable completion
+
+Original AuthProvider.login (0x428c5c–0x428d24) maps ret 2 to incorrect password,
+3 to missing user, 4 to no login permission, 5 to inactive account, and 6 to
+weekend/public holiday restriction. Restore those messages and show the response
+code; do not misclassify every rejection as credentials or time restrictions.
+The server still decides whether post-checkout login is allowed. No authentication
+bypass or forced successful login is introduced.
+Remove automatic logout from the completed screen. Explicit checkout still calls
+the original logout endpoint and clears the session. Store an assignment signature
+in confirmed results; on reload after successful authentication, restore same-day,
+same-user, same-assignment completion instead of restarting questions. Pending
+results, other users, other assignments and other days cannot establish completion.

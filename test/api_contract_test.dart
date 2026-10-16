@@ -34,6 +34,27 @@ class MemorySession extends TokenStorageService {
 
 void main() {
   test(
+      'original login rejection codes retain their meaning and never create a session',
+      () async {
+    for (final entry
+        in {2: '비밀번호', 3: '존재하지', 4: '권한', 5: '비활성화', 6: '주말'}.entries) {
+      final session = MemorySession();
+      final api = ApiService(
+          tokens: session,
+          client: MockClient(
+              (_) async => http.Response(jsonEncode({'ret': entry.key}), 200)));
+      await expectLater(
+          api.login('test', 'fake'),
+          throwsA(isA<ApiFailure>()
+              .having((e) => e.code, 'code', entry.key)
+              .having((e) => e.message, 'message', contains(entry.value))));
+      expect(session.token, isNull);
+      expect(session.id, isNull);
+      api.close();
+    }
+  });
+
+  test(
       'login uses PUT with a hash and work lookup sends the authenticated user id',
       () async {
     final session = MemorySession();

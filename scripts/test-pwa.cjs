@@ -4,18 +4,19 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
- const errors=[], calls=[];let saves=0;
+ const errors=[], calls=[];let saves=0, checkedOut=false;
  await context.route('https://api-suho1004.innaim.com/**',async route=>{
   const req=route.request();const path=new URL(req.url()).pathname;
   if(req.method()==='OPTIONS') return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'PUT','access-control-allow-headers':'content-type,authorization'}});
   const body=req.postDataJSON();calls.push({path,method:req.method(),body});
   let reply;
-  if(path.endsWith('/login')) reply={ret:1,user_id:42,access_token:'browser-test-only',company_device_name:'test-partner',kiosk_id:'test-kiosk'};
+  if(path.endsWith('/login') && checkedOut) reply={ret:4};
+  else if(path.endsWith('/login')) reply={ret:1,user_id:42,access_token:'browser-test-only',company_device_name:'test-partner',kiosk_id:'test-kiosk'};
   else if(path.endsWith('/kiosk_info')) { assert.deepEqual(body,{partnerId:'test-partner'}); reply={ret:1,kiosks:[{kioskId:'test-kiosk',name:'수호천사05',currentCapacity:0,maxCapacity:1000,isAvailable:true}]}; }
   else if(path.endsWith('/validate_token')) reply={ret:1};
   else if(path.endsWith('/work_info')) reply={ret:1,work:{work_id:8,work_name:'검증 업무'},process:{current_version_id:1},steps:[{step_id:1,step_name:'첫 단계',start_ment:'첫 번째 확인',work_seconds:0,display_order:1},{step_id:2,step_name:'두 번째 단계',start_ment:'두 번째 확인',work_seconds:0,display_order:2}]};
   else if(path.endsWith('/work_result')) {saves++;reply={ret:1,result_id:99};}
-  else if(path.endsWith('/logout')) reply={ret:1};
+  else if(path.endsWith('/logout')) {checkedOut=true;reply={ret:1};}
   else throw Error(`Unexpected API: ${path}`);
   await route.fulfill({status:200,headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'},body:JSON.stringify(reply)});
  });
@@ -66,6 +67,19 @@ const assert=require('node:assert/strict');
  assert.equal(await page.getByRole('button',{name:'결과 재전송'}).count(),0);
  console.log('PASS result acknowledged once; history has no retry');
 
+ await page.reload();await ready();
+ await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'작업 시작',exact:true}).count(),0);
+ assert.equal(saves,1);
+ assert.equal(calls.filter(c=>c.path.endsWith('/logout')).length,0);
+ console.log('PASS reload preserves confirmed completion without restart or automatic logout');
+ await page.getByRole('button',{name:'퇴근하기',exact:true}).click();
+ await page.locator('input').nth(0).click();await page.keyboard.type('demo');
+ await page.locator('input').nth(1).click();await page.keyboard.type('fake-password');
+ await page.getByRole('button',{name:'로그인',exact:true}).click();
+ await page.getByText('로그인 권한이 없습니다. (응답 코드: 4)',{exact:true}).last().waitFor();
+ assert.equal(saves,1);
+ console.log('PASS checkout respects server logout; subsequent denial reports original login reason');
  assert.equal(errors.length,0,errors.join('\n'));
  await page.evaluate(()=>navigator.serviceWorker.ready);
  await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);

@@ -7,7 +7,8 @@ import 'token_storage_service.dart';
 
 class ApiFailure implements Exception {
   final String message;
-  ApiFailure(this.message);
+  final int? code;
+  ApiFailure(this.message, {this.code});
   @override
   String toString() => message;
 }
@@ -29,7 +30,7 @@ class ApiService {
     return uri.resolve(path);
   }
 
-  Map<String, dynamic> _decode(http.Response response) {
+  Map<String, dynamic> _decode(http.Response response, String path) {
     if (response.statusCode == 401 || response.statusCode == 403) {
       throw ApiFailure('로그인이 필요하거나 접근 권한이 없습니다.');
     }
@@ -45,11 +46,12 @@ class ApiService {
     }
     if (data is! Map<String, dynamic>) throw ApiFailure('서비스 응답을 확인할 수 없습니다.');
     final ret = integer(data['ret']);
-    if (ret != null && ret != 0 && ret != 1) {
+    if (!path.endsWith('/login') && ret != null && ret != 0 && ret != 1) {
       throw ApiFailure(
           data['message'] is String && (data['message'] as String).isNotEmpty
               ? data['message'] as String
-              : '요청이 거절되었습니다. 로그인 정보와 이용 가능 시간을 확인해 주세요.');
+              : '서버에서 요청을 거절했습니다. (응답 코드: $ret)',
+          code: ret);
     }
     return data;
   }
@@ -76,7 +78,7 @@ class ApiService {
               ...body
             }))
         .timeout(const Duration(seconds: 20));
-    return _decode(response);
+    return _decode(response, path);
   }
 
   Future<void> login(String username, String password) async {
@@ -84,7 +86,22 @@ class ApiService {
     final data = await _put(ApiConfig.loginPath,
         {'username': username, 'password': encodePassword(password, 'sha256')},
         auth: false);
-    if (integer(data['ret']) != 1) throw ApiFailure('로그인 요청이 거절되었습니다.');
+    final ret = integer(data['ret']);
+    if (ret != 1) {
+      // Recovered AuthProvider.login branches at 0x428c5c–0x428d24.
+      final message = switch (ret) {
+        2 => '비밀번호가 올바르지 않습니다.',
+        3 => '존재하지 않는 사용자입니다.',
+        4 => '로그인 권한이 없습니다.',
+        5 => '비활성화된 계정입니다. 관리자에게 문의하세요.',
+        6 => '주말 또는 공휴일에는 근무를 시작할 수 없습니다.',
+        _ => data['message'] is String &&
+                (data['message'] as String).trim().isNotEmpty
+            ? data['message'] as String
+            : '서버에서 로그인 요청을 거절했습니다.',
+      };
+      throw ApiFailure('$message (응답 코드: ${ret ?? "미확인"})', code: ret);
+    }
     final token = data['access_token'];
     final refresh = data['refresh_token'];
     final userId = integer(data['user_id']);

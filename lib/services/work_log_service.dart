@@ -70,6 +70,29 @@ class WorkLogService {
     return records;
   }
 
+  /// Only a confirmed receipt for this user, assignment and day is completion.
+  Future<Map<String, dynamic>?> completedAssignment(
+      int userId, String signature, DateTime day) async {
+    for (final record in await load(userId)) {
+      final ended =
+          DateTime.tryParse(record['ended_at']?.toString() ?? '')?.toLocal();
+      final started = DateTime.tryParse(record['started_at']?.toString() ?? '');
+      final request = record['request'];
+      if (record['server_submitted'] == true &&
+          record['assignment_signature'] == signature &&
+          request is Map &&
+          request['user_id'] == userId &&
+          ended != null &&
+          started != null &&
+          ended.year == day.year &&
+          ended.month == day.month &&
+          ended.day == day.day) {
+        return record;
+      }
+    }
+    return null;
+  }
+
   Future<void> save(int userId, Map<String, dynamic> record) {
     final snapshot = jsonDecode(jsonEncode(record)) as Map<String, dynamic>;
     return _write(() async {
