@@ -14,6 +14,7 @@ import '../widgets/work_video.dart';
 import '../widgets/work_message.dart';
 import '../widgets/question_panel.dart';
 import '../widgets/kiosk_status_dialog.dart';
+import '../widgets/completion_panel.dart';
 import 'result_log_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
@@ -31,6 +32,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final logs = WorkLogService();
   final drafts = WorkDraftService();
   int? sessionUser;
+  String? displayName;
   DateTime? lastCheckpoint;
   bool draftWarning = false;
   WorkInfo? work;
@@ -47,6 +49,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool foreground = true, submitting = false;
   bool? pendingVideoResult;
   bool speaking = false;
+  bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
+  List<Map<String, dynamic>> completedHistory = [];
   final answers = <Map<String, dynamic>>[];
   final deviceChecks = <Map<String, dynamic>>[];
   Map<String, dynamic>? pendingRecord;
@@ -106,6 +110,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     try {
       final data = await api.getWorkInfo();
       sessionUser = await api.tokens.userId();
+      final profile = await api.tokens.device();
+      displayName =
+          profile['name'] is String ? profile['name'] as String : null;
       if (mounted) {
         setState(() {
           work = data;
@@ -644,6 +651,35 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> checkout() async {
+    if (checkingOut || checkedOut || !complete) return;
+    setState(() => checkingOut = true);
+    try {
+      try {
+        completedHistory =
+            sessionUser == null ? [] : await logs.load(sessionUser!);
+      } catch (_) {
+        completedHistory = pendingRecord == null ? [] : [pendingRecord!];
+      }
+      await stopAudio();
+      try {
+        await api.logout();
+        checkoutConfirmed = true;
+      } catch (_) {
+        checkoutConfirmed = false;
+        notice('기기에서 퇴근 처리했습니다. 서버 로그아웃은 확인하지 못했습니다.');
+      }
+      if (!mounted) return;
+      setState(() {
+        checkedOut = true;
+        checkingOut = false;
+        started = false;
+      });
+    } finally {
+      if (mounted && checkingOut) setState(() => checkingOut = false);
+    }
+  }
+
   Future<void> logout() async {
     if (started && !complete) {
       final ok = await showDialog<bool>(
@@ -680,9 +716,6 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
-  String timeLabel(DateTime time) =>
-      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-
   Widget content() {
     if (loading) return const Center(child: CircularProgressIndicator());
     if (error != null) {
@@ -695,32 +728,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     final info = work!;
     if (complete) {
-      return WorkMessage(title: '수고하셨습니다.', children: [
-        const Text('오늘도 수고하셨습니다!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF5A83A7), fontSize: 22)),
-        const SizedBox(height: 16),
-        const Text('서버에 작업 결과를 저장했습니다.', textAlign: TextAlign.center),
-        if (startedAt != null) ...[
-          const SizedBox(height: 16),
-          Text(
-              '${timeLabel(startedAt!)}에 일을 시작 하셨고,\n'
-              '${timeLabel(DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? '') ?? DateTime.now())}에 일을 마무리 하셨습니다.',
-              textAlign: TextAlign.center),
-        ],
-        const SizedBox(height: 24),
-        OutlinedButton(
-            onPressed: saving || awaitingSave
-                ? null
-                : () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                        builder: (_) => const ResultLogScreen())),
-            child: const Text('근무기록 자세히 보기')),
-        const SizedBox(height: 12),
-        FilledButton(
-            onPressed: saving ? null : logout, child: const Text('퇴근하기')),
-      ]);
+      return CompletionPanel(
+        name: displayName,
+        start: startedAt,
+        end: DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? ''),
+        onDevice: checkedOut || checkingOut ? null : showDevice,
+        onHistory: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+                builder: (_) => ResultLogScreen(
+                    readOnlyRecords: checkedOut ? completedHistory : null))),
+        onCheckout: saving || checkingOut || checkedOut ? null : checkout,
+        checkoutLabel: checkingOut
+            ? '퇴근 처리 중…'
+            : checkedOut
+                ? (checkoutConfirmed ? '퇴근 완료' : '퇴근 완료 · 서버 확인 필요')
+                : '퇴근하기',
+      );
     }
     if (!started) {
       return WorkMessage(title: '안녕하세요!', children: [
@@ -920,7 +944,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       canPop: !started || complete,
       child: Scaffold(
           backgroundColor: const Color(0xFFF2F2F2),
-          appBar: questionVisible
+          appBar: questionVisible || complete
               ? null
               : AppBar(
                   backgroundColor: const Color(0xFFF2F2F2),

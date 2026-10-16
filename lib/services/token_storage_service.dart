@@ -79,7 +79,8 @@ class TokenStorageService {
       'auth_device',
       jsonEncode({
         'company_device_name': login['company_device_name'],
-        'kiosk_id': login['kiosk_id']
+        'kiosk_id': login['kiosk_id'],
+        'name': login['name'] is String ? login['name'] : null
       }));
   Future<Map<String, dynamic>> device() async {
     final raw = await _read('auth_device');

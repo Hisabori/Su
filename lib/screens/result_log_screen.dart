@@ -5,7 +5,8 @@ import '../services/work_log_service.dart';
 import '../services/result_submission_service.dart';
 
 class ResultLogScreen extends StatefulWidget {
-  const ResultLogScreen({super.key});
+  const ResultLogScreen({super.key, this.readOnlyRecords});
+  final List<Map<String, dynamic>>? readOnlyRecords;
   @override
   State<ResultLogScreen> createState() => _ResultLogScreenState();
 }
@@ -27,13 +28,18 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
   }
 
   Future<List<Map<String, dynamic>>> load() async {
+    if (widget.readOnlyRecords != null) return widget.readOnlyRecords!;
     final id = await TokenStorageService().userId();
     if (id == null) throw StateError('No session');
     return WorkLogService().load(id);
   }
 
   Future<void> retry(Map<String, dynamic> record) async {
-    if (sending || record['server_submitted'] == true) return;
+    if (widget.readOnlyRecords != null ||
+        sending ||
+        record['server_submitted'] == true) {
+      return;
+    }
     final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -98,7 +104,9 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                       subtitle: Text(
                           '${record['ended_at']}\n${sent ? '서버 저장 완료' : '서버 저장 미확인'}'),
                       isThreeLine: true,
-                      trailing: !sent && record['request'] is Map
+                      trailing: widget.readOnlyRecords == null &&
+                              !sent &&
+                              record['request'] is Map
                           ? IconButton(
                               tooltip: '결과 재전송',
                               onPressed: sending ? null : () => retry(record),

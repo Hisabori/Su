@@ -1,0 +1,168 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+
+String completionTime(DateTime value) =>
+    '${value.hour < 12 ? '오전' : '오후'} ${value.hour % 12 == 0 ? 12 : value.hour % 12}:${value.minute.toString().padLeft(2, '0')}';
+
+class CompletionPanel extends StatelessWidget {
+  const CompletionPanel(
+      {super.key,
+      required this.name,
+      required this.start,
+      required this.end,
+      required this.onHistory,
+      required this.onCheckout,
+      required this.onDevice,
+      this.checkoutLabel = '퇴근하기'});
+  final String? name;
+  final DateTime? start, end;
+  final VoidCallback onHistory;
+  final VoidCallback? onDevice;
+  final String checkoutLabel;
+  final VoidCallback? onCheckout;
+
+  @override
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, bounds) {
+        final width = math.min(bounds.maxWidth, 600.0);
+        final scale = (width / 524).clamp(.7, 1.1);
+        final today = DateTime.now();
+        final prefix = start == null ||
+                (start!.year == today.year &&
+                    start!.month == today.month &&
+                    start!.day == today.day)
+            ? '오늘은 '
+            : '${start!.month}월 ${start!.day}일은 ';
+        final style = TextStyle(
+            fontFamily: 'NanumGothic',
+            fontSize: 29 * scale,
+            fontWeight: FontWeight.w800,
+            height: 1.6,
+            color: Colors.black);
+        const highlight = Color(0xFF5A83A7);
+        return ColoredBox(
+            color: const Color(0xFFEDF1F6),
+            child: SingleChildScrollView(
+                child: Center(
+                    child: SizedBox(
+                        width: width,
+                        height: math.max(bounds.maxHeight, 1100 * scale),
+                        child: Padding(
+                            padding:
+                                EdgeInsets.symmetric(horizontal: 64 * scale),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SizedBox(height: 20 * scale),
+                                  Align(
+                                      alignment: Alignment.centerRight,
+                                      child: SizedBox(
+                                          width: 50 * scale,
+                                          height: 50 * scale,
+                                          child: IconButton(
+                                              padding: EdgeInsets.zero,
+                                              tooltip: '기기 상태',
+                                              onPressed: onDevice,
+                                              icon: Image.asset(
+                                                  'assets/images/icon_device.png',
+                                                  fit: BoxFit.contain)))),
+                                  SizedBox(height: 44 * scale),
+                                  Image.asset('assets/images/logo.png',
+                                      height: 90 * scale,
+                                      fit: BoxFit.contain,
+                                      semanticLabel: '수호천사'),
+                                  SizedBox(height: 98 * scale),
+                                  Text.rich(
+                                      TextSpan(children: [
+                                        if (name != null &&
+                                            name!.trim().isNotEmpty) ...[
+                                          TextSpan(
+                                              text: name!.trim(),
+                                              style: const TextStyle(
+                                                  color: highlight)),
+                                          const TextSpan(text: ' 님,\n'),
+                                        ],
+                                        const TextSpan(text: '수고하셨습니다.'),
+                                      ]),
+                                      style: style),
+                                  SizedBox(height: 52 * scale),
+                                  Text.rich(
+                                      TextSpan(children: [
+                                        TextSpan(text: prefix),
+                                        if (start != null)
+                                          TextSpan(
+                                              text: completionTime(start!),
+                                              style: const TextStyle(
+                                                  color: highlight))
+                                        else
+                                          const TextSpan(
+                                              text: '시각 미확인',
+                                              style:
+                                                  TextStyle(color: highlight)),
+                                        const TextSpan(text: '에\n일을 시작 하셨고,\n'),
+                                        if (end != null)
+                                          TextSpan(
+                                              text: completionTime(end!),
+                                              style: const TextStyle(
+                                                  color: highlight))
+                                        else
+                                          const TextSpan(
+                                              text: '시각 미확인',
+                                              style:
+                                                  TextStyle(color: highlight)),
+                                        const TextSpan(
+                                            text: '에 일을\n마무리 하셨습니다.'),
+                                      ]),
+                                      style: style),
+                                  const Spacer(),
+                                  Semantics(
+                                      liveRegion: true,
+                                      child: const Text('서버에 작업 결과를 저장했습니다.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFF616970)))),
+                                  SizedBox(height: 14 * scale),
+                                  SizedBox(
+                                      height: 65 * scale,
+                                      child: FilledButton(
+                                          onPressed: onHistory,
+                                          style: FilledButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF104B83),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          26 * scale))),
+                                          child: Text('근무기록 자세히 보기',
+                                              style: TextStyle(
+                                                  fontFamily: 'NanumGothic',
+                                                  fontSize: 23 * scale,
+                                                  fontWeight:
+                                                      FontWeight.w800)))),
+                                  SizedBox(height: 24 * scale),
+                                  SizedBox(
+                                      height: 65 * scale,
+                                      child: OutlinedButton(
+                                          onPressed: onCheckout,
+                                          style: OutlinedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              foregroundColor:
+                                                  const Color(0xFF505050),
+                                              side: const BorderSide(
+                                                  color: Color(0xFF96999D)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          26 * scale))),
+                                          child: Text(checkoutLabel,
+                                              style: TextStyle(
+                                                  fontFamily: 'NanumGothic',
+                                                  fontSize: 23 * scale,
+                                                  fontWeight:
+                                                      FontWeight.w800)))),
+                                  SizedBox(height: 40 * scale),
+                                ]))))));
+      });
+}

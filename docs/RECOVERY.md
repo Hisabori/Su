@@ -98,3 +98,18 @@ the original logout endpoint and clears the session. Store an assignment signatu
 in confirmed results; on reload after successful authentication, restore same-day,
 same-user, same-assignment completion instead of restarting questions. Pending
 results, other users, other assignments and other days cannot establish completion.
+
+### 1.4.0: supplied completion screen and checkout without leaving the page
+
+Reconstructed the pale completion layout, compact logo, left-aligned greeting,
+blue name and Korean AM/PM recorded times, navy history button and white checkout
+button from the supplied Android screenshot. `name` comes from the original login
+response field and is retained inside existing session device metadata. Missing
+names are omitted. The screenshot's person and sample times are never defaults.
+Explicit checkout still calls the server logout endpoint and clears credentials,
+but now keeps this completion view rather than popping to login or exiting.
+The button becomes “퇴근 완료”; repeated checkout is disabled. If logout cannot
+be confirmed, the view says server confirmation is needed. The current user's
+already loaded local history remains available read-only in this open page.
+After reload the cleared session requires authentication again; no server access
+or result retransmission is granted by the in-memory history snapshot.

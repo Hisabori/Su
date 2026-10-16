@@ -34,7 +34,8 @@ void main() {
     data['recovery_work_logs_42'] = 'keep-records';
     await tokens.saveUserId(42);
     await tokens.save('fake-access', 'fake-refresh');
-    await tokens.saveDevice({'company_device_name': 'partner', 'kiosk_id': 7});
+    await tokens.saveDevice(
+        {'company_device_name': 'partner', 'kiosk_id': 7, 'name': '테스트 사용자'});
     final snapshot = await tokens.snapshot();
     expect(snapshot.containsKey('recovery_work_logs_42'), isFalse);
     await tokens.clearPersisted();
@@ -44,6 +45,7 @@ void main() {
     expect(await tokens.userId(), 42);
     expect(await tokens.read(), 'fake-access');
     expect((await tokens.device())['kiosk_id'], 7);
+    expect((await tokens.device())['name'], '테스트 사용자');
     expect(data['jwt_refresh_token'], 'fake-refresh');
   });
   test('invalid session import cannot erase a valid login or work records',
