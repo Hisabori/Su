@@ -12,6 +12,7 @@ import '../services/work_draft_service.dart';
 import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
 import '../widgets/work_message.dart';
+import '../widgets/question_panel.dart';
 import 'result_log_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
@@ -44,6 +45,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   int restSeconds = 0, stepRestSeconds = 0;
   bool foreground = true, submitting = false;
   bool? pendingVideoResult;
+  bool speaking = false;
   final answers = <Map<String, dynamic>>[];
   final deviceChecks = <Map<String, dynamic>>[];
   Map<String, dynamic>? pendingRecord;
@@ -66,6 +68,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    speech.onListeningChanged = (value) {
+      if (mounted) setState(() => listening = value);
+    };
+    tts.onSpeakingChanged = (value) {
+      if (mounted) setState(() => speaking = value);
+    };
     load();
   }
 
@@ -73,6 +81,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
+    tts.onSpeakingChanged = null;
+    speech.onListeningChanged = null;
     unawaited(stopAudio());
     api.close();
     super.dispose();
@@ -306,6 +316,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       return;
     }
     try {
+      await speech.stop();
+      if (!mounted) return;
+      setState(() => listening = false);
       await tts.speak(prompt);
     } catch (_) {
       notice('읽어주기를 시작하지 못했습니다.');
@@ -771,6 +784,30 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
             style: Theme.of(context).textTheme.displayMedium)
       ]);
     }
+    if (questionVisible) {
+      final total = info.steps.fold<int>(
+          0,
+          (sum, item) =>
+              sum + (item.questions.isEmpty ? 1 : item.questions.length));
+      final current = info.steps.take(index).fold<int>(
+              0,
+              (sum, item) =>
+                  sum + (item.questions.isEmpty ? 1 : item.questions.length)) +
+          questionIndex +
+          1;
+      return QuestionPanel(
+          prompt: prompt,
+          current: current,
+          total: total,
+          speaking: speaking,
+          listening: listening,
+          onReplay: readPrompt,
+          onSpeech: toggleSpeech,
+          onYes: saving ? null : () => answer(true),
+          onNo: saving ? null : () => answer(false),
+          onSettings: showSettings,
+          onDevice: showDevice);
+    }
     final elapsed =
         DateTime.now().difference(startedAt!).inSeconds - restSeconds;
     return ListView(padding: const EdgeInsets.all(24), children: [
@@ -823,48 +860,102 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     ]);
   }
 
+  bool get questionVisible =>
+      work != null &&
+      started &&
+      !complete &&
+      !awaitingSave &&
+      restUntil == null &&
+      (step.videoPath == null || step.videoPath!.isEmpty) &&
+      (stepSchedule == null || !DateTime.now().isBefore(stepSchedule!));
+
+  void showSettings() {
+    showModalBottomSheet<void>(
+        context: context,
+        builder: (sheet) => SafeArea(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                  leading: const Icon(Icons.key),
+                  title: const Text('패스키 로그인 설정'),
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (_) => const PasskeyScreen()));
+                  }),
+              ListTile(
+                  leading: const Icon(Icons.history),
+                  title: const Text('작업 기록'),
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (_) => const ResultLogScreen()));
+                  }),
+              if (PasskeyService().enrolled)
+                ListTile(
+                    leading: const Icon(Icons.lock_outline),
+                    title: const Text('앱 잠그기'),
+                    onTap: () {
+                      Navigator.pop(sheet);
+                      lockApp();
+                    }),
+              ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('로그아웃'),
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    logout();
+                  }),
+            ])));
+  }
+
   @override
   Widget build(BuildContext context) => PopScope(
       canPop: !started || complete,
       child: Scaffold(
           backgroundColor: const Color(0xFFF2F2F2),
-          appBar: AppBar(
-              backgroundColor: const Color(0xFFF2F2F2),
-              automaticallyImplyLeading: false,
-              title: const Text('수호천사'),
-              actions: [
-                if (PasskeyService().enrolled)
-                  IconButton(
-                      tooltip: '앱 잠그기',
-                      onPressed: saving ? null : lockApp,
-                      icon: const Icon(Icons.lock_outline)),
-                IconButton(
-                    tooltip: '패스키 로그인 설정',
-                    onPressed: saving || awaitingSave
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                                builder: (_) => const PasskeyScreen())),
-                    icon: const Icon(Icons.key)),
-                IconButton(
-                    tooltip: '기기 상태',
-                    onPressed: saving || awaitingSave ? null : showDevice,
-                    icon: const Icon(Icons.devices)),
-                IconButton(
-                    tooltip: '작업 기록',
-                    onPressed: saving || awaitingSave
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                                builder: (_) => const ResultLogScreen())),
-                    icon: const Icon(Icons.history)),
-                IconButton(
-                    tooltip: '로그아웃',
-                    onPressed: saving ? null : logout,
-                    icon: const Icon(Icons.logout))
-              ]),
+          appBar: questionVisible
+              ? null
+              : AppBar(
+                  backgroundColor: const Color(0xFFF2F2F2),
+                  automaticallyImplyLeading: false,
+                  title: const Text('수호천사'),
+                  actions: [
+                      if (PasskeyService().enrolled)
+                        IconButton(
+                            tooltip: '앱 잠그기',
+                            onPressed: saving ? null : lockApp,
+                            icon: const Icon(Icons.lock_outline)),
+                      IconButton(
+                          tooltip: '패스키 로그인 설정',
+                          onPressed: saving || awaitingSave
+                              ? null
+                              : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                      builder: (_) => const PasskeyScreen())),
+                          icon: const Icon(Icons.key)),
+                      IconButton(
+                          tooltip: '기기 상태',
+                          onPressed: saving || awaitingSave ? null : showDevice,
+                          icon: const Icon(Icons.devices)),
+                      IconButton(
+                          tooltip: '작업 기록',
+                          onPressed: saving || awaitingSave
+                              ? null
+                              : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                      builder: (_) => const ResultLogScreen())),
+                          icon: const Icon(Icons.history)),
+                      IconButton(
+                          tooltip: '로그아웃',
+                          onPressed: saving ? null : logout,
+                          icon: const Icon(Icons.logout))
+                    ]),
           body: SafeArea(
               child: Center(
                   child: ConstrainedBox(

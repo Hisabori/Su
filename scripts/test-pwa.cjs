@@ -35,12 +35,13 @@ const assert=require('node:assert/strict');
   await page.setViewportSize({width:390,height:844});
  }
  await page.getByRole('button',{name:'작업 시작',exact:true}).click();
- await page.getByRole('button',{name:'네',exact:true}).click();
+ if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(1200); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'question-panel.png')}); }
+ await page.getByRole('button',{name:'예',exact:true}).click();
  await page.getByText('두 번째 확인',{exact:true}).waitFor();
  await page.reload();await ready();
  await page.getByText('두 번째 확인',{exact:true}).waitFor({timeout:30000});
  console.log('PASS refresh restores step 2 with previous answer');
- await page.getByRole('button',{name:'네',exact:true}).click();
+ await page.getByRole('button',{name:'예',exact:true}).click();
  await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).waitFor();
  await page.getByRole('button',{name:'퇴근하기',exact:true}).waitFor();
  await page.getByText('수고하셨습니다.',{exact:true}).waitFor();

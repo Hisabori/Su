@@ -60,3 +60,17 @@ Other tabs are not forcibly reloaded. Existing drafts, session vault and local
 work records are preserved. The index requests a revised pwa.js URL so an older
 asset allowlist cannot hide the new update UI after a network navigation.
 This is an update-delivery fix; it is not a full redesign of the original APK UI.
+
+### 1.3.0: question screen from supplied Android screenshots
+
+The user supplied two original Android screenshots, showing speaking/listening
+states of question 5/19. Rebuilt the active question layout around those images:
+rounded white bordered card, overlaid original chr_rab.png, question/remaining
+counter, circular settings/device/replay controls, voice-state strip, blue “예”
+and orange “아니요” buttons, and the original chr_t.png on the green progress bar.
+Counts derive from actual steps/questions; no sample question count is hardcoded.
+Voice labels follow real TTS callbacks and speech recognition state. Replaying
+stops recognition first to avoid recognizing the app's own spoken prompt.
+Settings retain passkey, history, lock and logout access. Video steps retain their
+existing player UI. Small screens can scroll rather than clipping controls.
+This reconstructs the supplied question screen, not every original app screen.
