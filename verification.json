@@ -6,8 +6,8 @@
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
   "server_contract_source": "APK AOT ARM64 analysis",
-  "version": "1.3.0+8",
-  "tests_passed": 23,
+  "version": "1.3.1+9",
+  "tests_passed": 25,
   "stability_checks": [
     "concurrent local writes",
     "pending history retention",
@@ -25,5 +25,6 @@
   "login_ui_source": "APK AOT layout/colors and original assets; partial visual restoration, not pixel-identical",
   "status_ui_source": "APK AppMessageScreenLayout, WorkStatusScreen and ResultScreen AOT: logo, portrait/landscape grouping, message colors and recovered copy; partial reconstruction",
   "pwa_update": "explicit consent before activation; waiting worker banner; no automatic reload",
-  "question_ui_source": "Two user-supplied original Android screenshots, original APK rabbit/turtle/icons, actual question counts, real TTS/speech status"
+  "question_ui_source": "Two user-supplied original Android screenshots, original APK rabbit/turtle/icons, actual question counts, real TTS/speech status",
+  "kiosk_ui_source": "User-supplied Android kiosk status screenshot; assigned API kiosk values; missing capacity preserved as unknown"
 }

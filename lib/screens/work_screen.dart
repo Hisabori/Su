@@ -13,6 +13,7 @@ import '../services/result_submission_service.dart';
 import '../widgets/work_video.dart';
 import '../widgets/work_message.dart';
 import '../widgets/question_panel.dart';
+import '../widgets/kiosk_status_dialog.dart';
 import 'result_log_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
@@ -358,7 +359,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           ? '상태 미확인'
           : !available
               ? '사용 불가'
-              : current == null || max == null
+              : current == null || max == null || current < 0 || max <= 0
                   ? '상태 미확인'
                   : current >= max
                       ? '가득참'
@@ -378,14 +379,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       await showDialog<void>(
           context: context,
-          builder: (context) => AlertDialog(
-                  title: Text(name),
-                  content: Text('$status\n${current ?? '-'} / ${max ?? '-'}'),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('닫기'))
-                  ]));
+          builder: (context) => KioskStatusDialog(
+              name: name, status: status, current: current, capacity: max));
     } catch (e) {
       notice(e is ApiFailure ? e.message : '기기 현황을 불러오지 못했습니다.');
     }

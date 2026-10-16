@@ -74,3 +74,13 @@ stops recognition first to avoid recognizing the app's own spoken prompt.
 Settings retain passkey, history, lock and logout access. Video steps retain their
 existing player UI. Small screens can scroll rather than clipping controls.
 This reconstructs the supplied question screen, not every original app screen.
+
+### 1.3.1: kiosk status dialog from supplied screenshot
+
+Restored the supplied “키오스크 현황” modal: pale rounded shell, white capacity
+card, blue name, availability badge, capacity bar/percentage and outlined close
+button. Values still come from the assigned kiosk in the existing authenticated
+kiosk_info response; the example name and 0/1000 are not production defaults.
+Invalid/missing capacities display “용량 미확인”, not a false 0% reading.
+Closing the modal keeps the active question and existing device-check logging.
+The video step behind the supplied modal remains outside this dialog change.

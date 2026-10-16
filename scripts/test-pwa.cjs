@@ -10,7 +10,8 @@ const assert=require('node:assert/strict');
   if(req.method()==='OPTIONS') return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'PUT','access-control-allow-headers':'content-type,authorization'}});
   const body=req.postDataJSON();calls.push({path,method:req.method(),body});
   let reply;
-  if(path.endsWith('/login')) reply={ret:1,user_id:42,access_token:'browser-test-only'};
+  if(path.endsWith('/login')) reply={ret:1,user_id:42,access_token:'browser-test-only',company_device_name:'test-partner',kiosk_id:'test-kiosk'};
+  else if(path.endsWith('/kiosk_info')) { assert.deepEqual(body,{partnerId:'test-partner'}); reply={ret:1,kiosks:[{kioskId:'test-kiosk',name:'수호천사05',currentCapacity:0,maxCapacity:1000,isAvailable:true}]}; }
   else if(path.endsWith('/validate_token')) reply={ret:1};
   else if(path.endsWith('/work_info')) reply={ret:1,work:{work_id:8,work_name:'검증 업무'},process:{current_version_id:1},steps:[{step_id:1,step_name:'첫 단계',start_ment:'첫 번째 확인',work_seconds:0,display_order:1},{step_id:2,step_name:'두 번째 단계',start_ment:'두 번째 확인',work_seconds:0,display_order:2}]};
   else if(path.endsWith('/work_result')) {saves++;reply={ret:1,result_id:99};}
@@ -35,6 +36,14 @@ const assert=require('node:assert/strict');
   await page.setViewportSize({width:390,height:844});
  }
  await page.getByRole('button',{name:'작업 시작',exact:true}).click();
+ await page.getByRole('button',{name:'기기 상태',exact:true}).click();
+ await page.getByText('키오스크 현황',{exact:true}).waitFor();
+ await page.getByText('0.0%  (0/1000)',{exact:true}).waitFor();
+ await page.getByText('비어있음',{exact:true}).waitFor();
+ if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(500); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'kiosk-status.png')}); }
+ await page.getByRole('button',{name:'닫기',exact:true}).click();
+ await page.getByText('질문 1 / 2',{exact:true}).waitFor();
+ console.log('PASS assigned kiosk popup uses API values and returns to the same question');
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(1200); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'question-panel.png')}); }
  await page.getByRole('button',{name:'예',exact:true}).click();
  await page.getByText('두 번째 확인',{exact:true}).waitFor();
@@ -48,7 +57,9 @@ const assert=require('node:assert/strict');
  if(process.env.PWA_SCREENSHOT_DIR) await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-complete.png')});
  assert.equal(saves,1);
  const result=calls.find(c=>c.path.endsWith('/work_result'));
- assert.equal(result.method,'PUT');assert.equal(JSON.parse(result.body.result_json).length,2);
+ assert.equal(result.method,'PUT');assert.equal(JSON.parse(result.body.result_json).length,3);
+ assert.equal(JSON.parse(result.body.result_json).filter(row=>row.type==='device_check').length,1);
+ assert.equal(JSON.parse(result.body.result_json).find(row=>row.type==='device_check')['기기상태체크'],'비어있음');
  assert.equal(JSON.parse(result.body.result_json)[0]['비고'],1);
  await page.getByRole('button',{name:'근무기록 자세히 보기',exact:true}).click();
  await page.getByText('서버 저장 완료',{exact:false}).waitFor();
