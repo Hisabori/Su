@@ -52,7 +52,7 @@ const assert=require('node:assert/strict');
  await page.getByText('두 번째 확인',{exact:true}).waitFor({timeout:30000});
  console.log('PASS refresh restores step 2 with previous answer');
  await page.getByRole('button',{name:'예',exact:true}).click();
- await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).waitFor();
+ await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
  await page.getByRole('button',{name:'퇴근하기',exact:true}).waitFor();
  await page.getByText('수고하셨습니다.',{exact:false}).waitFor();
  if(process.env.PWA_SCREENSHOT_DIR) {await page.waitForTimeout(1000);await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-complete.png')});}
@@ -68,7 +68,7 @@ const assert=require('node:assert/strict');
  console.log('PASS result acknowledged once; history has no retry');
 
  await page.reload();await ready();
- await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).waitFor();
+ await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
  assert.equal(await page.getByRole('button',{name:'작업 시작',exact:true}).count(),0);
  assert.equal(saves,1);
  assert.equal(calls.filter(c=>c.path.endsWith('/logout')).length,0);
