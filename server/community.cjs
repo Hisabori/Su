@@ -21,7 +21,7 @@ function createCommunity({blob,fetcher=fetch,now=Date.now}){
  async function write(path,data){return blob.put(path,JSON.stringify(data),{access:'private',contentType:'application/json',addRandomSuffix:false,allowOverwrite:false});}
  async function upstream(path,body,token){
   let response;
-  try {response=await fetcher(UPSTREAM+path,{method:'PUT',headers:{'Content-Type':'application/json; charset=utf-8',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({packetid:`community_${now()}`, ...body}),signal:AbortSignal.timeout(20000)});}
+  try {response=await fetcher(UPSTREAM+path,{method:'PUT',headers:{'Content-Type':'application/json; charset=utf-8','Accept':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({packetid:`${path.split('/').pop()}_${now()}`, ...body}),signal:AbortSignal.timeout(20000)});}
   catch {fail(502,'로그인 서버에 연결하지 못했습니다. 다시 시도해 주세요.');}
   let data;
   try{data=await response.json();if(typeof data==='string')data=JSON.parse(data);}catch{fail(502,'로그인 서버 응답을 확인하지 못했습니다.');}

@@ -14,7 +14,9 @@ for attempt in {1..30}; do
   if curl --fail --silent http://127.0.0.1:8765/ > /dev/null; then break; fi
   sleep 0.2
 done
-node scripts/test-passkey-flow.cjs
-node scripts/test-pwa.cjs
-node scripts/test-video-flow.cjs
-node scripts/test-community-flow.cjs
+browser_status=0
+node scripts/test-passkey-flow.cjs || browser_status=1
+node scripts/test-pwa.cjs || browser_status=1
+node scripts/test-video-flow.cjs || browser_status=1
+node scripts/test-community-flow.cjs || browser_status=1
+exit "$browser_status"

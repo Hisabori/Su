@@ -14,6 +14,8 @@ function setup(){
  const handle=createCommunity({blob,now:()=>fixed,fetcher:async(url,options)=>{
   const body=JSON.parse(options.body);
   assert.equal(options.method,'PUT');
+  assert.equal(body.packetid,`${url.split('/').pop()}_${fixed}`);
+  assert.equal(options.headers.Accept,'application/json');
   if(url.endsWith('/login')){assert.match(body.password,/^[a-f0-9]{64}$/);return Response.json(loginReply);}
   assert.equal(url,'https://api-suho1004.innaim.com/api/user/validate_token');
   assert.equal(body.token,'verified-token');return Response.json({ret:valid?1:0});
