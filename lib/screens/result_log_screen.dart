@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
 import '../services/api_service.dart';
 import '../services/token_storage_service.dart';
 import '../services/work_log_service.dart';
@@ -116,7 +117,9 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
     showDialog<void>(
         context: context,
         builder: (dialog) => AlertDialog(
-              backgroundColor: const Color(0xFFEDF1F6),
+              backgroundColor: (AppStyle.isBeta(context)
+                  ? AppStyle.background
+                  : const Color(0xFFEDF1F6)),
               title: const Text('일일 근무 성과',
                   style: TextStyle(fontWeight: FontWeight.w800)),
               content: SizedBox(
@@ -149,7 +152,9 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                                       const SizedBox(height: 8),
                                       LinearProgressIndicator(
                                           value: progressOf(answer),
-                                          color: const Color(0xFF104B83),
+                                          color: (AppStyle.isBeta(context)
+                                              ? AppStyle.navy
+                                              : const Color(0xFF104B83)),
                                           minHeight: 8),
                                       Text(
                                           '배정 시간 대비 경과 ${(progressOf(answer)! * 100).round()}%'),
@@ -244,9 +249,13 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: const Color(0xFFEDF1F6),
+      backgroundColor: (AppStyle.isBeta(context)
+          ? AppStyle.background
+          : const Color(0xFFEDF1F6)),
       appBar: AppBar(
-          backgroundColor: const Color(0xFFEDF1F6),
+          backgroundColor: (AppStyle.isBeta(context)
+              ? AppStyle.background
+              : const Color(0xFFEDF1F6)),
           title: Text(showAll ? '근무 기록' : '오늘의 근무 기록')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
           future: records,

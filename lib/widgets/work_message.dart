@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
 
 /// Responsive reconstruction of the APK's AppMessageScreenLayout.
 class WorkMessage extends StatelessWidget {
@@ -22,21 +23,34 @@ class WorkMessage extends StatelessWidget {
               height: (landscape ? 118 : 138) * scale,
               fit: BoxFit.contain,
               semanticLabel: '수호천사');
-          final message = Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(title,
-                  textAlign: landscape ? TextAlign.start : TextAlign.center,
-                  style: TextStyle(
-                      color: const Color(0xFF111111),
-                      fontSize: 32 * scale,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4)),
-              SizedBox(height: 32 * scale),
-              ...children,
-            ],
-          );
+          final message = Container(
+              padding: AppStyle.isBeta(context)
+                  ? const EdgeInsets.all(28)
+                  : EdgeInsets.zero,
+              decoration: AppStyle.isBeta(context)
+                  ? BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: AppStyle.line),
+                      boxShadow: AppStyle.shadow)
+                  : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(title,
+                      textAlign: landscape ? TextAlign.start : TextAlign.center,
+                      style: TextStyle(
+                          color: AppStyle.isBeta(context)
+                              ? AppStyle.ink
+                              : const Color(0xFF111111),
+                          fontSize: 32 * scale,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4)),
+                  SizedBox(height: 32 * scale),
+                  ...children,
+                ],
+              ));
           return SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 32),
             child: ConstrainedBox(

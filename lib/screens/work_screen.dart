@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
+import '../theme/appearance_scope.dart';
 import '../models/work_info.dart';
 import '../models/work_result.dart';
 import '../models/work_schedule.dart';
@@ -900,7 +902,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        backgroundColor: const Color(0xFFF2F2F2),
+        backgroundColor: (AppStyle.isBeta(context)
+            ? AppStyle.background
+            : const Color(0xFFF2F2F2)),
         builder: (sheet) => StatefulBuilder(
             builder: (sheet, updateSheet) => ConstrainedBox(
                 constraints: BoxConstraints(
@@ -924,6 +928,27 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                     onPressed: () => Navigator.pop(sheet),
                                     icon: const Icon(Icons.close)),
                               ])),
+                          ListTile(
+                              leading: Icon(
+                                  AppearanceScope.of(sheet)?.enabled == true
+                                      ? Icons.toggle_on
+                                      : Icons.toggle_off),
+                              title: Text(
+                                  AppearanceScope.of(sheet)?.enabled == true
+                                      ? '베타버전 끄기'
+                                      : '베타버전 켜기'),
+                              subtitle: const Text('화면 스타일만 변경합니다.'),
+                              enabled:
+                                  AppearanceScope.of(sheet)?.saving != true,
+                              onTap: () async {
+                                final appearance = AppearanceScope.of(sheet);
+                                if (appearance == null) return;
+                                final saved = await appearance
+                                    .setEnabled(!appearance.enabled);
+                                if (!saved && mounted) {
+                                  notice('화면 설정을 저장하지 못했습니다. 다시 시도해 주세요.');
+                                }
+                              }),
                           SwitchListTile(
                               title: const Text('질문 자동 읽기'),
                               subtitle: Text(speechEnabled
@@ -997,7 +1022,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.5.0',
+                          const Text('수호천사 v1.6.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) setState(() => mediaBlocked = false);
@@ -1008,11 +1033,15 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) => PopScope(
       canPop: !started || complete,
       child: Scaffold(
-          backgroundColor: const Color(0xFFF2F2F2),
+          backgroundColor: (AppStyle.isBeta(context)
+              ? AppStyle.background
+              : const Color(0xFFF2F2F2)),
           appBar: questionVisible || complete
               ? null
               : AppBar(
-                  backgroundColor: const Color(0xFFF2F2F2),
+                  backgroundColor: (AppStyle.isBeta(context)
+                      ? AppStyle.background
+                      : const Color(0xFFF2F2F2)),
                   automaticallyImplyLeading: false,
                   title: const Text('수호천사'),
                   actions: [

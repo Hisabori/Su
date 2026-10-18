@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
 
 class KioskStatusDialog extends StatelessWidget {
   const KioskStatusDialog(
@@ -24,7 +25,9 @@ class KioskStatusDialog extends StatelessWidget {
     };
     return Dialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 26 * scale, vertical: 24),
-      backgroundColor: const Color(0xFFE9ECF1),
+      backgroundColor: (AppStyle.isBeta(context)
+          ? AppStyle.background
+          : const Color(0xFFE9ECF1)),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(36 * scale)),
       child: ConstrainedBox(
@@ -55,7 +58,9 @@ class KioskStatusDialog extends StatelessWidget {
                                 Expanded(
                                     child: Text(name,
                                         style: TextStyle(
-                                            color: const Color(0xFF1574B6),
+                                            color: (AppStyle.isBeta(context)
+                                                ? AppStyle.navy
+                                                : const Color(0xFF104B83)),
                                             fontSize: 26 * scale,
                                             fontWeight: FontWeight.w800))),
                                 SizedBox(width: 10 * scale),

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [ -n "${PWA_SCREENSHOT_DIR:-}" ]; then mkdir -p "$PWA_SCREENSHOT_DIR"; fi
 npm ci --ignore-scripts --prefix browser-tests --no-audit --no-fund
 export NODE_PATH="$PWD/browser-tests/node_modules"
 export CHROMIUM_PATH="${CHROMIUM_PATH:-/usr/bin/google-chrome}"

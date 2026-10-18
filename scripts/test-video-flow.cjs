@@ -2,6 +2,7 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
@@ -25,7 +26,7 @@ const fs=require('node:fs');
   else throw Error(`Unexpected API: ${path}`);
   return route.fulfill({status:200,headers:{...headers,'content-type':'application/json; charset=utf-8'},body:JSON.stringify(reply)});
  });
- const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+ const page=await context.newPage();debugPage=page;page.on('pageerror',e=>errors.push(e.message));
  await page.goto(process.env.PWA_TEST_URL||'http://127.0.0.1:8765/');
  await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());
  await page.locator('input').nth(0).fill('demo');await page.locator('input').nth(1).fill('fake');
@@ -52,4 +53,11 @@ const fs=require('node:fs');
  assert.equal(saves,1);assert.deepEqual(errors,[]);
  console.log('PASS failed video does not skip; retry plays real clip; modal pauses; completion saves once');
  await browser.close();
-})().catch(e=>{console.error(e);process.exit(1)});
+})().catch(async e=>{
+ if(debugPage && process.env.PWA_SCREENSHOT_DIR){
+  const base=require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'video-failure');
+  await debugPage.screenshot({path:base+'.png'}).catch(()=>{});
+  require('node:fs').writeFileSync(base+'.html',await debugPage.content());
+ }
+ console.error(e);process.exit(1);
+});

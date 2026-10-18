@@ -12,6 +12,17 @@ class AppPreferences {
     }
   }
 
+  Future<bool> betaEnabled() async {
+    try {
+      return await store.read('suho_pref_beta_enabled') == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> setBetaEnabled(bool enabled) =>
+      store.write('suho_pref_beta_enabled', enabled ? 'true' : 'false');
+
   Future<void> setSpeechEnabled(bool enabled) =>
       store.write('suho_pref_speech_enabled', enabled ? 'true' : 'false');
 }

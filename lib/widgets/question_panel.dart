@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
 
 class QuestionPanel extends StatelessWidget {
   const QuestionPanel(
@@ -49,11 +50,15 @@ class QuestionPanel extends StatelessWidget {
         final scale = (width / 414).clamp(.75, 1.25);
         final minHeight = math.max(bounds.maxHeight, 840 * scale + 20);
         final fraction = (current / total).clamp(0.0, 1.0);
-        final border = Border.all(color: const Color(0xFF596268), width: 2.3);
+        final border = Border.all(
+            color: (AppStyle.isBeta(context)
+                ? AppStyle.line
+                : const Color(0xFF596268)),
+            width: AppStyle.isBeta(context) ? 1.4 : 2.3);
         final textStyle = TextStyle(
             fontSize: 21 * scale,
             fontWeight: FontWeight.w800,
-            color: Colors.black,
+            color: AppStyle.isBeta(context) ? AppStyle.ink : Colors.black,
             height: 1.25);
         Widget answerButton(String text, Color color, VoidCallback? callback) =>
             Expanded(
@@ -126,14 +131,17 @@ class QuestionPanel extends StatelessWidget {
                                 decoration: BoxDecoration(
                                     color: Colors.white,
                                     border: border,
-                                    borderRadius:
-                                        BorderRadius.circular(20 * scale),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Color(0x26000000),
-                                          blurRadius: 9,
-                                          offset: Offset(0, 4))
-                                    ]),
+                                    borderRadius: BorderRadius.circular(
+                                        (AppStyle.isBeta(context) ? 28 : 20) *
+                                            scale),
+                                    boxShadow: AppStyle.isBeta(context)
+                                        ? AppStyle.shadow
+                                        : const [
+                                            BoxShadow(
+                                                color: Color(0x26000000),
+                                                blurRadius: 9,
+                                                offset: Offset(0, 4))
+                                          ]),
                                 padding: EdgeInsets.fromLTRB(24 * scale,
                                     64 * scale, 24 * scale, 26 * scale),
                                 child: Column(children: [
@@ -164,16 +172,18 @@ class QuestionPanel extends StatelessWidget {
                                               : onSpeech,
                                           style: OutlinedButton.styleFrom(
                                               side: BorderSide(
-                                                  color:
-                                                      const Color(0xFF596268),
-                                                  width: 2.3),
+                                                  color: AppStyle.isBeta(context)
+                                                      ? AppStyle.line
+                                                      : const Color(0xFF596268),
+                                                  width: AppStyle.isBeta(context)
+                                                      ? 1.4
+                                                      : 2.3),
                                               disabledForegroundColor:
                                                   Colors.black,
                                               foregroundColor: Colors.black,
                                               shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          15 * scale))),
+                                                  borderRadius: BorderRadius.circular(
+                                                      15 * scale))),
                                           icon: media != null
                                               ? const Icon(Icons.ondemand_video,
                                                   color: Colors.black)
@@ -185,8 +195,7 @@ class QuestionPanel extends StatelessWidget {
                                                   height: 30 * scale),
                                           label: Text(
                                               media != null
-                                                  ? (mediaStatus ??
-                                                      '영상을 시청해 주세요.')
+                                                  ? (mediaStatus ?? '영상을 시청해 주세요.')
                                                   : speaking
                                                       ? '질문 읽는중…'
                                                       : listening
@@ -194,8 +203,7 @@ class QuestionPanel extends StatelessWidget {
                                                           : speechUnavailable
                                                               ? '음성 인식을 사용할 수 없어요'
                                                               : '음성 버튼을 눌러주세요.',
-                                              style: textStyle.copyWith(
-                                                  fontSize: (speaking || listening ? 17 : 14) * scale)))),
+                                              style: textStyle.copyWith(fontSize: (speaking || listening ? 17 : 14) * scale)))),
                                   SizedBox(
                                       height: media == null ? 26 * scale : 0),
                                   // Reserve the answer area while speaking to avoid moving the card.
@@ -206,7 +214,10 @@ class QuestionPanel extends StatelessWidget {
                                           : Row(children: [
                                               answerButton(
                                                   '예',
-                                                  const Color(0xFF104B83),
+                                                  (AppStyle.isBeta(context)
+                                                      ? AppStyle.navy
+                                                      : const Color(
+                                                          0xFF104B83)),
                                                   onYes),
                                               SizedBox(width: 18 * scale),
                                               answerButton(
@@ -231,9 +242,14 @@ class QuestionPanel extends StatelessWidget {
                                             child: LinearProgressIndicator(
                                                 value: fraction,
                                                 minHeight: 18 * scale,
-                                                color: const Color(0xFF18832B),
+                                                color: AppStyle.isBeta(context)
+                                                    ? AppStyle.teal
+                                                    : const Color(0xFF18832B),
                                                 backgroundColor:
-                                                    const Color(0xFFA6A6A6))),
+                                                    AppStyle.isBeta(context)
+                                                        ? AppStyle.line
+                                                        : const Color(
+                                                            0xFFA6A6A6))),
                                         Positioned(
                                             left: ((bar.maxWidth - 62 * scale) *
                                                     fraction)

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../theme/app_style.dart';
 
 String completionTime(DateTime value) =>
     '${value.hour < 12 ? '오전' : '오후'} ${value.hour % 12 == 0 ? 12 : value.hour % 12}:${value.minute.toString().padLeft(2, '0')}';
@@ -38,10 +39,13 @@ class CompletionPanel extends StatelessWidget {
             fontSize: 29 * scale,
             fontWeight: FontWeight.w800,
             height: 1.6,
-            color: Colors.black);
-        const highlight = Color(0xFF5A83A7);
+            color: AppStyle.isBeta(context) ? AppStyle.ink : Colors.black);
+        final highlight =
+            AppStyle.isBeta(context) ? AppStyle.teal : const Color(0xFF5A83A7);
         return ColoredBox(
-            color: const Color(0xFFEDF1F6),
+            color: (AppStyle.isBeta(context)
+                ? AppStyle.background
+                : const Color(0xFFEDF1F6)),
             child: SingleChildScrollView(
                 child: Center(
                     child: SizedBox(
@@ -78,8 +82,8 @@ class CompletionPanel extends StatelessWidget {
                                             name!.trim().isNotEmpty) ...[
                                           TextSpan(
                                               text: name!.trim(),
-                                              style: const TextStyle(
-                                                  color: highlight)),
+                                              style:
+                                                  TextStyle(color: highlight)),
                                           const TextSpan(text: ' 님,\n'),
                                         ],
                                         const TextSpan(text: '수고하셨습니다.'),
@@ -92,10 +96,10 @@ class CompletionPanel extends StatelessWidget {
                                         if (start != null)
                                           TextSpan(
                                               text: completionTime(start!),
-                                              style: const TextStyle(
-                                                  color: highlight))
+                                              style:
+                                                  TextStyle(color: highlight))
                                         else
-                                          const TextSpan(
+                                          TextSpan(
                                               text: '시각 미확인',
                                               style:
                                                   TextStyle(color: highlight)),
@@ -103,10 +107,10 @@ class CompletionPanel extends StatelessWidget {
                                         if (end != null)
                                           TextSpan(
                                               text: completionTime(end!),
-                                              style: const TextStyle(
-                                                  color: highlight))
+                                              style:
+                                                  TextStyle(color: highlight))
                                         else
-                                          const TextSpan(
+                                          TextSpan(
                                               text: '시각 미확인',
                                               style:
                                                   TextStyle(color: highlight)),
@@ -128,8 +132,10 @@ class CompletionPanel extends StatelessWidget {
                                       child: FilledButton(
                                           onPressed: onHistory,
                                           style: FilledButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF104B83),
+                                              backgroundColor: (AppStyle.isBeta(
+                                                      context)
+                                                  ? AppStyle.navy
+                                                  : const Color(0xFF104B83)),
                                               foregroundColor: Colors.white,
                                               shape: RoundedRectangleBorder(
                                                   borderRadius:
@@ -150,8 +156,12 @@ class CompletionPanel extends StatelessWidget {
                                               backgroundColor: Colors.white,
                                               foregroundColor:
                                                   const Color(0xFF505050),
-                                              side: const BorderSide(
-                                                  color: Color(0xFF96999D)),
+                                              side: BorderSide(
+                                                  color:
+                                                      AppStyle.isBeta(context)
+                                                          ? AppStyle.line
+                                                          : const Color(
+                                                              0xFF96999D)),
                                               shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(

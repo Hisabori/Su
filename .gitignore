@@ -50,3 +50,5 @@ app.*.map.json
 .vercel/
 
 **/node_modules/
+
+browser-tests/screenshots/
