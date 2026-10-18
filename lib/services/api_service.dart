@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../config/community_config.dart';
@@ -99,8 +100,10 @@ class ApiService {
                 headers: {'Content-Type': 'application/json; charset=utf-8'},
                 body: jsonEncode({'action': 'login', ...body}))
             .timeout(const Duration(seconds: 25));
-      } catch (_) {
+      } on http.ClientException {
         /* Work login remains available if the community service is unreachable. */
+      } on TimeoutException {
+        /* A stalled community proxy must not prevent normal work login. */
       }
       if (response != null &&
           ![404, 405, 501, 502, 503, 504].contains(response.statusCode)) {

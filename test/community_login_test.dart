@@ -29,7 +29,8 @@ void main() {
                 'access_token': 'test-only',
                 'community_session': 'a' * 64
               }),
-              200);
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'});
         }));
     await api.login('cesco999', 'fake-password');
     expect(session.id, 31);
