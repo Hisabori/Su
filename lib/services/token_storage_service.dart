@@ -80,7 +80,11 @@ class TokenStorageService {
       jsonEncode({
         'company_device_name': login['company_device_name'],
         'kiosk_id': login['kiosk_id'],
-        'name': login['name'] is String ? login['name'] : null
+        'name': login['name'] is String ? login['name'] : null,
+        'community_session': login['community_session'] is String &&
+                RegExp(r'^[a-f0-9]{64}$').hasMatch(login['community_session'])
+            ? login['community_session']
+            : null
       }));
   Future<Map<String, dynamic>> device() async {
     final raw = await _read('auth_device');

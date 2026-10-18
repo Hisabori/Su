@@ -20,6 +20,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
+      - run: node --test test-js/*.test.cjs
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: node -e "const blob=require('@vercel/blob'); for(const key of ['put','get','list','del']) if(typeof blob[key]!=='function') throw new Error(key)"
       - run: flutter analyze
       - run: flutter test
       - run: bash scripts/build-web.sh

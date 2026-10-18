@@ -18,7 +18,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final username = TextEditingController();
   final password = TextEditingController();
-  final api = ApiService();
+  final api = ApiService(communityLogin: true);
   final passkeys = PasskeyService();
   bool passkeyAvailable = false, passkeyConfigured = false;
   bool busy = false;
@@ -241,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('v1.6.0 · 빌드 15',
+              const Text('v1.7.0 · 빌드 16',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',

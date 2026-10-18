@@ -17,3 +17,4 @@ done
 node scripts/test-passkey-flow.cjs
 node scripts/test-pwa.cjs
 node scripts/test-video-flow.cjs
+node scripts/test-community-flow.cjs

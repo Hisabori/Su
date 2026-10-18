@@ -1,0 +1,8 @@
+{
+  "name": "suho-angel-community",
+  "private": true,
+  "version": "1.7.0",
+  "engines": {"node": ">=22"},
+  "dependencies": {"@vercel/blob": "2.8.2"},
+  "scripts": {"test": "node --test test-js/*.test.cjs"}
+}

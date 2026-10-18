@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
   try {
     const context = await browser.newContext({viewport: {width: 430, height: 932}});
     let expired = false, logins = 0, validations = 0;
-    await context.route('https://api-suho1004.innaim.com/**', async route => {
+    await context.route('https://suho-angel.vercel.app/api/community',route=>route.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'unavailable in this fixture'}));
+ await context.route('https://api-suho1004.innaim.com/**', async route => {
       const request = route.request(), endpoint = new URL(request.url()).pathname;
       if (request.method() === 'OPTIONS') return route.fulfill({status: 204, headers: {'access-control-allow-origin': '*', 'access-control-allow-methods': 'PUT', 'access-control-allow-headers': 'authorization,content-type'}});
       let result;

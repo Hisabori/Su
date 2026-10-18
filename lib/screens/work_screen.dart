@@ -18,6 +18,7 @@ import '../widgets/question_panel.dart';
 import '../widgets/kiosk_status_dialog.dart';
 import '../widgets/completion_panel.dart';
 import 'result_log_screen.dart';
+import 'community_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
 import '../services/app_preferences.dart';
@@ -894,6 +895,18 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       restUntil == null &&
       (stepSchedule == null || !DateTime.now().isBefore(stepSchedule!));
 
+  Future<void> showCommunity() async {
+    setState(() => mediaBlocked = true);
+    await stopAudio();
+    if (!mounted) return;
+    try {
+      await Navigator.push<void>(
+          context, MaterialPageRoute(builder: (_) => const CommunityScreen()));
+    } finally {
+      if (mounted) setState(() => mediaBlocked = false);
+    }
+  }
+
   void showSettings() {
     setState(() => mediaBlocked = true);
     unawaited(stopAudio());
@@ -986,6 +999,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 }),
                           const Divider(),
                           ListTile(
+                              leading: const Icon(Icons.forum_outlined),
+                              title: const Text('커뮤니티'),
+                              onTap: () {
+                                Navigator.pop(sheet);
+                                showCommunity();
+                              }),
+                          ListTile(
                               leading: const Icon(Icons.key),
                               title: const Text('패스키 로그인 설정'),
                               onTap: () {
@@ -1022,7 +1042,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.6.0',
+                          const Text('수호천사 v1.7.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) setState(() => mediaBlocked = false);
@@ -1045,6 +1065,11 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   automaticallyImplyLeading: false,
                   title: const Text('수호천사'),
                   actions: [
+                      IconButton(
+                          tooltip: '커뮤니티',
+                          onPressed:
+                              saving || awaitingSave ? null : showCommunity,
+                          icon: const Icon(Icons.forum_outlined)),
                       if (PasskeyService().enrolled)
                         IconButton(
                             tooltip: '앱 잠그기',

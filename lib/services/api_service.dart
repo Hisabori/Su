@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../config/community_config.dart';
 import '../models/work_info.dart';
 import '../utils/password_utils.dart';
 import 'token_storage_service.dart';
@@ -16,9 +17,12 @@ class ApiFailure implements Exception {
 class ApiService {
   final http.Client client;
   final TokenStorageService tokens;
-  final bool enabled;
+  final bool enabled, communityLogin;
   ApiService(
-      {http.Client? client, TokenStorageService? tokens, this.enabled = true})
+      {http.Client? client,
+      TokenStorageService? tokens,
+      this.enabled = true,
+      this.communityLogin = false})
       : client = client ?? http.Client(),
         tokens = tokens ?? TokenStorageService();
   Uri _uri(String path) {
@@ -81,11 +85,34 @@ class ApiService {
     return _decode(response, path);
   }
 
+  Future<Map<String, dynamic>> loginData(
+      String username, String password) async {
+    final body = {
+      'username': username,
+      'password': encodePassword(password, 'sha256')
+    };
+    if (communityLogin && enabled) {
+      http.Response? response;
+      try {
+        response = await client
+            .post(Uri.parse(CommunityConfig.endpoint),
+                headers: {'Content-Type': 'application/json; charset=utf-8'},
+                body: jsonEncode({'action': 'login', ...body}))
+            .timeout(const Duration(seconds: 25));
+      } catch (_) {
+        /* Work login remains available if the community service is unreachable. */
+      }
+      if (response != null &&
+          ![404, 405, 501, 502, 503, 504].contains(response.statusCode)) {
+        return _decode(response, ApiConfig.loginPath);
+      }
+    }
+    return _put(ApiConfig.loginPath, body, auth: false);
+  }
+
   Future<void> login(String username, String password) async {
     // Previous app reconstruction documents SHA-256 lowercase hex and PUT.
-    final data = await _put(ApiConfig.loginPath,
-        {'username': username, 'password': encodePassword(password, 'sha256')},
-        auth: false);
+    final data = await loginData(username, password);
     final ret = integer(data['ret']);
     if (ret != 1) {
       // Recovered AuthProvider.login branches at 0x428c5c–0x428d24.

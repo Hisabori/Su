@@ -12,6 +12,7 @@ let debugPage;
   Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{getVoices:()=>[{name:'Korean test',lang:'ko-KR'}],addEventListener:()=>{},cancel:()=>{active=null;},speak:u=>{active=u;setTimeout(()=>{if(active!==u)return;u.onstart?.();setTimeout(()=>{if(active===u)u.onend?.();},40);},0);}}});
  });
  let failVideo=true,saves=0;const errors=[];
+ await context.route('https://suho-angel.vercel.app/api/community',route=>route.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'unavailable in this fixture'}));
  await context.route('https://api-suho1004.innaim.com/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname;
   const headers={'access-control-allow-origin':'*','access-control-allow-methods':'PUT,GET,OPTIONS','access-control-allow-headers':'content-type,authorization,range'};
@@ -59,5 +60,6 @@ let debugPage;
   await debugPage.screenshot({path:base+'.png'}).catch(()=>{});
   require('node:fs').writeFileSync(base+'.html',await debugPage.content());
  }
+ if(debugPage) console.error('ACCESSIBLE NODES',await debugPage.locator('[role]').evaluateAll(nodes=>nodes.map(n=>({role:n.getAttribute('role'),label:n.getAttribute('aria-label'),text:n.innerText?.slice(0,180)})).slice(-60)));
  console.error(e);process.exit(1);
 });
