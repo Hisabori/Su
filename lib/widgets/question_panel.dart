@@ -14,8 +14,14 @@ class QuestionPanel extends StatelessWidget {
       required this.onYes,
       required this.onNo,
       required this.onSettings,
-      required this.onDevice});
+      required this.onDevice,
+      this.media,
+      this.mediaStatus,
+      this.speechUnavailable = false});
   final String prompt;
+  final Widget? media;
+  final String? mediaStatus;
+  final bool speechUnavailable;
   final int current, total;
   final bool speaking, listening;
   final VoidCallback onReplay, onSpeech, onSettings, onDevice;
@@ -115,7 +121,7 @@ class QuestionPanel extends StatelessWidget {
                           Stack(alignment: Alignment.topCenter, children: [
                             Container(
                                 margin: EdgeInsets.only(top: 44 * scale),
-                                height: 480 * scale,
+                                height: (media == null ? 480 : 520) * scale,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                     color: Colors.white,
@@ -132,17 +138,30 @@ class QuestionPanel extends StatelessWidget {
                                     64 * scale, 24 * scale, 26 * scale),
                                 child: Column(children: [
                                   Expanded(
-                                      child: Center(
-                                          child: SingleChildScrollView(
-                                              child: Text(prompt,
+                                      child: media == null
+                                          ? Center(
+                                              child: SingleChildScrollView(
+                                                  child: Text(prompt,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: textStyle)))
+                                          : SingleChildScrollView(
+                                              child: Column(children: [
+                                              media!,
+                                              SizedBox(height: 14 * scale),
+                                              Text(prompt,
                                                   textAlign: TextAlign.center,
-                                                  style: textStyle)))),
+                                                  style: textStyle.copyWith(
+                                                      fontSize: 18 * scale)),
+                                            ]))),
                                   SizedBox(height: 24 * scale),
                                   SizedBox(
                                       width: double.infinity,
                                       height: 60 * scale,
                                       child: OutlinedButton.icon(
-                                          onPressed: speaking ? null : onSpeech,
+                                          onPressed: speaking || media != null
+                                              ? null
+                                              : onSpeech,
                                           style: OutlinedButton.styleFrom(
                                               side: BorderSide(
                                                   color:
@@ -155,25 +174,34 @@ class QuestionPanel extends StatelessWidget {
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           15 * scale))),
-                                          icon: Image.asset(
-                                              speaking
-                                                  ? 'assets/images/Icon_speak.png'
-                                                  : 'assets/images/Icon_mic.png',
-                                              width: 30 * scale,
-                                              height: 30 * scale),
+                                          icon: media != null
+                                              ? const Icon(Icons.ondemand_video,
+                                                  color: Colors.black)
+                                              : Image.asset(
+                                                  speaking
+                                                      ? 'assets/images/Icon_speak.png'
+                                                      : 'assets/images/Icon_mic.png',
+                                                  width: 30 * scale,
+                                                  height: 30 * scale),
                                           label: Text(
-                                              speaking
-                                                  ? '질문 읽는중…'
-                                                  : listening
-                                                      ? '답변 듣는중…'
-                                                      : '음성 답변',
+                                              media != null
+                                                  ? (mediaStatus ??
+                                                      '영상을 시청해 주세요.')
+                                                  : speaking
+                                                      ? '질문 읽는중…'
+                                                      : listening
+                                                          ? '답변 듣는중…'
+                                                          : speechUnavailable
+                                                              ? '음성 인식을 사용할 수 없어요'
+                                                              : '음성 버튼을 눌러주세요.',
                                               style: textStyle.copyWith(
-                                                  fontSize: 17 * scale)))),
-                                  SizedBox(height: 26 * scale),
+                                                  fontSize: (speaking || listening ? 17 : 14) * scale)))),
+                                  SizedBox(
+                                      height: media == null ? 26 * scale : 0),
                                   // Reserve the answer area while speaking to avoid moving the card.
                                   SizedBox(
-                                      height: 66 * scale,
-                                      child: speaking
+                                      height: media == null ? 66 * scale : 0,
+                                      child: speaking || media != null
                                           ? null
                                           : Row(children: [
                                               answerButton(

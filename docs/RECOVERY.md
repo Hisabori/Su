@@ -128,3 +128,13 @@ A watchdog releases a browser that never reports speech completion. No applicati
 cloud speech endpoint, credential or paid API is introduced. Voice quality still
 depends on installed OS/browser voices; no real-device listening comparison is
 claimed by the synthetic engine tests.
+
+### v1.5.0: video, preferences and work history
+
+Video steps now use the same rabbit question card, counter and turtle progress as text questions (original video builder `0x4304b8` and the supplied kiosk-over-video screenshot). A failed video remains on its step with explicit retry; it is not recorded as completed. Opening settings/device status or leaving the foreground pauses playback; returning requires manual playback. A generated four-second clip exercises real browser media playback, failure/retry and modal pause against mocked APIs.
+
+The device-local automatic question reading preference persists independently of authentication; manual replay remains available when disabled. Original speech idle/unavailable messages are grounded in AOT `0x42dc34`/`0x42dc58`. No paid speech provider or server-side speech capability is implied.
+
+History shows actual locally stored start/end times, work/rest minutes and answers. Today/all filters retain older unconfirmed records in the default view. Detail labels follow original strings `오늘의 근무 기록` (`0x4a3184`), `근무 시작` (`0x4a3700`), `근무 종료` (`0x4a3804`), `일일 근무 성과` (`0x4a1a0c`), `확인했어요` (`0x4a1204`). Unknown data remains unknown, and elapsed/assigned-time bars do not claim a server performance score. Checkout retains read-only history without authorizing network retries after logout.
+
+This is evidence-based restoration of these flows, not verification of complete original-app parity. Real server access, real iOS speech quality and every original video/source are unavailable for end-to-end verification.

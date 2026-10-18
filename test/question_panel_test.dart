@@ -41,4 +41,37 @@ void main() {
     }
     expect(yes, 3);
   });
+  testWidgets('video shares question card without manual answer shortcuts',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final size in [const Size(320, 568), const Size(844, 390)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: QuestionPanel(
+        prompt: '영상을 시청해 주세요.',
+        current: 9,
+        total: 19,
+        speaking: false,
+        listening: false,
+        media:
+            const SizedBox(height: 160, child: ColoredBox(color: Colors.blue)),
+        mediaStatus: '영상을 확인해 주세요.',
+        onReplay: () {},
+        onSpeech: () {},
+        onYes: () {},
+        onNo: () {},
+        onSettings: () {},
+        onDevice: () {},
+      ))));
+      await tester.pumpAndSettle();
+      expect(find.text('질문 9 / 19'), findsOneWidget);
+      expect(find.text('예'), findsNothing);
+      expect(find.text('아니요'), findsNothing);
+      expect(find.text('영상을 확인해 주세요.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
 }

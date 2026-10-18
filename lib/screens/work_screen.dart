@@ -18,6 +18,7 @@ import '../widgets/completion_panel.dart';
 import 'result_log_screen.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
+import '../services/app_preferences.dart';
 
 class WorkScreen extends StatefulWidget {
   const WorkScreen({super.key});
@@ -49,6 +50,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool foreground = true, submitting = false;
   bool? pendingVideoResult;
   bool speaking = false;
+  bool mediaBlocked = false, speechUnavailable = false, speechEnabled = true;
+  final preferences = AppPreferences();
   int promptReadGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
@@ -109,6 +112,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       error = null;
     });
     try {
+      speechEnabled = await preferences.speechEnabled();
       final data = await api.getWorkInfo();
       sessionUser = await api.tokens.userId();
       final profile = await api.tokens.device();
@@ -276,7 +280,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       }
     }
     if (restUntil != null && !DateTime.now().isBefore(restUntil!)) endRest();
-    if (pendingVideoResult != null &&
+    if (pendingVideoResult == true &&
+        foreground &&
+        !mediaBlocked &&
         started &&
         !saving &&
         !enteringRest &&
@@ -326,11 +332,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     return '${(n ~/ 60).toString().padLeft(2, '0')}:${(n % 60).toString().padLeft(2, '0')}';
   }
 
-  Future<void> readPrompt() async {
+  Future<void> readPrompt({bool manual = false}) async {
     if (stepSchedule != null && DateTime.now().isBefore(stepSchedule!)) {
       promptPending = true;
       return;
     }
+    if (!speechEnabled && !manual) return;
     final request = ++promptReadGeneration;
     final text = prompt;
     try {
@@ -402,10 +409,15 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         });
       }
       if (!mounted) return;
-      await showDialog<void>(
-          context: context,
-          builder: (context) => KioskStatusDialog(
-              name: name, status: status, current: current, capacity: max));
+      setState(() => mediaBlocked = true);
+      try {
+        await showDialog<void>(
+            context: context,
+            builder: (context) => KioskStatusDialog(
+                name: name, status: status, current: current, capacity: max));
+      } finally {
+        if (mounted) setState(() => mediaBlocked = false);
+      }
     } catch (e) {
       notice(e is ApiFailure ? e.message : '기기 현황을 불러오지 못했습니다.');
     }
@@ -455,9 +467,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         }
       });
       if (!mounted) return;
-      setState(() => listening = ok);
+      setState(() {
+        listening = ok;
+        speechUnavailable = !ok;
+      });
       if (!ok) notice('음성 인식 권한과 기기 지원 여부를 확인해 주세요.');
     } catch (_) {
+      if (mounted) setState(() => speechUnavailable = true);
       notice('음성 인식을 시작하지 못했습니다.');
     }
   }
@@ -535,7 +551,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         'started_at': stepStartedAt?.toIso8601String()
       });
       if (questionIndex + 1 < step.questions.length) {
-        setState(() => questionIndex++);
+        setState(() {
+          questionIndex++;
+          pendingVideoResult = null;
+        });
       } else if (index + 1 < work!.steps.length) {
         setState(() {
           pendingVideoResult = null;
@@ -841,63 +860,28 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           total: total,
           speaking: speaking,
           listening: listening,
-          onReplay: readPrompt,
+          media: step.videoPath != null && step.videoPath!.isNotEmpty
+              ? WorkVideo(
+                  key: ValueKey('${step.id}-$index-$questionIndex'),
+                  source: step.videoPath!,
+                  onFinished: videoFinished,
+                  paused: mediaBlocked || speaking || listening,
+                  onRetry: () => setState(() => pendingVideoResult = null))
+              : null,
+          mediaStatus: pendingVideoResult == false
+              ? '영상 재생을 다시 시도해 주세요.'
+              : pendingVideoResult == true
+                  ? '시청 완료 · 다음 단계까지 ${clock(remainingSeconds)}'
+                  : '영상을 시청해 주세요.',
+          speechUnavailable: speechUnavailable,
+          onReplay: () => readPrompt(manual: true),
           onSpeech: toggleSpeech,
           onYes: saving ? null : () => answer(true),
           onNo: saving ? null : () => answer(false),
           onSettings: showSettings,
           onDevice: showDevice);
     }
-    final elapsed =
-        DateTime.now().difference(startedAt!).inSeconds - restSeconds;
-    return ListView(padding: const EdgeInsets.all(24), children: [
-      Text(info.name, style: Theme.of(context).textTheme.headlineSmall),
-      Text('작업 ${index + 1} / ${info.steps.length} · 경과 ${clock(elapsed)}'),
-      const SizedBox(height: 12),
-      LinearProgressIndicator(value: index / info.steps.length),
-      const SizedBox(height: 24),
-      Text(step.name, style: Theme.of(context).textTheme.headlineMedium),
-      const SizedBox(height: 16),
-      if (step.videoPath != null && step.videoPath!.isNotEmpty)
-        WorkVideo(
-            key: ValueKey('${step.id}-$index'),
-            source: step.videoPath!,
-            onFinished: videoFinished)
-      else
-        Image.asset('assets/images/chr_rab.png',
-            height: 160, fit: BoxFit.contain),
-      const SizedBox(height: 16),
-      Text(prompt, style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 16),
-      Wrap(spacing: 12, children: [
-        OutlinedButton.icon(
-            onPressed: readPrompt,
-            icon: const Icon(Icons.volume_up),
-            label: const Text('다시 듣기')),
-        OutlinedButton.icon(
-            onPressed: saving || awaitingSave ? null : toggleSpeech,
-            icon: Icon(listening ? Icons.mic : Icons.mic_none),
-            label: Text(listening ? '음성 인식 끄기' : '음성 답변'))
-      ]),
-      const SizedBox(height: 24),
-      if (step.videoPath == null || step.videoPath!.isEmpty)
-        Row(children: [
-          Expanded(
-              child: OutlinedButton(
-                  onPressed:
-                      saving || awaitingSave ? null : () => answer(false),
-                  child: const Text('아니요'))),
-          const SizedBox(width: 16),
-          Expanded(
-              child: FilledButton(
-                  onPressed: saving || awaitingSave ? null : () => answer(true),
-                  child: const Text('네')))
-        ]),
-      if (awaitingSave)
-        TextButton(
-            onPressed: saving ? null : finish,
-            child: const Text('결과 저장 다시 시도')),
-    ]);
+    return const Center(child: Text('작업 상태를 확인하고 있습니다.'));
   }
 
   bool get questionVisible =>
@@ -906,50 +890,118 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       !complete &&
       !awaitingSave &&
       restUntil == null &&
-      (step.videoPath == null || step.videoPath!.isEmpty) &&
       (stepSchedule == null || !DateTime.now().isBefore(stepSchedule!));
 
   void showSettings() {
+    setState(() => mediaBlocked = true);
+    unawaited(stopAudio());
+    var preferenceSaving = false;
     showModalBottomSheet<void>(
         context: context,
-        builder: (sheet) => SafeArea(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ListTile(
-                  leading: const Icon(Icons.key),
-                  title: const Text('패스키 로그인 설정'),
-                  onTap: () {
-                    Navigator.pop(sheet);
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                            builder: (_) => const PasskeyScreen()));
-                  }),
-              ListTile(
-                  leading: const Icon(Icons.history),
-                  title: const Text('작업 기록'),
-                  onTap: () {
-                    Navigator.pop(sheet);
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                            builder: (_) => const ResultLogScreen()));
-                  }),
-              if (PasskeyService().enrolled)
-                ListTile(
-                    leading: const Icon(Icons.lock_outline),
-                    title: const Text('앱 잠그기'),
-                    onTap: () {
-                      Navigator.pop(sheet);
-                      lockApp();
-                    }),
-              ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('로그아웃'),
-                  onTap: () {
-                    Navigator.pop(sheet);
-                    logout();
-                  }),
-            ])));
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: const Color(0xFFF2F2F2),
+        builder: (sheet) => StatefulBuilder(
+            builder: (sheet, updateSheet) => ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(sheet).height * .85),
+                child: SingleChildScrollView(
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: Row(children: [
+                                const Expanded(
+                                    child: Text('설정',
+                                        style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w800))),
+                                IconButton(
+                                    tooltip: '설정 닫기',
+                                    onPressed: () => Navigator.pop(sheet),
+                                    icon: const Icon(Icons.close)),
+                              ])),
+                          SwitchListTile(
+                              title: const Text('질문 자동 읽기'),
+                              subtitle: Text(speechEnabled
+                                  ? '질문을 자동으로 읽습니다.'
+                                  : '자동 읽기가 꺼져 있습니다.'),
+                              value: speechEnabled,
+                              onChanged: preferenceSaving
+                                  ? null
+                                  : (value) async {
+                                      updateSheet(
+                                          () => preferenceSaving = true);
+                                      try {
+                                        await preferences
+                                            .setSpeechEnabled(value);
+                                        if (!mounted) return;
+                                        setState(() => speechEnabled = value);
+                                        if (!value) await stopAudio();
+                                      } catch (_) {
+                                        notice(
+                                            '음성 설정을 저장하지 못했습니다. 다시 시도해 주세요.');
+                                      } finally {
+                                        if (sheet.mounted) {
+                                          updateSheet(
+                                              () => preferenceSaving = false);
+                                        }
+                                      }
+                                    }),
+                          if (started && !complete)
+                            ListTile(
+                                leading: const Icon(Icons.volume_up),
+                                title: const Text('현재 질문 다시 듣기'),
+                                onTap: () {
+                                  Navigator.pop(sheet);
+                                  readPrompt(manual: true);
+                                }),
+                          const Divider(),
+                          ListTile(
+                              leading: const Icon(Icons.key),
+                              title: const Text('패스키 로그인 설정'),
+                              onTap: () {
+                                Navigator.pop(sheet);
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                        builder: (_) => const PasskeyScreen()));
+                              }),
+                          ListTile(
+                              leading: const Icon(Icons.history),
+                              title: const Text('근무 기록'),
+                              onTap: () {
+                                Navigator.pop(sheet);
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            const ResultLogScreen()));
+                              }),
+                          if (PasskeyService().enrolled)
+                            ListTile(
+                                leading: const Icon(Icons.lock_outline),
+                                title: const Text('앱 잠그기'),
+                                onTap: () {
+                                  Navigator.pop(sheet);
+                                  lockApp();
+                                }),
+                          ListTile(
+                              leading: const Icon(Icons.logout),
+                              title: const Text('로그아웃'),
+                              onTap: () {
+                                Navigator.pop(sheet);
+                                logout();
+                              }),
+                          const SizedBox(height: 8),
+                          const Text('수호천사 v1.5.0',
+                              style: TextStyle(color: Colors.grey)),
+                        ])))))).whenComplete(() {
+      if (mounted) setState(() => mediaBlocked = false);
+    });
   }
 
   @override

@@ -15,3 +15,4 @@ for attempt in {1..30}; do
 done
 node scripts/test-passkey-flow.cjs
 node scripts/test-pwa.cjs
+node scripts/test-video-flow.cjs
