@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('v1.4.0 · 빌드 11',
+              const Text('v1.4.1 · 빌드 12',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',

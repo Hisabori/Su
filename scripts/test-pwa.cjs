@@ -4,6 +4,23 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
+ // CI has no installed Korean voice/audio device. Exercise the real JS bridge
+ // with a deterministic platform speech engine; voice selection is tested separately.
+ await context.addInitScript(() => {
+  let active;
+  const voices=[{name:'Korean Enhanced (test)',lang:'ko-KR',localService:true}];
+  window.__speechCalls=[];
+  window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
+  Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{
+   getVoices:()=>voices,addEventListener:()=>{},cancel:()=>{active=null;},
+   speak:utterance=>{
+    active=utterance;
+    window.__speechCalls.push({text:utterance.text,rate:utterance.rate,lang:utterance.lang,voice:utterance.voice?.name});
+    setTimeout(()=>{if(active!==utterance)return;utterance.onstart?.();
+     setTimeout(()=>{if(active===utterance)utterance.onend?.();},40);},0);
+   }
+  }});
+ });
  const errors=[], calls=[];let saves=0, checkedOut=false;
  await context.route('https://api-suho1004.innaim.com/**',async route=>{
   const req=route.request();const path=new URL(req.url()).pathname;
@@ -37,6 +54,9 @@ const assert=require('node:assert/strict');
   await page.setViewportSize({width:390,height:844});
  }
  await page.getByRole('button',{name:'작업 시작',exact:true}).click();
+ await page.waitForFunction(()=>window.__speechCalls.length>0);
+ const spoken=await page.evaluate(()=>window.__speechCalls[0]);
+ assert.equal(spoken.text,'첫 번째 확인');assert.equal(spoken.rate,0.95);assert.equal(spoken.lang,'ko-KR');
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
  await page.getByText('키오스크 현황',{exact:true}).waitFor();
  await page.getByText('0.0%  (0/1000)',{exact:true}).waitFor();

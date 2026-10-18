@@ -113,3 +113,18 @@ be confirmed, the view says server confirmation is needed. The current user's
 already loaded local history remains available read-only in this open page.
 After reload the cleared session requires authentication again; no server access
 or result retransmission is granted by the in-memory history snapshot.
+
+### 1.4.1: more natural device speech
+
+Prefer installed Korean premium/enhanced/natural voices, retain native iOS voice
+identifiers, use neutral pitch and a calmer rate (web 0.95 / native 0.48). The web
+bridge creates a fresh utterance per sentence and leaves a 180 ms pause between
+sentences/paragraphs without splitting decimals. It initializes the voice list
+early and handles delayed voice availability with Korean language fallback.
+Replacing, stopping, backgrounding or answering cancels old utterances and queued
+question reads; late setup cannot speak an earlier question. Autoplay rejection,
+missing speech support and platform errors leave manual answer controls usable.
+A watchdog releases a browser that never reports speech completion. No application
+cloud speech endpoint, credential or paid API is introduced. Voice quality still
+depends on installed OS/browser voices; no real-device listening comparison is
+claimed by the synthetic engine tests.

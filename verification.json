@@ -6,7 +6,7 @@
   "live_account_tests": "not_run",
   "physical_iphone_tests": "not_run",
   "server_contract_source": "APK AOT ARM64 analysis",
-  "version": "1.4.0+11",
+  "version": "1.4.1+12",
   "tests_passed": 27,
   "stability_checks": [
     "concurrent local writes",
@@ -31,5 +31,8 @@
   "login_denials": "original APK ret 2/3/4/5/6 meanings restored; server authorization unchanged",
   "completion_layout_checks": "pending CI: reference layout actions and Korean AM/PM",
   "checkout_behavior": "server logout and credential cleanup, remain on completion, in-memory read-only history",
-  "completion_ui_source": "User-supplied original Android completion screenshot; login name and saved result timestamps"
+  "completion_ui_source": "User-supplied original Android completion screenshot; login name and saved result timestamps",
+  "speech_unit_checks": "passed locally: Korean preference, rate, sentence pause, decimal preservation, cancellation, autoplay rejection, missing voices",
+  "speech_native_and_ui_checks": "pending CI",
+  "speech_real_device_listening": "not_run"
 }

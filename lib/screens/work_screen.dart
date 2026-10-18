@@ -49,6 +49,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool foreground = true, submitting = false;
   bool? pendingVideoResult;
   bool speaking = false;
+  int promptReadGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
   final answers = <Map<String, dynamic>>[];
@@ -330,13 +331,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       promptPending = true;
       return;
     }
+    final request = ++promptReadGeneration;
+    final text = prompt;
     try {
       await speech.stop();
-      if (!mounted) return;
+      if (!mounted ||
+          request != promptReadGeneration ||
+          !started ||
+          complete ||
+          awaitingSave) {
+        return;
+      }
       setState(() => listening = false);
-      await tts.speak(prompt);
-    } catch (_) {
-      notice('읽어주기를 시작하지 못했습니다.');
+      await tts.speak(text);
+    } catch (e) {
+      if (request == promptReadGeneration) {
+        notice(e is TtsFailure ? e.message : '읽어주기를 시작하지 못했습니다.');
+      }
     }
   }
 
@@ -408,6 +419,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> stopAudio() async {
+    promptReadGeneration++;
     await Future.wait([
       (() async {
         try {
@@ -429,6 +441,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => listening = false);
       return;
     }
+    promptReadGeneration++;
     await tts.stop();
     try {
       final ok = await speech.listen((text) {
