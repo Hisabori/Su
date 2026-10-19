@@ -23,6 +23,8 @@ class LoginNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
       liveRegion: true,
+      container: true,
+      explicitChildNodes: true,
       child: Container(
           key: const ValueKey('login-notice'),
           padding: const EdgeInsets.all(16),
