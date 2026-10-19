@@ -132,7 +132,7 @@ let debugPage;
  await page.locator('input').nth(1).click();await page.keyboard.type('fake-password');
  await page.getByRole('button',{name:'로그인',exact:true}).click();
  await page.getByText('계정 상태는 관리자에게 확인해 주세요.',{exact:true}).last().waitFor();
- await page.getByText('자세한 오류',{exact:true}).click();
+ await page.getByRole('button',{name:'자세한 오류',exact:true}).click();
  await page.getByText('로그인 권한이 없습니다. (응답 코드: 4)',{exact:true}).last().waitFor();
  assert.equal(saves,1);
  console.log('PASS checkout respects server logout; subsequent denial reports original login reason');

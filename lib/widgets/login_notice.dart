@@ -62,7 +62,7 @@ class LoginNotice extends StatelessWidget {
                   children: [
                     Align(
                         alignment: Alignment.centerLeft,
-                        child: SelectableText(message,
+                        child: Text(message,
                             style: const TextStyle(fontSize: 12)))
                   ]),
           ])));
