@@ -43,6 +43,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool draftWarning = false;
   WorkInfo? work;
   String? error;
+  WorkStatusResponse? workStatus;
   bool loading = true,
       started = false,
       saving = false,
@@ -133,14 +134,15 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     setState(() {
       loading = true;
       error = null;
+      workStatus = null;
     });
     try {
       speechEnabled = await preferences.speechEnabled();
       sessionUser = await api.tokens.userId();
       final profile = await api.tokens.device();
-      final data = await api.getWorkInfo();
       displayName =
           profile['name'] is String ? profile['name'] as String : null;
+      final data = await api.getWorkInfo();
       if (mounted) {
         setState(() {
           work = data;
@@ -153,6 +155,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         });
         if (!await restoreCompletion()) await restoreDraft();
       }
+    } on WorkStatusResponse catch (status) {
+      if (mounted) setState(() => workStatus = status);
     } catch (e) {
       if (mounted) {
         setState(
@@ -285,6 +289,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         !complete &&
         !loading &&
         error == null &&
+        workStatus == null &&
+        work != null &&
         work!.steps.isNotEmpty &&
         plannedStart != null &&
         !DateTime.now().isBefore(plannedStart!) &&
@@ -333,6 +339,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   void start() {
+    if (workStatus != null || work == null || work!.steps.isEmpty) return;
     if (plannedStart != null &&
         !DateTime.now()
             .isBefore(plannedStart!.add(WorkSchedule.workDuration))) {
@@ -871,6 +878,36 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   Widget content() {
     if (loading) return const Center(child: CircularProgressIndicator());
+    if (workStatus != null) {
+      return WorkMessage(title: '근무 상태 안내', children: [
+        if (displayName != null) ...[
+          Text('$displayName 님', textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+        ],
+        Semantics(
+            liveRegion: true,
+            child: Text(workStatus!.message, textAlign: TextAlign.center)),
+        const SizedBox(height: 24),
+        FilledButton(onPressed: load, child: const Text('근무 상태 다시 확인')),
+        const SizedBox(height: 12),
+        OutlinedButton(
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                    builder: (_) => const ResultLogScreen())),
+            child: const Text('근무기록 자세히 보기')),
+        const SizedBox(height: 12),
+        OutlinedButton(
+            onPressed: showDeviceHistory, child: const Text('수거기 기록 · 그래프')),
+        const SizedBox(height: 12),
+        TextButton(onPressed: showCommunity, child: const Text('커뮤니티')),
+        ExpansionTile(title: const Text('자세한 상태'), children: const [
+          Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('작업 조회 응답 코드: 7\n서버에서 시작 가능 여부를 확인한 뒤 작업을 진행합니다.')),
+        ]),
+      ]);
+    }
     if (error != null) {
       return Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1167,7 +1204,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.8.0',
+                          const Text('수호천사 v1.8.1',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

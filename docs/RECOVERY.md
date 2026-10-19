@@ -156,3 +156,21 @@ Server tests cover canonical identity, forgery attempts, expired/altered session
 The user identified the assigned kiosk as a PET bottle collection machine and requested its fill percentage every ten minutes with history and a graph. The app polls the existing assigned-kiosk API while authenticated and in the foreground, taking an initial baseline and then a reading every ten minutes. It never samples other kiosks or treats this as battery percentage. Fill percentage is `currentCapacity / maxCapacity × 100`; zero capacity, missing or invalid values remain unknown. Over-capacity readings retain their actual percentage.
 
 Observations are stored separately from work submissions, per account/partner/kiosk on this device, for up to seven days / 1,500 readings. Errors remain gaps, and graph segments break after fifteen minutes without an observation. Returning after a suspension records one current sample, never manufactured readings for missed intervals. Scheduled readings announce a non-blocking status message; the status dialog and work settings open the history/graph, with a manual refresh option. This is foreground polling, not guaranteed iOS/PWA background collection or cloud telemetry history. Existing server result formats and manual device-check entries remain unchanged.
+
+
+### v1.8.1: work_info response 7
+
+The APK's `_loadWorkInfo` handles `WorkInfoResponse.ret` as a raw integer
+(`work_screen.dart` AOT 0x2e0dd0–0x2e0fe0, 0x2e1354–0x2e1368).
+It branches on 7 and considers scheduled start / checkout deadlines; it is
+not a universal authentication rejection. The reconstruction previously
+rejected it in the common API decoder before any work-state UI could run.
+Work lookup now preserves this response separately, displays the original
+server message when available and offers work history, device history,
+community and an explicit server recheck. An empty message does not establish
+whether work is upcoming or already completed: the UI claims neither and
+never invents work times or a successful result. Work drafts and login tokens
+are retained. Saving and other endpoints still reject ret=7. This restores a
+safe status screen, not full parity with every original scheduling branch.
+Browser regression mocks status 7 with no work payload, navigation to history,
+and subsequent ret=1 recovery with no work result submission.

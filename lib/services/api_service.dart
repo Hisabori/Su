@@ -15,6 +15,17 @@ class ApiFailure implements Exception {
   String toString() => message;
 }
 
+class WorkStatusResponse extends ApiFailure {
+  final Map<String, dynamic> response;
+  WorkStatusResponse(this.response)
+      : super(
+            response['message'] is String &&
+                    (response['message'] as String).trim().isNotEmpty
+                ? (response['message'] as String).trim()
+                : '현재 서버에서 새 작업을 시작할 수 없는 상태입니다. 근무 상태를 다시 확인해 주세요.',
+            code: 7);
+}
+
 class ApiService {
   final http.Client client;
   final TokenStorageService tokens;
@@ -51,6 +62,11 @@ class ApiService {
     }
     if (data is! Map<String, dynamic>) throw ApiFailure('서비스 응답을 확인할 수 없습니다.');
     final ret = integer(data['ret']);
+    // The APK handles work_info ret=7 as a work-status response, not a
+    // transport/authentication rejection. Never apply this to result saving.
+    if (path == ApiConfig.workInfoPath && ret == 7) {
+      throw WorkStatusResponse(data);
+    }
     if (!path.endsWith('/login') && ret != null && ret != 0 && ret != 1) {
       throw ApiFailure(
           data['message'] is String && (data['message'] as String).isNotEmpty

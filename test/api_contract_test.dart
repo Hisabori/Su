@@ -33,6 +33,29 @@ class MemorySession extends TokenStorageService {
 }
 
 void main() {
+  test('work status 7 stays distinct from authorization and saving failures',
+      () async {
+    final session = MemorySession()
+      ..token = 'fixture'
+      ..id = 31;
+    final api = ApiService(
+        tokens: session,
+        client: MockClient((_) async => http.Response(
+            jsonEncode({'ret': 7, 'message': '근무 상태 확인'}), 200,
+            headers: {'content-type': 'application/json; charset=utf-8'})));
+    await expectLater(
+        api.getWorkInfo(),
+        throwsA(isA<WorkStatusResponse>()
+            .having((e) => e.code, 'code', 7)
+            .having((e) => e.message, 'server message', '근무 상태 확인')));
+    await expectLater(
+        api.submitWorkResult({'user_id': 31, 'process_version_id': 1}),
+        throwsA(isA<ApiFailure>().having(
+            (e) => e is WorkStatusResponse, 'not a work lookup', false)));
+    expect(session.token, 'fixture');
+    api.close();
+  });
+
   test(
       'original login rejection codes retain their meaning and never create a session',
       () async {
