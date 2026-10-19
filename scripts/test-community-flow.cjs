@@ -13,7 +13,7 @@ let debugPage;const requests=[];
   else {
    assert.equal(req.headers().authorization,'Bearer community-test-only');assert.equal(req.headers()['x-community-session'],'a'.repeat(64));
    if(body.action==='list')reply={posts,me:{name:'정훈'},cursor:null};
-   else if(body.action==='create'){creates++;assert.equal(body.author,undefined);assert.equal(body.user_id,undefined);posts=[{id:body.id,title:body.title,body:body.body,author:'정훈',mine:true,createdAt:Date.now()}];reply={post:posts[0]};}
+   else if(body.action==='create'){assert.equal(body.title,'오늘의 이야기');assert.equal(body.body,'함께 나눌 내용입니다.');creates++;assert.equal(body.author,undefined);assert.equal(body.user_id,undefined);posts=[{id:body.id,title:body.title,body:body.body,author:'정훈',mine:true,createdAt:Date.now()}];reply={post:posts[0]};}
    else if(body.action==='delete'){deletes++;posts=[];reply={deleted:true};}
    else throw Error('Unexpected action '+body.action);
   }
@@ -41,15 +41,15 @@ let debugPage;const requests=[];
  await page.getByText('아직 이야기가 없어요.',{exact:false}).waitFor();
  await page.getByRole('button',{name:'글쓰기',exact:true}).click();
  await page.getByText('작성자 · 정훈',{exact:true}).waitFor();
- await page.locator('input').click();await page.keyboard.type('오늘의 이야기');
- await page.locator('textarea').click();await page.keyboard.type('함께 나눌 내용입니다.');
+ await page.locator('input').click();await page.keyboard.insertText('오늘의 이야기');
+ await page.locator('textarea').click();await page.keyboard.insertText('함께 나눌 내용입니다.');
  await page.getByRole('button',{name:'글 등록',exact:true}).click();
- await page.getByText('오늘의 이야기',{exact:true}).or(page.getByRole('group',{name:/오늘의 이야기/})).last().waitFor();
+ await page.getByText('오늘의 이야기',{exact:true}).or(page.getByRole('group',{name:/오늘의 이야기/})).or(page.getByLabel(/오늘의 이야기/)).last().waitFor();
  assert.equal(creates,1);
  if(process.env.PWA_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'community-classic.png')});
  await page.reload();await ready();
  await page.getByRole('button',{name:'커뮤니티',exact:true}).click();
- await page.getByText('오늘의 이야기',{exact:true}).or(page.getByRole('group',{name:/오늘의 이야기/})).last().waitFor();
+ await page.getByText('오늘의 이야기',{exact:true}).or(page.getByRole('group',{name:/오늘의 이야기/})).or(page.getByLabel(/오늘의 이야기/)).last().waitFor();
  await page.getByRole('button',{name:'내 글 삭제',exact:true}).click();
  await page.getByRole('button',{name:'삭제',exact:true}).click();
  await page.getByText('아직 이야기가 없어요.',{exact:false}).waitFor();

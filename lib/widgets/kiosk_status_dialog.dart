@@ -7,8 +7,10 @@ class KioskStatusDialog extends StatelessWidget {
       required this.name,
       required this.status,
       required this.current,
-      required this.capacity});
+      required this.capacity,
+      this.onHistory});
   final String name, status;
+  final VoidCallback? onHistory;
   final int? current, capacity;
 
   @override
@@ -109,6 +111,11 @@ class KioskStatusDialog extends StatelessWidget {
                                       color: const Color(0xFF808187),
                                       fontSize: 20 * scale)),
                             ])),
+                        if (onHistory != null)
+                          TextButton.icon(
+                              onPressed: onHistory,
+                              icon: const Icon(Icons.show_chart),
+                              label: const Text('기록과 그래프 보기')),
                         SizedBox(height: 36 * scale),
                         SizedBox(
                             height: 68 * scale,

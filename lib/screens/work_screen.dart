@@ -19,6 +19,8 @@ import '../widgets/kiosk_status_dialog.dart';
 import '../widgets/completion_panel.dart';
 import 'result_log_screen.dart';
 import 'community_screen.dart';
+import 'device_history_screen.dart';
+import '../services/device_history_service.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
 import '../services/app_preferences.dart';
@@ -53,8 +55,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool foreground = true, submitting = false;
   bool? pendingVideoResult;
   bool speaking = false;
-  bool mediaBlocked = false, speechUnavailable = false, speechEnabled = true;
+  int mediaBlocks = 0;
+  bool get mediaBlocked => mediaBlocks > 0;
+  bool speechUnavailable = false, speechEnabled = true;
+  void holdMedia() {
+    if (mounted) setState(() => mediaBlocks++);
+  }
+
+  void releaseMedia() {
+    if (mounted) {
+      setState(() {
+        if (mediaBlocks > 0) mediaBlocks--;
+      });
+    }
+  }
+
   final preferences = AppPreferences();
+  late final DeviceMonitor deviceMonitor;
   int promptReadGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
@@ -77,6 +94,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    deviceMonitor = DeviceMonitor(
+        fetch: fetchDeviceReading, history: DeviceHistoryService());
     speech.onListeningChanged = (value) {
       if (mounted) setState(() => listening = value);
     };
@@ -90,6 +109,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
+    deviceMonitor.dispose();
     tts.onSpeakingChanged = null;
     speech.onListeningChanged = null;
     unawaited(stopAudio());
@@ -116,9 +136,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
     try {
       speechEnabled = await preferences.speechEnabled();
-      final data = await api.getWorkInfo();
       sessionUser = await api.tokens.userId();
       final profile = await api.tokens.device();
+      final data = await api.getWorkInfo();
       displayName =
           profile['name'] is String ? profile['name'] as String : null;
       if (mounted) {
@@ -237,6 +257,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   void tick() {
     if (!mounted || !foreground) return;
+    if (!loading && sessionUser != null && !checkedOut && !checkingOut) {
+      unawaited(pollDevice(announce: deviceMonitor.lastAttempt != null));
+    }
     if (started &&
         !complete &&
         !awaitingSave &&
@@ -361,6 +384,94 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<DeviceReading?> fetchDeviceReading() async {
+    final userId = await api.tokens.userId();
+    if (userId == null || checkedOut) return null;
+    final device = await api.tokens.device();
+    final partner = (device['company_device_name'] ?? '').toString().trim();
+    final kiosk = (device['kiosk_id'] ?? '').toString().trim();
+    if (partner.isEmpty || kiosk.isEmpty) return null;
+    final at = DateTime.now();
+    try {
+      final response = await api.kioskInfo(partner);
+      final values = response['kiosks'];
+      if (values is! List) throw ApiFailure('수거기 현황을 불러오지 못했습니다.');
+      final matches = values
+          .whereType<Map>()
+          .where((r) => r['kioskId'].toString() == kiosk)
+          .toList();
+      if (matches.isEmpty) throw ApiFailure('배정된 수거기를 찾을 수 없습니다.');
+      final data = matches.first;
+      final raw = data['isAvailable'];
+      return DeviceReading(
+          userId: userId,
+          partner: partner,
+          kiosk: kiosk,
+          name: '${data['name'] ?? partner}',
+          at: at,
+          current: num.tryParse('${data['currentCapacity']}'),
+          capacity: num.tryParse('${data['maxCapacity']}'),
+          available: raw == true || raw == 1
+              ? true
+              : raw == false || raw == 0
+                  ? false
+                  : null);
+    } catch (e) {
+      return DeviceReading(
+          userId: userId,
+          partner: partner,
+          kiosk: kiosk,
+          name: partner,
+          at: at,
+          error: e is ApiFailure ? e.message : '수거기 상태를 확인하지 못했습니다.');
+    }
+  }
+
+  Future<void> pollDevice({bool force = false, bool announce = true}) async {
+    if (!mounted || checkedOut || checkingOut) return;
+    try {
+      final reading =
+          await deviceMonitor.poll(force: force, foreground: foreground);
+      if (!mounted || checkedOut || reading == null || !announce) return;
+      notice(reading.error != null
+          ? '페트병 수거기 상태를 확인하지 못했습니다.'
+          : '${reading.name} 적재율 ${reading.percentLabel}${reading.available == false ? ' · 사용 불가' : ''}');
+      if (deviceMonitor.storageFailed) notice('수거기 조회 결과를 기기에 저장하지 못했습니다.');
+    } catch (_) {
+      if (mounted && announce && !checkedOut) notice('수거기 상태를 확인하지 못했습니다.');
+    }
+  }
+
+  Future<void> showDeviceHistory() async {
+    final user = await api.tokens.userId();
+    final device = await api.tokens.device();
+    final partner = (device['company_device_name'] ?? '').toString().trim();
+    final kiosk = (device['kiosk_id'] ?? '').toString().trim();
+    if (!mounted) return;
+    if (user == null || partner.isEmpty || kiosk.isEmpty || checkedOut) {
+      notice('로그인한 계정에 배정된 수거기가 없습니다.');
+      return;
+    }
+    holdMedia();
+    await stopAudio();
+    if (!mounted) return;
+    try {
+      await pollDevice(announce: false);
+      if (!mounted) return;
+      await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+              builder: (_) => DeviceHistoryScreen(
+                  monitor: deviceMonitor,
+                  userId: user,
+                  partner: partner,
+                  kiosk: kiosk,
+                  onRefresh: () => pollDevice(force: true))));
+    } finally {
+      if (mounted) releaseMedia();
+    }
+  }
+
   Future<void> showDevice() async {
     final device = await TokenStorageService().device();
     if (!mounted) return;
@@ -412,14 +523,21 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         });
       }
       if (!mounted) return;
-      setState(() => mediaBlocked = true);
+      holdMedia();
       try {
         await showDialog<void>(
             context: context,
             builder: (context) => KioskStatusDialog(
-                name: name, status: status, current: current, capacity: max));
+                name: name,
+                status: status,
+                current: current,
+                capacity: max,
+                onHistory: () {
+                  Navigator.pop(context);
+                  showDeviceHistory();
+                }));
       } finally {
-        if (mounted) setState(() => mediaBlocked = false);
+        if (mounted) releaseMedia();
       }
     } catch (e) {
       notice(e is ApiFailure ? e.message : '기기 현황을 불러오지 못했습니다.');
@@ -896,19 +1014,19 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       (stepSchedule == null || !DateTime.now().isBefore(stepSchedule!));
 
   Future<void> showCommunity() async {
-    setState(() => mediaBlocked = true);
+    holdMedia();
     await stopAudio();
     if (!mounted) return;
     try {
       await Navigator.push<void>(
           context, MaterialPageRoute(builder: (_) => const CommunityScreen()));
     } finally {
-      if (mounted) setState(() => mediaBlocked = false);
+      if (mounted) releaseMedia();
     }
   }
 
   void showSettings() {
-    setState(() => mediaBlocked = true);
+    holdMedia();
     unawaited(stopAudio());
     var preferenceSaving = false;
     showModalBottomSheet<void>(
@@ -999,6 +1117,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 }),
                           const Divider(),
                           ListTile(
+                              leading: const Icon(Icons.show_chart),
+                              title: const Text('기기 기록 · 그래프'),
+                              onTap: () {
+                                Navigator.pop(sheet);
+                                showDeviceHistory();
+                              }),
+                          ListTile(
                               leading: const Icon(Icons.forum_outlined),
                               title: const Text('커뮤니티'),
                               onTap: () {
@@ -1042,10 +1167,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.7.0',
+                          const Text('수호천사 v1.8.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
-      if (mounted) setState(() => mediaBlocked = false);
+      if (mounted) releaseMedia();
     });
   }
 

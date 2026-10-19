@@ -19,4 +19,5 @@ node scripts/test-passkey-flow.cjs || browser_status=1
 node scripts/test-pwa.cjs || browser_status=1
 node scripts/test-video-flow.cjs || browser_status=1
 node scripts/test-community-flow.cjs || browser_status=1
+node scripts/test-device-flow.cjs || browser_status=1
 exit "$browser_status"

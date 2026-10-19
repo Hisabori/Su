@@ -166,6 +166,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 ])),
                           for (final post in posts)
                             Card(
+                                semanticContainer: false,
                                 margin: const EdgeInsets.only(bottom: 16),
                                 child: Padding(
                                     padding: const EdgeInsets.all(22),
