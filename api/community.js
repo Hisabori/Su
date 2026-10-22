@@ -1,6 +1,6 @@
 const blob=require('@vercel/blob');
 const {createCommunity,CommunityError}=require('../server/community.cjs');
-const handler=createCommunity({blob});
+const handler=createCommunity({blob,adminIds:(process.env.COMMUNITY_ADMIN_IDS||'').split(',').map(Number).filter(n=>Number.isSafeInteger(n)&&n>0)});
 module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','private, no-store');
  res.setHeader('X-Content-Type-Options','nosniff');

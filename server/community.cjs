@@ -1,4 +1,5 @@
 const {createHash, randomBytes}=require('node:crypto');
+const {createFeatures,validateImage}=require('./community_features.cjs');
 const UPSTREAM='https://api-suho1004.innaim.com';
 const sha=value=>createHash('sha256').update(value).digest('hex');
 class CommunityError extends Error {constructor(status,message){super(message);this.status=status;}}
@@ -8,11 +9,11 @@ const authorFor=data=>{
  if(!Number.isSafeInteger(userId)||userId<=0)fail(502,'로그인 사용자 정보를 확인하지 못했습니다.');
  // Only the authenticated server result determines the identity. Never use a username suffix.
  const name=typeof data.name==='string'?data.name.trim().slice(0,60):'';
- return {userId,name:name||(userId===31?'정훈':`사용자 ${userId}`)};
+ return {userId,name:name||`사용자 ${userId}`};
 };
 const publicPost=(post,userId)=>({id:post.id,title:post.title,body:post.body,author:post.author,
- createdAt:post.createdAt,mine:post.ownerId===userId});
-function createCommunity({blob,fetcher=fetch,now=Date.now}){
+ hasImage:!!post.image,createdAt:post.createdAt,mine:post.ownerId===userId});
+function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
  async function read(path){
   const result=await blob.get(path,{access:'private',useCache:false});
   if(!result||result.statusCode!==200)return null;
@@ -55,16 +56,21 @@ function createCommunity({blob,fetcher=fetch,now=Date.now}){
   if(typeof id!=='string'||!/^\d{13}-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))fail(400,'글 번호를 확인해 주세요.');
   return `community/posts/${String(9999999999999-Number(id.slice(0,13))).padStart(13,'0')}-${id.slice(14)}.json`;
  }
+ const features=createFeatures({blob,read,write,postPath,publicPost,fail,now,adminIds});
  return async function handle(body,headers={}){
-  if(!body||typeof body!=='object'||Array.isArray(body)||Buffer.byteLength(JSON.stringify(body))>16384)fail(400,'요청 내용을 확인해 주세요.');
+  if(!body||typeof body!=='object'||Array.isArray(body)||Buffer.byteLength(JSON.stringify(body))>(body.action==='create'?750000:16384))fail(400,'요청 내용을 확인해 주세요.');
   if(body.action==='login')return login(body);
   const session=await authenticate(headers);
+  const feature=await features.handle(body,session);if(feature)return feature;
   if(body.action==='list'){
    if(body.cursor!=null&&(typeof body.cursor!=='string'||body.cursor.length>2048))fail(400,'목록 위치를 확인해 주세요.');
    const result=await blob.list({prefix:'community/posts/',limit:20,...(body.cursor?{cursor:body.cursor}:{})});
    const values=await Promise.all(result.blobs.map(item=>read(item.pathname)));
-   const posts=values.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt).map(p=>publicPost(p,session.userId));
-   return {status:200,data:{posts,me:{name:session.name},cursor:result.hasMore?result.cursor:null}};
+   const posts=values.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
+   const decorated=(await Promise.all(posts.map(p=>features.decorate(p,session)))).filter(Boolean);
+   const pinned=body.cursor?[]:await features.notices(session);
+   const combined=[...pinned,...decorated.filter(p=>!pinned.some(n=>n.id===p.id))];
+   return {status:200,data:{posts:combined,me:{name:session.name,isAdmin:features.admin(session)},cursor:result.hasMore?result.cursor:null}};
   }
   if(body.action==='create'){
    const path=postPath(body.id);
@@ -72,7 +78,7 @@ function createCommunity({blob,fetcher=fetch,now=Date.now}){
    if(prior){if(prior.ownerId!==session.userId)fail(409,'글 번호가 중복되었습니다. 다시 시도해 주세요.');return {status:200,data:{post:publicPost(prior,session.userId)}};}
    if(Math.abs(now()-Number(body.id.slice(0,13)))>10*60*1000)fail(400,'기기 시간을 확인한 뒤 글쓰기를 다시 열어 주세요.');
    if(typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>80||typeof body.body!=='string'||!body.body.trim()||body.body.trim().length>2000)fail(400,'제목은 80자, 내용은 2,000자 이내로 입력해 주세요.');
-   const post={id:body.id,title:body.title.trim(),body:body.body.trim(),author:session.name,ownerId:session.userId,createdAt:now()};
+   const post={id:body.id,title:body.title.trim(),body:body.body.trim(),author:session.name,ownerId:session.userId,createdAt:now(),image:validateImage(body.image,fail)};
    try {await write(path,post);}catch(error){const existing=await read(path);if(!existing||existing.ownerId!==session.userId)throw error;return {status:200,data:{post:publicPost(existing,session.userId)}};}
    return {status:201,data:{post:publicPost(post,session.userId)}};
   }

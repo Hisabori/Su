@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'dart:convert';
+import '../utils/community_utils.dart';
+import '../services/community_photo.dart';
+import 'community_detail_screen.dart';
 import '../services/api_service.dart';
 import '../services/community_service.dart';
 
@@ -13,7 +16,16 @@ class _CommunityScreenState extends State<CommunityScreen> {
   final service = CommunityService();
   List<Map<String, dynamic>> posts = [];
   String? error, cursor, me;
-  bool loading = true, deleting = false;
+  bool loading = true, deleting = false, onlyMine = false, isAdmin = false;
+  String query = '';
+  List<Map<String, dynamic>> get visiblePosts => posts
+      .where((p) =>
+          (!onlyMine || p['mine'] == true) &&
+          [p['title'], p['body'], p['author']]
+              .join(' ')
+              .toLowerCase()
+              .contains(query.trim().toLowerCase()))
+      .toList();
   @override
   void initState() {
     super.initState();
@@ -29,6 +41,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String message(Object e) =>
       e is ApiFailure ? e.message : '요청을 완료하지 못했습니다. 다시 시도해 주세요.';
   Future<void> load({bool more = false}) async {
+    if (more && loading) return;
     setState(() {
       loading = true;
       error = null;
@@ -50,6 +63,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             : rows;
         cursor = result['cursor'] as String?;
         me = result['me'] is Map ? result['me']['name'] as String? : null;
+        isAdmin = result['me'] is Map && result['me']['isAdmin'] == true;
       });
     } catch (e) {
       if (mounted) setState(() => error = message(e));
@@ -106,6 +120,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('커뮤니티'), actions: [
+          if (isAdmin)
+            IconButton(
+                tooltip: '신고 관리',
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                        builder: (_) =>
+                            CommunityReportsScreen(service: service)))),
           IconButton(
               tooltip: '새로고침',
               onPressed: loading ? null : load,
@@ -135,6 +158,26 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   : '$me 님, 오늘의 이야기를 들려주세요.',
                               style: const TextStyle(height: 1.6)),
                           const SizedBox(height: 24),
+                          TextField(
+                              onChanged: (v) => setState(() => query = v),
+                              decoration: const InputDecoration(
+                                  labelText: '불러온 글 검색',
+                                  hintText: '제목 · 내용 · 작성자',
+                                  prefixIcon: Icon(Icons.search))),
+                          const SizedBox(height: 12),
+                          Wrap(spacing: 8, children: [
+                            FilterChip(
+                                label: const Text('내 글만'),
+                                selected: onlyMine,
+                                onSelected: (v) =>
+                                    setState(() => onlyMine = v)),
+                            Chip(label: Text('불러온 글 ${posts.length}개'))
+                          ]),
+                          const SizedBox(height: 12),
+                          if (!loading &&
+                              posts.isNotEmpty &&
+                              visiblePosts.isEmpty)
+                            const Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
                           if (error != null)
                             Card(
                                 child: Padding(
@@ -164,7 +207,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   SizedBox(height: 8),
                                   Text('첫 번째 이야기를 남겨보세요.')
                                 ])),
-                          for (final post in posts)
+                          for (final post in visiblePosts)
                             Card(
                                 semanticContainer: false,
                                 margin: const EdgeInsets.only(bottom: 16),
@@ -205,15 +248,38 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                                       Icons.delete_outline))
                                           ]),
                                           const SizedBox(height: 18),
+                                          if (post['pinned'] == true)
+                                            const Chip(label: Text('공지')),
+                                          if (post['hasImage'] == true)
+                                            const Text('사진 첨부'),
                                           Text('${post['title']}',
                                               style: const TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.w800,
                                                   height: 1.4)),
                                           const SizedBox(height: 10),
-                                          SelectableText('${post['body']}',
+                                          Text('${post['body']}',
+                                              maxLines: 4,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                   fontSize: 16, height: 1.7)),
+                                          const SizedBox(height: 12),
+                                          OutlinedButton.icon(
+                                              onPressed: () async {
+                                                await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute<void>(
+                                                        builder: (_) =>
+                                                            CommunityDetailScreen(
+                                                                service:
+                                                                    service,
+                                                                id: post['id']
+                                                                    as String)));
+                                                if (mounted) load();
+                                              },
+                                              icon: const Icon(
+                                                  Icons.chat_bubble_outline),
+                                              label: const Text('댓글 · 좋아요')),
                                         ]))),
                           if (cursor != null && !loading)
                             OutlinedButton(
@@ -234,14 +300,22 @@ class CommunityComposer extends StatefulWidget {
 
 class _CommunityComposerState extends State<CommunityComposer> {
   final title = TextEditingController(), body = TextEditingController();
-  late final String id = newPostId();
-  String newPostId() {
-    final random = Random.secure();
-    final bytes = List.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 15) | 64;
-    bytes[8] = (bytes[8] & 63) | 128;
-    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    return '${DateTime.now().millisecondsSinceEpoch}-${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+  late final String id = newCommunityId();
+  Map<String, dynamic>? image;
+  bool picking = false;
+  Future<void> pickPhoto() async {
+    if (picking || saving) return;
+    setState(() => picking = true);
+    try {
+      final result = await pickCommunityPhoto();
+      if (mounted && result != null) setState(() => image = result);
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = '사진을 읽지 못했습니다. JPG·PNG 사진을 다시 선택해 주세요.');
+      }
+    } finally {
+      if (mounted) setState(() => picking = false);
+    }
   }
 
   bool saving = false;
@@ -264,8 +338,12 @@ class _CommunityComposerState extends State<CommunityComposer> {
       error = null;
     });
     try {
-      await widget.service.request(
-          'create', {'id': id, 'title': title.text, 'body': body.text});
+      await widget.service.request('create', {
+        'id': id,
+        'title': title.text,
+        'body': body.text,
+        if (image != null) 'image': image
+      });
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -279,7 +357,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-      canPop: !saving,
+      canPop: !saving && !picking,
       child: Scaffold(
         appBar: AppBar(title: const Text('이야기 쓰기')),
         body: Center(
@@ -306,6 +384,20 @@ class _CommunityComposerState extends State<CommunityComposer> {
                           labelText: '내용',
                           alignLabelWithHint: true,
                           hintText: '동료들에게 전하고 싶은 이야기를 적어주세요.')),
+                  if (communityPhotoAvailable)
+                    OutlinedButton.icon(
+                        onPressed: saving || picking ? null : pickPhoto,
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        label: Text(picking ? '사진 준비 중…' : '사진 첨부')),
+                  if (image != null) ...[
+                    Image.memory(base64Decode(image!['data'] as String),
+                        height: 180, semanticLabel: '첨부할 사진'),
+                    TextButton(
+                        onPressed:
+                            saving ? null : () => setState(() => image = null),
+                        child: const Text('사진 제거')),
+                    const Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
+                  ],
                   if (error != null)
                     Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -313,7 +405,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
                             Semantics(liveRegion: true, child: Text(error!))),
                   const SizedBox(height: 20),
                   FilledButton(
-                      onPressed: saving ? null : save,
+                      onPressed: saving || picking ? null : save,
                       child: Text(saving ? '등록 중…' : '글 등록')),
                 ]))),
       ));
