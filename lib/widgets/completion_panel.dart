@@ -14,6 +14,7 @@ class CompletionPanel extends StatelessWidget {
       required this.onHistory,
       required this.onCheckout,
       required this.onDevice,
+      this.scheduled = false,
       this.checkoutLabel = '퇴근하기'});
   final String? name;
   final DateTime? start, end;
@@ -21,6 +22,9 @@ class CompletionPanel extends StatelessWidget {
   final VoidCallback? onDevice;
   final String checkoutLabel;
   final VoidCallback? onCheckout;
+
+  /// A server status response alone does not prove a successful result save.
+  final bool scheduled;
 
   @override
   Widget build(BuildContext context) =>
@@ -103,7 +107,10 @@ class CompletionPanel extends StatelessWidget {
                                               text: '시각 미확인',
                                               style:
                                                   TextStyle(color: highlight)),
-                                        const TextSpan(text: '에\n일을 시작 하셨고,\n'),
+                                        TextSpan(
+                                            text: scheduled
+                                                ? ' 근무 시작,\n'
+                                                : '에\n일을 시작 하셨고,\n'),
                                         if (end != null)
                                           TextSpan(
                                               text: completionTime(end!),
@@ -114,14 +121,19 @@ class CompletionPanel extends StatelessWidget {
                                               text: '시각 미확인',
                                               style:
                                                   TextStyle(color: highlight)),
-                                        const TextSpan(
-                                            text: '에 일을\n마무리 하셨습니다.'),
+                                        TextSpan(
+                                            text: scheduled
+                                                ? '에 일을\n마무리할 예정입니다.'
+                                                : '에 일을\n마무리 하셨습니다.'),
                                       ]),
                                       style: style),
                                   const Spacer(),
                                   Semantics(
                                       liveRegion: true,
-                                      child: const Text('서버에 작업 결과를 저장했습니다.',
+                                      child: Text(
+                                          scheduled
+                                              ? '예정된 근무 시간입니다. 완료 기록은 근무기록에서 확인해 주세요.'
+                                              : '서버에 작업 결과를 저장했습니다.',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                               fontSize: 12,

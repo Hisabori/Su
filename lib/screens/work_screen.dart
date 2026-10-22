@@ -156,7 +156,28 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         if (!await restoreCompletion()) await restoreDraft();
       }
     } on WorkStatusResponse catch (status) {
-      if (mounted) setState(() => workStatus = status);
+      if (mounted) {
+        setState(() => workStatus = status);
+        // A status response can still carry the original assignment. Restore
+        // completion only with the existing same-account/day/assignment receipt.
+        final raw = status.response;
+        if (raw['work'] is Map<String, dynamic>) {
+          WorkInfo? assignment;
+          try {
+            assignment = WorkInfo.fromJson(raw);
+          } on FormatException {
+            // Partial schedule data is still useful for the summary below.
+          }
+          if (assignment != null) {
+            work = assignment;
+            try {
+              await restoreCompletion();
+            } on ApiFailure catch (e) {
+              if (mounted) notice(e.message);
+            }
+          }
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(
@@ -812,7 +833,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> checkout() async {
-    if (checkingOut || checkedOut || !complete) return;
+    if (checkingOut || checkedOut || (!complete && workStatus == null)) return;
     setState(() => checkingOut = true);
     try {
       try {
@@ -876,38 +897,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
+  DateTime? get reentryStart {
+    final raw = workStatus?.response['work'];
+    if (raw is! Map) return null;
+    return WorkSchedule.timeOnDay(
+        raw['auto_start_time']?.toString(), DateTime.now());
+  }
+
+  DateTime? get reentryEnd {
+    final raw = workStatus?.response['work'];
+    if (raw is! Map) return null;
+    // Only display a time actually supplied by the server. Missing schedule
+    // information must never silently turn into the screenshot's 09:00/12:00.
+    return WorkSchedule.timeOnDay(raw['end_time']?.toString(), DateTime.now());
+  }
+
   Widget content() {
     if (loading) return const Center(child: CircularProgressIndicator());
-    if (workStatus != null) {
-      return WorkMessage(title: '근무 상태 안내', children: [
-        if (displayName != null) ...[
-          Text('$displayName 님', textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-        ],
-        Semantics(
-            liveRegion: true,
-            child: Text(workStatus!.message, textAlign: TextAlign.center)),
-        const SizedBox(height: 24),
-        FilledButton(onPressed: load, child: const Text('근무 상태 다시 확인')),
-        const SizedBox(height: 12),
-        OutlinedButton(
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                    builder: (_) => const ResultLogScreen())),
-            child: const Text('근무기록 자세히 보기')),
-        const SizedBox(height: 12),
-        OutlinedButton(
-            onPressed: showDeviceHistory, child: const Text('수거기 기록 · 그래프')),
-        const SizedBox(height: 12),
-        TextButton(onPressed: showCommunity, child: const Text('커뮤니티')),
-        ExpansionTile(title: const Text('자세한 상태'), children: const [
-          Padding(
-              padding: EdgeInsets.all(12),
-              child: Text('작업 조회 응답 코드: 7\n서버에서 시작 가능 여부를 확인한 뒤 작업을 진행합니다.')),
-        ]),
-      ]);
-    }
     if (error != null) {
       return Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -916,12 +922,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         FilledButton(onPressed: load, child: const Text('다시 시도'))
       ]));
     }
-    final info = work!;
-    if (complete) {
+    if (complete || workStatus != null) {
       return CompletionPanel(
         name: displayName,
-        start: startedAt,
-        end: DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? ''),
+        scheduled: !complete,
+        start: complete ? startedAt : reentryStart,
+        end: complete
+            ? DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? '')
+            : reentryEnd,
         onDevice: checkedOut || checkingOut ? null : showDevice,
         onHistory: () => Navigator.push(
             context,
@@ -936,6 +944,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                 : '퇴근하기',
       );
     }
+    final info = work!;
     if (!started) {
       return WorkMessage(title: '안녕하세요!', children: [
         Text(info.name,
@@ -1204,7 +1213,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.8.1',
+                          const Text('수호천사 v1.8.2',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();
@@ -1218,7 +1227,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           backgroundColor: (AppStyle.isBeta(context)
               ? AppStyle.background
               : const Color(0xFFF2F2F2)),
-          appBar: questionVisible || complete
+          appBar: questionVisible || complete || workStatus != null
               ? null
               : AppBar(
                   backgroundColor: (AppStyle.isBeta(context)

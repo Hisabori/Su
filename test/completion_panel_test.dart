@@ -3,6 +3,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/widgets/completion_panel.dart';
 
 void main() {
+  testWidgets('reentry schedule never claims an unconfirmed saved result',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: CompletionPanel(
+      name: '서버 이름',
+      start: DateTime(2026, 10, 23, 11, 20),
+      end: DateTime(2026, 10, 23, 14, 20),
+      scheduled: true,
+      onHistory: () {},
+      onCheckout: () {},
+      onDevice: () {},
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('서버 이름', findRichText: true), findsOneWidget);
+    expect(find.textContaining('마무리할 예정', findRichText: true), findsOneWidget);
+    expect(find.text('서버에 작업 결과를 저장했습니다.'), findsNothing);
+    await tester.ensureVisible(find.text('퇴근하기'));
+    expect(tester.takeException(), isNull);
+  });
+
   test('Korean completion times distinguish noon, midnight and minutes', () {
     expect(completionTime(DateTime(2026, 10, 16, 9)), '오전 9:00');
     expect(completionTime(DateTime(2026, 10, 16, 12)), '오후 12:00');

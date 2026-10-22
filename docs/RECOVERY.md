@@ -174,3 +174,15 @@ are retained. Saving and other endpoints still reject ret=7. This restores a
 safe status screen, not full parity with every original scheduling branch.
 Browser regression mocks status 7 with no work payload, navigation to history,
 and subsequent ret=1 recovery with no work result submission.
+
+
+### v1.8.2: reentry summary layout
+
+Work status 7 now reuses the reference CompletionPanel (logo, server login
+name, highlighted times, history and checkout). A same-day matching assignment
+receipt restores the real completion; otherwise this is a scheduled summary,
+without a result-save success claim. Scheduled start/end come only from the
+response work.auto_start_time/work.end_time; absent times remain unknown, never
+hardcoded to the reference image. Checkout logs out and remains on this screen.
+An unfinished ret=1 work session still resumes normally rather than being marked
+complete. Original classic layout and opt-in beta styling both remain supported.
