@@ -931,6 +931,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
             ? DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? '')
             : reentryEnd,
         onDevice: checkedOut || checkingOut ? null : showDevice,
+        onCommunity: checkedOut || checkingOut ? null : showCommunity,
         onHistory: () => Navigator.push(
             context,
             MaterialPageRoute<void>(

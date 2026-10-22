@@ -14,12 +14,13 @@ class CompletionPanel extends StatelessWidget {
       required this.onHistory,
       required this.onCheckout,
       required this.onDevice,
+      this.onCommunity,
       this.scheduled = false,
       this.checkoutLabel = '퇴근하기'});
   final String? name;
   final DateTime? start, end;
   final VoidCallback onHistory;
-  final VoidCallback? onDevice;
+  final VoidCallback? onDevice, onCommunity;
   final String checkoutLabel;
   final VoidCallback? onCheckout;
 
@@ -62,18 +63,25 @@ class CompletionPanel extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   SizedBox(height: 20 * scale),
-                                  Align(
-                                      alignment: Alignment.centerRight,
-                                      child: SizedBox(
-                                          width: 50 * scale,
-                                          height: 50 * scale,
-                                          child: IconButton(
-                                              padding: EdgeInsets.zero,
-                                              tooltip: '기기 상태',
-                                              onPressed: onDevice,
-                                              icon: Image.asset(
-                                                  'assets/images/icon_device.png',
-                                                  fit: BoxFit.contain)))),
+                                  Row(children: [
+                                    if (onCommunity != null)
+                                      IconButton(
+                                          tooltip: '커뮤니티',
+                                          onPressed: onCommunity,
+                                          icon:
+                                              const Icon(Icons.forum_outlined)),
+                                    const Spacer(),
+                                    SizedBox(
+                                        width: 50 * scale,
+                                        height: 50 * scale,
+                                        child: IconButton(
+                                            padding: EdgeInsets.zero,
+                                            tooltip: '기기 상태',
+                                            onPressed: onDevice,
+                                            icon: Image.asset(
+                                                'assets/images/icon_device.png',
+                                                fit: BoxFit.contain))),
+                                  ]),
                                   SizedBox(height: 44 * scale),
                                   Image.asset('assets/images/logo.png',
                                       height: 90 * scale,

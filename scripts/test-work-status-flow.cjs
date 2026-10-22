@@ -31,6 +31,7 @@ let debugPage;
  assert.equal(await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).count(),0);
  assert.equal(await page.getByText('서버에서 요청을 거절했습니다.',{exact:false}).count(),0);
  assert.equal(await page.getByRole('button',{name:'작업 시작',exact:true}).count(),0);
+ await page.getByRole('button',{name:'커뮤니티',exact:true}).waitFor();
  await page.getByRole('button',{name:'근무기록 자세히 보기',exact:true}).click();
  await page.getByText('오늘의 근무 기록',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Back',exact:true}).click();
