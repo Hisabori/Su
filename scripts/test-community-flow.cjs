@@ -82,7 +82,7 @@ let debugPage;const requests=[];
  await page.getByRole('button',{name:'글 다시 공개',exact:true}).click();
  await page.getByRole('button',{name:'글 숨기기',exact:true}).waitFor();
  await page.getByRole('button',{name:'신고하기',exact:true}).click();
- await page.locator('textarea').last().click();await page.keyboard.insertText('확인 부탁드립니다.');
+ await page.locator('textarea').last().click();await page.waitForTimeout(200);await page.keyboard.insertText('확인 부탁드립니다.');await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('textarea').last().inputValue(),'확인 부탁드립니다.');
  await page.getByRole('button',{name:'신고 접수',exact:true}).click();
  await page.getByText('신고를 접수했습니다.',{exact:true}).last().waitFor();
  await page.getByRole('button',{name:'댓글 삭제',exact:true}).click();

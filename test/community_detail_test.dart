@@ -51,6 +51,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('응원합니다.'), findsOneWidget);
     expect(service.actions.where((a) => a == 'comment_create').length, 1);
+    await tester.ensureVisible(find.text('신고하기'));
+    await tester.tap(find.text('신고하기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('신고 접수'));
+    await tester.pump();
+    expect(find.text('신고 사유를 입력해 주세요.'), findsOneWidget);
+    expect(service.actions.contains('report'), false);
+    await tester.tap(find.text('취소'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

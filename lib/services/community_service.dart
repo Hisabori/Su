@@ -40,7 +40,8 @@ class CommunityService {
     if (body is! Map<String, dynamic>) throw ApiFailure('커뮤니티 응답을 확인하지 못했습니다.');
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiFailure(
-          body['message'] is String ? body['message'] : '커뮤니티 요청을 완료하지 못했습니다.');
+          body['message'] is String ? body['message'] : '커뮤니티 요청을 완료하지 못했습니다.',
+          code: response.statusCode);
     }
     return body;
   }

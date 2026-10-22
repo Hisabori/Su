@@ -65,7 +65,15 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         admin = r['isAdmin'] == true;
       });
     } catch (e) {
-      if (mounted) setState(() => error = message(e));
+      if (mounted) {
+        setState(() {
+          error = message(e);
+          if (e is ApiFailure && [401, 403, 404].contains(e.code)) {
+            post = null;
+            comments = [];
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -102,24 +110,33 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> report() async {
     final input = TextEditingController();
+    String? validation;
     final reason = await showDialog<String>(
         context: context,
-        builder: (d) => AlertDialog(
-                title: const Text('글 신고'),
-                content: TextField(
-                    controller: input,
-                    maxLength: 500,
-                    minLines: 2,
-                    maxLines: 5,
-                    decoration: const InputDecoration(labelText: '신고 사유')),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(d),
-                      child: const Text('취소')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(d, input.text.trim()),
-                      child: const Text('신고 접수'))
-                ]));
+        builder: (d) => StatefulBuilder(
+            builder: (d, update) => AlertDialog(
+                    title: const Text('글 신고'),
+                    content: TextField(
+                        controller: input,
+                        maxLength: 500,
+                        minLines: 2,
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                            labelText: '신고 사유', errorText: validation)),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(d),
+                          child: const Text('취소')),
+                      FilledButton(
+                          onPressed: () {
+                            if (input.text.trim().isEmpty) {
+                              update(() => validation = '신고 사유를 입력해 주세요.');
+                            } else {
+                              Navigator.pop(d, input.text.trim());
+                            }
+                          },
+                          child: const Text('신고 접수'))
+                    ])));
     // Dialog exit animation may still reference its text controller.
     await Future<void>.delayed(const Duration(milliseconds: 300));
     input.dispose();
