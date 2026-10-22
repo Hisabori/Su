@@ -4,7 +4,7 @@ let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
- let calls=0,available=false,withSchedule=false,submissions=0;const errors=[];
+ let calls=0,available=false,withSchedule=false,submissions=0,logouts=0;const errors=[];
  await context.route('https://suho-angel.vercel.app/api/community',route=>route.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'fixture offline'}));
  await context.route('https://api-suho1004.innaim.com/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname;
@@ -13,6 +13,7 @@ let debugPage;
   let reply;
   if(path.endsWith('/login'))reply={ret:1,user_id:31,name:'서버 이름',access_token:'device-test-only',company_device_name:'partner',kiosk_id:'pet'};
   else if(path.endsWith('/validate_token'))reply={ret:1};
+  else if(path.endsWith('/logout')){logouts++;reply={ret:1};}
   else if(path.endsWith('/work_info'))reply=available ?{ret:1,work:{work_id:8,work_name:'적재율 검증'},process:{current_version_id:1},steps:[{step_id:1,step_name:'확인',start_ment:'확인',work_seconds:0}]} : {ret:7,...(withSchedule ? {work:{work_id:8,work_name:'적재율 검증',auto_start_time:'11:20:00',end_time:'14:20:00'},steps:[]} : {})};
   else if(path.endsWith('/kiosk_info')){calls++;reply={ret:1,kiosks:[{kioskId:'pet',name:'수호천사05',currentCapacity:250,maxCapacity:1000,isAvailable:true}]};}
   else if(path.endsWith('/work_result')){submissions++;throw Error('Status must not submit work');}
@@ -36,11 +37,22 @@ let debugPage;
  await page.getByText('서버 이름 님,',{exact:false}).waitFor();
  withSchedule=true;
  await page.reload();
+ await page.locator('flutter-view').waitFor({timeout:60000});
+ await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());
  await page.getByText('오전 11:20',{exact:false}).waitFor();
  await page.getByText('오후 2:20',{exact:false}).waitFor();
  if(process.env.PWA_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'reentry-summary.png')});
+ await page.getByRole('button',{name:'퇴근하기',exact:true}).click();
+ await page.getByRole('button',{name:'퇴근 완료',exact:true}).waitFor();
+ assert.equal(logouts,1);
+ await page.getByText('서버 이름 님,',{exact:false}).waitFor();
  available=true;
  await page.reload();
+ await page.locator('flutter-view').waitFor({timeout:60000});
+ await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());
+ await page.locator('input').nth(0).click();await page.keyboard.type('demo');
+ await page.locator('input').nth(1).click();await page.keyboard.type('fake');
+ await page.getByRole('button',{name:'로그인',exact:true}).click();
  await page.getByText('안녕하세요!',{exact:true}).waitFor();
  assert.equal(submissions,0);
  assert.deepEqual(errors,[]);
