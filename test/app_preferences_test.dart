@@ -12,6 +12,18 @@ class BrokenStore extends MemoryStore implements LocalStore {
 }
 
 void main() {
+  test(
+      'automatic login choice persists and storage failures disable restoration',
+      () async {
+    final store = MemoryStore();
+    final preferences = AppPreferences(store: store);
+    expect(await preferences.autoLoginEnabled(), true);
+    await preferences.setAutoLoginEnabled(false);
+    expect(await AppPreferences(store: store).autoLoginEnabled(), false);
+    expect(
+        await AppPreferences(store: BrokenStore()).autoLoginEnabled(), false);
+  });
+
   test('automatic reading defaults on and saved choice survives new instance',
       () async {
     final store = MemoryStore();

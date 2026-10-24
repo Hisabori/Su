@@ -48,7 +48,7 @@ class ApiService {
 
   Map<String, dynamic> _decode(http.Response response, String path) {
     if (response.statusCode == 401 || response.statusCode == 403) {
-      throw ApiFailure('로그인이 필요하거나 접근 권한이 없습니다.');
+      throw ApiFailure('로그인이 필요하거나 접근 권한이 없습니다.', code: response.statusCode);
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiFailure('서버에 연결하지 못했습니다.');
@@ -205,7 +205,9 @@ class ApiService {
     final token = await tokens.read();
     if (token == null) throw ApiFailure('다시 로그인해 주세요.');
     final data = await _put('/api/user/validate_token', {'token': token});
-    if (integer(data['ret']) != 1) throw ApiFailure('다시 로그인해 주세요.');
+    if (integer(data['ret']) != 1) {
+      throw ApiFailure('다시 로그인해 주세요.', code: 401);
+    }
   }
 
   Future<void> logoutLocally() => tokens.clear();

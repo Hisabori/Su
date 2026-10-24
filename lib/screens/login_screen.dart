@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
 import '../services/passkey_service.dart';
+import '../services/app_preferences.dart';
+import '../services/session_restore_service.dart';
 import 'work_screen.dart';
 import '../widgets/login_notice.dart';
 import '../theme/app_style.dart';
@@ -20,8 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final password = TextEditingController();
   final api = ApiService(communityLogin: true);
   final passkeys = PasskeyService();
+  final preferences = AppPreferences();
   bool passkeyAvailable = false, passkeyConfigured = false;
   bool busy = false;
+  bool autoLogin = true, restoringSession = false, sessionRetry = false;
   String? error;
   @override
   void initState() {
@@ -33,10 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> refreshPasskeyStatus() async {
     try {
       final state = await passkeys.status();
+      final enabled = await preferences.autoLoginEnabled();
       if (mounted) {
         setState(() {
           passkeyAvailable = state['supported'] == true;
           passkeyConfigured = state['enrolled'] == true;
+          autoLogin = enabled;
         });
       }
     } catch (_) {
@@ -67,18 +73,42 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> restoreSession() async {
-    setState(() => busy = true);
+    if (busy) return;
+    setState(() {
+      busy = true;
+      restoringSession = true;
+      sessionRetry = false;
+      error = null;
+    });
     try {
-      final token = await api.tokens.read();
-      if (token == null || token.isEmpty) return;
-      await api.validateToken();
+      final enabled = await preferences.autoLoginEnabled();
+      if (mounted) setState(() => autoLogin = enabled);
+      final result =
+          await SessionRestoreService(api: api, preferences: preferences)
+              .restore();
       if (!mounted) return;
+      if (result == SessionRestoreResult.expired) {
+        setState(() => error = '저장된 로그인이 만료되었습니다. 다시 로그인해 주세요.');
+        return;
+      }
+      if (result != SessionRestoreResult.restored) return;
+      setState(() => restoringSession = false);
       await Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => const WorkScreen()));
     } catch (_) {
-      /* Network failure keeps local credentials for a later attempt. */
+      if (mounted) {
+        setState(() {
+          error = '자동 로그인을 확인하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하거나 비밀번호로 로그인해 주세요.';
+          sessionRetry = true;
+        });
+      }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) {
+        setState(() {
+          busy = false;
+          restoringSession = false;
+        });
+      }
       await refreshPasskeyStatus();
     }
   }
@@ -100,6 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       busy = true;
       error = null;
+      sessionRetry = false;
     });
     try {
       await api.login(username.text.trim(), password.text);
@@ -116,6 +147,24 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => busy = false);
       await refreshPasskeyStatus();
+    }
+  }
+
+  Future<void> setAutoLogin(bool value) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await preferences.setAutoLoginEnabled(value);
+      if (mounted) {
+        setState(() {
+          autoLogin = value;
+          if (!value) sessionRetry = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => error = '자동 로그인 설정을 저장하지 못했습니다. 다시 시도해 주세요.');
+    } finally {
+      if (mounted) setState(() => busy = false);
     }
   }
 
@@ -186,6 +235,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   onSubmitted: (_) => login(),
                   decoration: decoration('비밀번호를 입력하세요.'),
                 )),
+            CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('자동 로그인'),
+                subtitle: const Text('서버에서 확인된 로그인 상태로 다시 접속합니다.'),
+                value: autoLogin,
+                onChanged:
+                    busy ? null : (value) => setAutoLogin(value == true)),
+            if (restoringSession)
+              Semantics(liveRegion: true, child: const Text('자동 로그인 확인 중…')),
+            if (sessionRetry && autoLogin)
+              OutlinedButton(
+                  onPressed: busy ? null : restoreSession,
+                  child: const Text('자동 로그인 다시 시도')),
             if (error != null)
               Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -241,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('v1.9.0 · 빌드 20',
+              const Text('v1.9.1 · 빌드 21',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',

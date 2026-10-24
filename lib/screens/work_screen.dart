@@ -43,6 +43,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   bool draftWarning = false;
   WorkInfo? work;
   String? error;
+  bool autoLoginEnabled = true;
   WorkStatusResponse? workStatus;
   bool loading = true,
       started = false,
@@ -138,6 +139,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
     try {
       speechEnabled = await preferences.speechEnabled();
+      autoLoginEnabled = await preferences.autoLoginEnabled();
       sessionUser = await api.tokens.userId();
       final profile = await api.tokens.device();
       displayName =
@@ -1128,6 +1130,34 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 }
                               }),
                           SwitchListTile(
+                              title: const Text('자동 로그인'),
+                              subtitle:
+                                  const Text('앱을 다시 열 때 저장된 세션을 서버에서 확인합니다.'),
+                              value: autoLoginEnabled,
+                              onChanged: preferenceSaving
+                                  ? null
+                                  : (value) async {
+                                      updateSheet(
+                                          () => preferenceSaving = true);
+                                      try {
+                                        await preferences
+                                            .setAutoLoginEnabled(value);
+                                        if (mounted) {
+                                          setState(
+                                              () => autoLoginEnabled = value);
+                                        }
+                                      } catch (_) {
+                                        if (mounted) {
+                                          notice('자동 로그인 설정을 저장하지 못했습니다.');
+                                        }
+                                      } finally {
+                                        if (sheet.mounted) {
+                                          updateSheet(
+                                              () => preferenceSaving = false);
+                                        }
+                                      }
+                                    }),
+                          SwitchListTile(
                               title: const Text('질문 자동 읽기'),
                               subtitle: Text(speechEnabled
                                   ? '질문을 자동으로 읽습니다.'
@@ -1214,7 +1244,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.9.0',
+                          const Text('수호천사 v1.9.1',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

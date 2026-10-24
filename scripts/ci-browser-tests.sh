@@ -21,4 +21,5 @@ node scripts/test-video-flow.cjs || browser_status=1
 node scripts/test-community-flow.cjs || browser_status=1
 node scripts/test-device-flow.cjs || browser_status=1
 node scripts/test-work-status-flow.cjs || browser_status=1
+node scripts/test-auto-login-flow.cjs || browser_status=1
 exit "$browser_status"

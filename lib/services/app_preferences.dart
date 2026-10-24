@@ -20,6 +20,17 @@ class AppPreferences {
     }
   }
 
+  Future<bool> autoLoginEnabled() async {
+    try {
+      return await store.read('suho_pref_auto_login') != 'false';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> setAutoLoginEnabled(bool enabled) =>
+      store.write('suho_pref_auto_login', enabled ? 'true' : 'false');
+
   Future<void> setBetaEnabled(bool enabled) =>
       store.write('suho_pref_beta_enabled', enabled ? 'true' : 'false');
 
