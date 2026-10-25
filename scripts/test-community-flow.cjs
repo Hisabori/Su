@@ -15,6 +15,8 @@ let debugPage;const requests=[];
    if(body.action==='list')reply={posts:posts.map(({image,...p})=>({...p,hasImage:!!image,pinned})),me:{name:'정훈',isAdmin:true},cursor:null};
    else if(body.action==='create'){assert.equal(body.title,'오늘의 이야기');assert.equal(body.body,'함께 나눌 내용입니다.');creates++;assert.equal(body.author,undefined);assert.equal(body.user_id,undefined);assert.equal(body.image.mime,'image/jpeg');assert.ok(body.image.data.length<699052);posts=[{id:body.id,title:body.title,body:body.body,author:'정훈',mine:true,createdAt:Date.now(),image:body.image}];reply={post:posts[0]};}
    else if(body.action==='detail')reply={post:{...posts[0],pinned,hidden},comments,cursor:null,liked,likes:liked?1:0,isAdmin:true};
+   else if(body.action==='edit'){assert.equal(body.author,undefined);posts[0]={...posts[0],title:body.title,body:body.body,updatedAt:Date.now()};reply={saved:true};}
+   else if(body.action==='comment_edit'){comments[0]={...comments[0],body:body.body,updatedAt:Date.now()};reply={saved:true};}
    else if(body.action==='comment_create'){assert.equal(body.body,'응원합니다.');assert.equal(body.author,undefined);comments=[{id:body.commentId,body:body.body,author:'정훈',createdAt:Date.now(),mine:true}];reply={saved:true};}
    else if(body.action==='comment_delete'){comments=[];reply={deleted:true};}
    else if(body.action==='like'){liked=body.liked;reply={liked,likes:liked?1:0};}
@@ -52,6 +54,13 @@ let debugPage;const requests=[];
  await page.getByText('작성자 · 정훈',{exact:true}).waitFor();
  await page.locator('input').click();await page.keyboard.insertText('오늘의 이야기');
  await page.locator('textarea').click();await page.keyboard.insertText('함께 나눌 내용입니다.');
+ await page.getByRole('button',{name:'제목·내용 임시저장',exact:true}).click();
+ await page.getByText('제목·내용 임시저장됨 · 사진은 제외',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Back',exact:true}).click();
+ await page.getByRole('button',{name:'글쓰기',exact:true}).click();
+ await page.getByText('임시저장한 글을 불러왔습니다.',{exact:true}).waitFor();
+ assert.equal(await page.locator('input').inputValue(),'오늘의 이야기');
+ assert.equal(await page.locator('textarea').inputValue(),'함께 나눌 내용입니다.');
  const chooserPromise=page.waitForEvent('filechooser');
  await page.getByRole('button',{name:'사진 첨부',exact:true}).click();
  const chooser=await chooserPromise;
@@ -70,11 +79,20 @@ let debugPage;const requests=[];
  await page.locator('input').click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.press('Backspace');
  await page.getByRole('button',{name:'댓글 · 좋아요',exact:true}).click();
  await page.getByRole('img',{name:'첨부 사진',exact:true}).waitFor();
+ await page.getByRole('button',{name:'내 글 수정',exact:true}).click();
+ await page.getByText('이야기 수정',{exact:true}).waitFor();
+ await page.locator('input').click();await page.waitForTimeout(200);await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('수정한 이야기');await page.keyboard.press('Tab');
+ await page.getByRole('button',{name:'수정 저장',exact:true}).click();
+ await page.getByText('수정한 이야기',{exact:true}).waitFor();
  await page.getByRole('button',{name:'좋아요 0',exact:true}).click();
  await page.getByRole('button',{name:'좋아요 취소 1',exact:true}).waitFor();
  await page.locator('textarea').click();await page.waitForTimeout(200);await page.keyboard.insertText('응원합니다.');
  await page.getByRole('button',{name:'댓글 등록',exact:true}).click();
  await page.getByText('응원합니다.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'댓글 수정',exact:true}).click();
+ await page.locator('textarea').last().click();await page.waitForTimeout(200);await page.keyboard.press('ControlOrMeta+A');await page.keyboard.insertText('수정 응원합니다.');await page.keyboard.press('Tab');
+ await page.getByRole('button',{name:'댓글 수정 저장',exact:true}).click();
+ await page.getByText('수정 응원합니다.',{exact:true}).waitFor();
  await page.getByRole('button',{name:'공지로 등록',exact:true}).click();
  await page.getByRole('button',{name:'공지 해제',exact:true}).waitFor();
  await page.getByRole('button',{name:'글 숨기기',exact:true}).click();
@@ -98,7 +116,7 @@ let debugPage;const requests=[];
  await page.getByRole('button',{name:'삭제',exact:true}).click();
  await page.getByText('아직 이야기가 없어요.',{exact:false}).waitFor();
  assert.equal(deletes,1);assert.deepEqual(errors,[]);
- console.log('PASS community author follows authenticated numeric identity, not username suffix; create/photo/search/comments/likes/moderation/reload/delete');
+ console.log('PASS community author follows authenticated numeric identity, not username suffix; draft/create/photo/search/edit/comments/edit-comment/likes/moderation/reload/delete');
  await browser.close();
 })().catch(async e=>{
  console.error('COMMUNITY REQUESTS',requests);

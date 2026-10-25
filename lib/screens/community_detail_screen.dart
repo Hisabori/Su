@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/community_service.dart';
 import '../utils/community_utils.dart';
+import 'community_screen.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
   const CommunityDetailScreen(
@@ -108,6 +109,60 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     }
   }
 
+  Future<void> editPost() async {
+    if (post == null || busy) return;
+    final saved = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => CommunityComposer(
+                service: widget.service,
+                name: post!['author'] as String?,
+                post: post)));
+    if (saved == true && mounted) await load();
+  }
+
+  Future<void> editComment(Map<String, dynamic> comment) async {
+    final input = TextEditingController(text: '${comment['body']}');
+    final key = GlobalKey<FormState>();
+    final value = await showDialog<String>(
+        context: context,
+        builder: (d) => AlertDialog(
+                title: const Text('댓글 수정'),
+                content: Form(
+                    key: key,
+                    child: TextFormField(
+                        controller: input,
+                        maxLength: 500,
+                        minLines: 2,
+                        maxLines: 5,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? '내용을 입력해 주세요.'
+                            : null,
+                        decoration:
+                            const InputDecoration(labelText: '수정할 댓글'))),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('취소')),
+                  FilledButton(
+                      onPressed: () {
+                        if (key.currentState!.validate()) {
+                          Navigator.pop(d, input.text.trim());
+                        }
+                      },
+                      child: const Text('댓글 수정 저장'))
+                ]));
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    input.dispose();
+    if (value != null && mounted) {
+      await act('comment_edit', {
+        'commentId': comment['id'],
+        'mutationId': newCommunityId(),
+        'body': value
+      });
+    }
+  }
+
   Future<void> report() async {
     final input = TextEditingController();
     String? validation;
@@ -190,11 +245,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   const SizedBox(height: 12),
                   Text(
                       '${post!['author']} · ${communityStamp(post!['createdAt'])}'),
+                  if (post!['updatedAt'] != null)
+                    Text('수정 ${communityStamp(post!['updatedAt'])}',
+                        style: const TextStyle(fontSize: 12)),
                   const SizedBox(height: 24),
                   Text('${post!['body']}',
                       style: const TextStyle(fontSize: 17, height: 1.7)),
                   photo(post!['image']),
                   Wrap(spacing: 12, runSpacing: 8, children: [
+                    if (post!['mine'] == true)
+                      TextButton(
+                          onPressed: busy ? null : editPost,
+                          child: const Text('내 글 수정')),
                     OutlinedButton.icon(
                         onPressed: busy || loading
                             ? null
@@ -255,6 +317,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                                     Expanded(
                                         child: Text(
                                             '${c['author']} · ${communityStamp(c['createdAt'])}')),
+                                    if (c['mine'] == true)
+                                      IconButton(
+                                          tooltip: '댓글 수정',
+                                          onPressed: busy
+                                              ? null
+                                              : () => editComment(c),
+                                          icon:
+                                              const Icon(Icons.edit_outlined)),
                                     if (c['mine'] == true || admin)
                                       IconButton(
                                           tooltip: '댓글 삭제',
@@ -267,6 +337,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                                   ]),
                                   Text('${c['body']}',
                                       style: const TextStyle(height: 1.6)),
+                                  if (c['updatedAt'] != null)
+                                    const Text('수정됨',
+                                        style: TextStyle(fontSize: 12)),
                                 ]))),
                   if (cursor != null)
                     TextButton(

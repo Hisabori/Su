@@ -232,3 +232,22 @@ rules. Server-expired sessions require password login. Community's independent
 Browser regression covers valid reload without password login, temporary 503
 retry, expiry cleanup, remembered opt-out and logout. Existing passkey tests
 continue to verify explicit authentication and no unlocked persistent token copy.
+
+
+### v1.10.0: community editing and local drafts
+
+Authors can edit their own post title/body and comments. Photos and author
+identity stay unchanged; admin rights do not permit impersonating authors.
+Edits are immutable private revision objects with retry-safe mutation IDs;
+newest client mutation timestamps determine revision ordering (same clock
+constraint as post IDs, +/-10 minutes). Concurrent edits on multiple devices
+use that order, not database compare-and-swap conflict detection. Original
+post/comment data remains private underneath the revision. Comment revision
+keys include the parent post, preventing reused IDs from changing another post.
+Post list and detail consistently overlay revisions and show server edit time.
+New-post title/body drafts save after 600ms and when leaving the composer,
+with a manual save button. Drafts are device-local and isolated by authenticated
+user ID; pictures are deliberately excluded and labeled as such. A successful
+post clears its draft. Temporary draft cleanup failure never becomes a resend.
+List refresh generations ignore outdated responses while preserving loaded
+items on ordinary errors.

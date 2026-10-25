@@ -105,3 +105,23 @@ test('photos are validated and delivered only through authenticated detail, not 
  for(const bad of [{mime:'image/svg+xml',data:'PHN2Zz4='},{mime:'image/jpeg',data:'bad'},{mime:'image/png',data:'a'.repeat(699056)}])
   await assert.rejects(s.handle({action:'create',id:s.id(),title:'사진',body:'내용',image:bad},owner),e=>e.status===400);
 });
+test('only owners edit text, original image and identity remain intact, retries stay idempotent',async()=>{
+ const s=setup([31]),owner=await connect(s),id=s.id();
+ await s.handle({action:'create',id,title:'원본',body:'내용'},owner);
+ const mutationId=s.id();
+ await s.handle({action:'edit',id,mutationId,title:'수정 제목',body:'수정 내용',author:'사칭'},owner);
+ await s.handle({action:'edit',id,mutationId,title:'재전송',body:'변경 무시'},owner);
+ let p=(await s.handle({action:'detail',id},owner)).data.post;
+ assert.equal(p.title,'수정 제목');assert.equal(p.body,'수정 내용');assert.equal(p.author,'정훈');assert.ok(p.updatedAt);
+ assert.equal((await s.handle({action:'list'},owner)).data.posts[0].title,'수정 제목');
+ const commentId=s.id();await s.handle({action:'comment_create',id,commentId,body:'원 댓글'},owner);
+ await s.handle({action:'comment_edit',id,commentId,mutationId:s.id(),body:'수정 댓글'},owner);
+ assert.equal((await s.handle({action:'detail',id},owner)).data.comments[0].body,'수정 댓글');
+ s.setLogin({ret:1,user_id:42,name:'다른 사용자',access_token:'verified-token'});const other=await connect(s);
+ await assert.rejects(s.handle({action:'edit',id,mutationId:s.id(),title:'사칭',body:'내용'},other),e=>e.status===403);
+ await assert.rejects(s.handle({action:'comment_edit',id,commentId,mutationId:s.id(),body:'사칭'},other),e=>e.status===403);
+ const otherPost=s.id();await s.handle({action:'create',id:otherPost,title:'다른 글',body:'내용'},other);
+ await s.handle({action:'comment_create',id:otherPost,commentId,body:'동일 댓글 ID'},other);
+ await s.handle({action:'comment_edit',id:otherPost,commentId,mutationId:s.id(),body:'다른 글에서 수정'},other);
+ assert.equal((await s.handle({action:'detail',id},owner)).data.comments[0].body,'수정 댓글');
+});

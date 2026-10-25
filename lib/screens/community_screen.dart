@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
+import '../services/community_draft_service.dart';
 import '../utils/community_utils.dart';
 import '../services/community_photo.dart';
 import 'community_detail_screen.dart';
@@ -18,6 +20,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String? error, cursor, me;
   bool loading = true, deleting = false, onlyMine = false, isAdmin = false;
   String query = '';
+  int loadGeneration = 0;
   List<Map<String, dynamic>> get visiblePosts => posts
       .where((p) =>
           (!onlyMine || p['mine'] == true) &&
@@ -42,6 +45,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       e is ApiFailure ? e.message : '요청을 완료하지 못했습니다. 다시 시도해 주세요.';
   Future<void> load({bool more = false}) async {
     if (more && loading) return;
+    final generation = ++loadGeneration;
     setState(() {
       loading = true;
       error = null;
@@ -53,7 +57,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           .whereType<Map>()
           .map((p) => Map<String, dynamic>.from(p))
           .toList();
-      if (!mounted) return;
+      if (!mounted || generation != loadGeneration) return;
       setState(() {
         posts = more
             ? [
@@ -66,9 +70,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
         isAdmin = result['me'] is Map && result['me']['isAdmin'] == true;
       });
     } catch (e) {
-      if (mounted) setState(() => error = message(e));
+      if (mounted && generation == loadGeneration) {
+        setState(() => error = message(e));
+      }
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted && generation == loadGeneration) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -291,9 +299,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
 class CommunityComposer extends StatefulWidget {
   const CommunityComposer(
-      {super.key, required this.service, required this.name});
+      {super.key, required this.service, required this.name, this.post});
   final CommunityService service;
   final String? name;
+  final Map<String, dynamic>? post;
   @override
   State<CommunityComposer> createState() => _CommunityComposerState();
 }
@@ -301,6 +310,65 @@ class CommunityComposer extends StatefulWidget {
 class _CommunityComposerState extends State<CommunityComposer> {
   final title = TextEditingController(), body = TextEditingController();
   late final String id = newCommunityId();
+  final drafts = CommunityDraftService();
+  Timer? draftTimer;
+  int? draftUser;
+  bool draftReady = false, published = false;
+  String? draftStatus;
+  bool get editing => widget.post != null;
+  @override
+  void initState() {
+    super.initState();
+    restoreDraft();
+  }
+
+  Future<void> restoreDraft() async {
+    try {
+      if (editing) {
+        title.text = '${widget.post!['title']}';
+        body.text = '${widget.post!['body']}';
+      } else {
+        draftUser = await widget.service.tokens.userId();
+        final d = draftUser == null ? null : await drafts.load(draftUser!);
+        if (!mounted) return;
+        if (d != null) {
+          title.text = d['title'] as String;
+          body.text = d['body'] as String;
+          draftStatus = '임시저장한 글을 불러왔습니다.';
+        }
+      }
+    } catch (_) {
+      draftStatus = '임시저장을 확인하지 못했습니다.';
+    } finally {
+      if (mounted) {
+        setState(() => draftReady = true);
+        title.addListener(scheduleDraft);
+        body.addListener(scheduleDraft);
+      }
+    }
+  }
+
+  void scheduleDraft() {
+    if (editing || published) return;
+    draftTimer?.cancel();
+    draftTimer =
+        Timer(const Duration(milliseconds: 600), () => unawaited(saveDraft()));
+  }
+
+  Future<void> saveDraft() async {
+    final user = draftUser;
+    if (editing || published || user == null) return;
+    final t = title.text, b = body.text;
+    try {
+      await drafts.save(user, t, b);
+      if (mounted) setState(() => draftStatus = '제목·내용 임시저장됨 · 사진은 제외');
+    } catch (_) {
+      if (mounted) {
+        setState(() => draftStatus = '임시저장에 실패했습니다. 내용을 복사해 보관해 주세요.');
+      }
+    }
+  }
+
   Map<String, dynamic>? image;
   bool picking = false;
   Future<void> pickPhoto() async {
@@ -322,6 +390,12 @@ class _CommunityComposerState extends State<CommunityComposer> {
   String? error;
   @override
   void dispose() {
+    draftTimer?.cancel();
+    title.removeListener(scheduleDraft);
+    body.removeListener(scheduleDraft);
+    if (!editing && !published && draftReady) {
+      unawaited(saveDraft());
+    }
     title.dispose();
     body.dispose();
     super.dispose();
@@ -338,12 +412,22 @@ class _CommunityComposerState extends State<CommunityComposer> {
       error = null;
     });
     try {
-      await widget.service.request('create', {
-        'id': id,
+      draftTimer?.cancel();
+      await widget.service.request(editing ? 'edit' : 'create', {
+        'id': editing ? widget.post!['id'] : id,
+        if (editing) 'mutationId': id,
         'title': title.text,
         'body': body.text,
         if (image != null) 'image': image
       });
+      published = true;
+      if (!editing && draftUser != null) {
+        try {
+          await drafts.clear(draftUser!);
+        } catch (_) {
+          /* Posting succeeded; never resend because draft cleanup failed. */
+        }
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -359,7 +443,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
   Widget build(BuildContext context) => PopScope(
       canPop: !saving && !picking,
       child: Scaffold(
-        appBar: AppBar(title: const Text('이야기 쓰기')),
+        appBar: AppBar(title: Text(editing ? '이야기 수정' : '이야기 쓰기')),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
@@ -369,14 +453,14 @@ class _CommunityComposerState extends State<CommunityComposer> {
                   const SizedBox(height: 24),
                   TextField(
                       controller: title,
-                      enabled: !saving,
+                      enabled: !saving && draftReady,
                       maxLength: 80,
                       decoration: const InputDecoration(
                           labelText: '제목', hintText: '어떤 이야기를 나누고 싶으세요?')),
                   const SizedBox(height: 20),
                   TextField(
                       controller: body,
-                      enabled: !saving,
+                      enabled: !saving && draftReady,
                       maxLength: 2000,
                       minLines: 8,
                       maxLines: 16,
@@ -384,7 +468,8 @@ class _CommunityComposerState extends State<CommunityComposer> {
                           labelText: '내용',
                           alignLabelWithHint: true,
                           hintText: '동료들에게 전하고 싶은 이야기를 적어주세요.')),
-                  if (communityPhotoAvailable)
+                  if (editing) const Text('수정 시 기존 사진은 유지됩니다.'),
+                  if (!editing && communityPhotoAvailable)
                     OutlinedButton.icon(
                         onPressed: saving || picking ? null : pickPhoto,
                         icon: const Icon(Icons.add_photo_alternate_outlined),
@@ -398,6 +483,14 @@ class _CommunityComposerState extends State<CommunityComposer> {
                         child: const Text('사진 제거')),
                     const Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
                   ],
+                  if (!draftReady) const LinearProgressIndicator(),
+                  if (!editing) ...[
+                    if (draftStatus != null)
+                      Text(draftStatus!, style: const TextStyle(fontSize: 12)),
+                    TextButton(
+                        onPressed: saving || !draftReady ? null : saveDraft,
+                        child: const Text('제목·내용 임시저장')),
+                  ],
                   if (error != null)
                     Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -405,8 +498,12 @@ class _CommunityComposerState extends State<CommunityComposer> {
                             Semantics(liveRegion: true, child: Text(error!))),
                   const SizedBox(height: 20),
                   FilledButton(
-                      onPressed: saving || picking ? null : save,
-                      child: Text(saving ? '등록 중…' : '글 등록')),
+                      onPressed: saving || picking || !draftReady ? null : save,
+                      child: Text(saving
+                          ? '저장 중…'
+                          : editing
+                              ? '수정 저장'
+                              : '글 등록')),
                 ]))),
       ));
 }

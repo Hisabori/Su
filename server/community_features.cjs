@@ -14,16 +14,35 @@ function createFeatures({blob,read,write,postPath,publicPost,fail,now,adminIds=[
  const marker=(kind,id)=>`community/${kind}/${hash(id)}.json`;
  const cursor=value=>{if(value!=null&&(typeof value!=='string'||value.length>2048))fail(400,'목록 위치를 확인해 주세요.');return value?{cursor:value}:{};};
  async function once(path,value){try{await write(path,value);}catch(e){if(!await read(path))throw e;}}
- async function visible(id,s){const p=await read(postPath(id));if(!p||(!admin(s)&&await read(marker('hidden',id))))fail(404,'삭제되었거나 볼 수 없는 글입니다.');return p;}
- async function decorate(p,s){if(!admin(s)&&await read(marker('hidden',p.id)))return null;return {...publicPost(p,s.userId),pinned:!!await read(marker('pins',p.id))};}
+ async function revision(kind,id){const r=await blob.list({prefix:`community/revisions/${kind}/${hash(id)}/`,limit:1});return r.blobs.length?await read(r.blobs[0].pathname):null;}
+ async function revised(kind,p,parent=''){return {...p,...await revision(kind,parent+p.id)};}
+ async function visible(id,s){const raw=await read(postPath(id));const p=raw?await revised('posts',raw):null;if(!p||(!admin(s)&&await read(marker('hidden',id))))fail(404,'삭제되었거나 볼 수 없는 글입니다.');return p;}
+ async function decorate(p,s){if(!admin(s)&&await read(marker('hidden',p.id)))return null;return {...publicPost(await revised('posts',p),s.userId),pinned:!!await read(marker('pins',p.id))};}
  async function notices(s){const r=await blob.list({prefix:'community/pins/',limit:10});const marks=await Promise.all(r.blobs.map(b=>read(b.pathname)));const values=await Promise.all(marks.filter(Boolean).map(m=>read(postPath(m.postId))));return (await Promise.all(values.filter(Boolean).map(p=>decorate(p,s)))).filter(Boolean);}
  async function reactions(id,s){const r=await blob.list({prefix:prefix(id)+'likes/',limit:1000});return {likes:r.blobs.length,likesMore:!!r.hasMore,liked:!!await read(prefix(id)+`likes/${s.userId}.json`)};}
  async function handle(b,s){
   if(b.action==='detail'||b.action==='comments'){
    const post=await visible(b.id,s);
    const r=await blob.list({prefix:prefix(b.id)+'comments/',limit:20,...cursor(b.cursor)});
-   const comments=(await Promise.all(r.blobs.map(x=>read(x.pathname)))).filter(Boolean).map(c=>({id:c.id,body:c.body,author:c.author,createdAt:c.createdAt,mine:c.ownerId===s.userId}));
+   const rawComments=(await Promise.all(r.blobs.map(x=>read(x.pathname)))).filter(Boolean);
+   const comments=(await Promise.all(rawComments.map(c=>revised('comments',c,b.id+'/')))).map(c=>({id:c.id,body:c.body,author:c.author,createdAt:c.createdAt,updatedAt:c.updatedAt??null,mine:c.ownerId===s.userId}));
    return {status:200,data:{post:{...await decorate(post,s),image:post.image??null,hidden:admin(s)&&!!await read(marker('hidden',b.id))},comments,cursor:r.hasMore?r.cursor:null,...await reactions(b.id,s),isAdmin:admin(s)}};
+  }
+  if(b.action==='edit'||b.action==='comment_edit'){
+   const p=await visible(b.id,s);
+   let original=p,kind='posts';
+   if(b.action==='comment_edit'){
+    original=await read(prefix(b.id)+'comments/'+postPath(b.commentId).split('/').pop());kind='comments';
+    if(!original)fail(404,'삭제된 댓글입니다.');
+   }
+   if(original.ownerId!==s.userId)fail(403,'내가 작성한 내용만 수정할 수 있습니다.');
+   const path=`community/revisions/${kind}/${hash((kind==='comments'?b.id+'/':'')+original.id)}/${postPath(b.mutationId).split('/').pop()}`;
+   if(await read(path))return {status:200,data:{saved:true}};
+   if(Math.abs(now()-Number(b.mutationId.slice(0,13)))>600000)fail(400,'기기 시간을 확인한 뒤 수정 화면을 다시 열어 주세요.');
+   if(typeof b.body!=='string'||!b.body.trim()||b.body.trim().length>(kind==='posts'?2000:500))fail(400,'내용의 글자 수를 확인해 주세요.');
+   if(kind==='posts'&&(typeof b.title!=='string'||!b.title.trim()||b.title.trim().length>80))fail(400,'제목은 80자 이내로 입력해 주세요.');
+   await once(path,{body:b.body.trim(),...(kind==='posts'?{title:b.title.trim()}:{}),updatedAt:now()});
+   return {status:200,data:{saved:true}};
   }
   if(b.action==='like'){
    await visible(b.id,s);if(typeof b.liked!=='boolean')fail(400,'좋아요 상태를 확인해 주세요.');

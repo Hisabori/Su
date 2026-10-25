@@ -12,7 +12,7 @@ const authorFor=data=>{
  return {userId,name:name||`사용자 ${userId}`};
 };
 const publicPost=(post,userId)=>({id:post.id,title:post.title,body:post.body,author:post.author,
- hasImage:!!post.image,createdAt:post.createdAt,mine:post.ownerId===userId});
+ updatedAt:post.updatedAt??null,hasImage:!!post.image,createdAt:post.createdAt,mine:post.ownerId===userId});
 function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
  async function read(path){
   const result=await blob.get(path,{access:'private',useCache:false});
