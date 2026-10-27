@@ -37,12 +37,17 @@ class QuestionPanel extends StatelessWidget {
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 8)]),
-          child: IconButton(
-              padding: EdgeInsets.zero,
-              tooltip: label,
-              onPressed: action,
-              icon: Image.asset(asset,
-                  width: 42, height: 42, fit: BoxFit.contain)));
+          child: Semantics(
+              label: label,
+              child: Tooltip(
+                  message: label,
+                  excludeFromSemantics: true,
+                  child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: action,
+                      icon: Image.asset(asset,
+                          excludeFromSemantics: true,
+                          width: 42, height: 42, fit: BoxFit.contain)))));
 
   @override
   Widget build(BuildContext context) =>
