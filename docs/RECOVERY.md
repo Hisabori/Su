@@ -265,3 +265,14 @@ test verifies toggling beta preserves the current route. Backgrounds are static
 and blur is limited to clipped panels. Beta community browser coverage includes
 photo/draft/post edits/comments/likes/moderation. Browser fixtures now wait for
 Flutter focus before typing and avoid duplicate live-region selectors.
+
+
+### v1.12.0: glass default with explicit legacy mode
+
+The glass design now initializes as the default. Both login and work settings
+show “레거시 모드 켜기” for the modern design and “레거시 모드 끄기” for the
+classic design. The explicit device-local suho_pref_legacy_enabled flag defaults
+to false, including storage failures; old beta opt-in values are ignored so prior
+installs also receive the new default. An explicit legacy choice persists.
+Internal betaEnabled/setBetaEnabled remain compatibility helpers around the
+inverted legacy flag; no work/navigation/authentication data is migrated.

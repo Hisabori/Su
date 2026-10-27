@@ -34,15 +34,21 @@ void main() {
     await preferences.setSpeechEnabled(true);
     expect(await AppPreferences(store: store).speechEnabled(), isTrue);
   });
-  test('beta style requires opt-in and remembers both choices', () async {
+  test(
+      'glass is default, old beta choices are ignored, explicit legacy choice persists',
+      () async {
     final store = MemoryStore();
     final preferences = AppPreferences(store: store);
-    expect(await preferences.betaEnabled(), isFalse);
+    expect(await preferences.betaEnabled(), isTrue);
+    store.data['suho_pref_beta_enabled'] = 'false';
+    expect(await preferences.betaEnabled(), isTrue);
+    expect(await preferences.legacyEnabled(), isFalse);
     await preferences.setBetaEnabled(true);
     expect(await AppPreferences(store: store).betaEnabled(), isTrue);
     await preferences.setBetaEnabled(false);
     expect(await AppPreferences(store: store).betaEnabled(), isFalse);
-    expect(await AppPreferences(store: BrokenStore()).betaEnabled(), isFalse);
+    expect(await AppPreferences(store: store).legacyEnabled(), isTrue);
+    expect(await AppPreferences(store: BrokenStore()).betaEnabled(), isTrue);
   });
   test('unavailable storage uses default; failed save is reported', () async {
     final preferences = AppPreferences(store: BrokenStore());

@@ -1111,13 +1111,15 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                           ListTile(
                               leading: Icon(
                                   AppearanceScope.of(sheet)?.enabled == true
-                                      ? Icons.toggle_on
-                                      : Icons.toggle_off),
+                                      ? Icons.toggle_off
+                                      : Icons.toggle_on),
                               title: Text(
                                   AppearanceScope.of(sheet)?.enabled == true
-                                      ? '베타버전 끄기'
-                                      : '베타버전 켜기'),
-                              subtitle: const Text('화면 스타일만 변경합니다.'),
+                                      ? '레거시 모드 켜기'
+                                      : '레거시 모드 끄기'),
+                              subtitle: Text(AppStyle.isBeta(sheet)
+                                  ? '기존 앱 디자인으로 전환합니다.'
+                                  : '기본 글래스 디자인으로 돌아갑니다.'),
                               enabled:
                                   AppearanceScope.of(sheet)?.saving != true,
                               onTap: () async {
@@ -1244,7 +1246,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.11.0',
+                          const Text('수호천사 v1.12.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

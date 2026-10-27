@@ -43,8 +43,7 @@ let debugPage;const requests=[];
  const page=await context.newPage();debugPage=page;page.on('pageerror',e=>errors.push(e.message));
  async function ready(){await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());}
  await page.goto(process.env.PWA_TEST_URL||'http://127.0.0.1:8765/');await ready();
- await page.getByRole('button',{name:'베타버전 켜기',exact:true}).click();
- await page.getByRole('button',{name:'베타버전 끄기',exact:true}).waitFor();
+ await page.getByRole('button',{name:'레거시 모드 켜기',exact:true}).waitFor();
  if(process.env.PWA_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'glass-login.png')});
  await page.locator('input').nth(0).click();await page.waitForTimeout(200);await page.keyboard.type('cesco999',{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('input').nth(0).inputValue(),'cesco999');
  await page.locator('input').nth(1).click();await page.waitForTimeout(200);await page.keyboard.type('fake',{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('input').nth(1).inputValue(),'fake');

@@ -13,8 +13,13 @@ class AppPreferences {
   }
 
   Future<bool> betaEnabled() async {
+    return !await legacyEnabled();
+  }
+
+  Future<bool> legacyEnabled() async {
     try {
-      return await store.read('suho_pref_beta_enabled') == 'true';
+      // The old opt-in flag must not keep existing installs in classic mode.
+      return await store.read('suho_pref_legacy_enabled') == 'true';
     } catch (_) {
       return false;
     }
@@ -31,8 +36,10 @@ class AppPreferences {
   Future<void> setAutoLoginEnabled(bool enabled) =>
       store.write('suho_pref_auto_login', enabled ? 'true' : 'false');
 
-  Future<void> setBetaEnabled(bool enabled) =>
-      store.write('suho_pref_beta_enabled', enabled ? 'true' : 'false');
+  Future<void> setBetaEnabled(bool enabled) => setLegacyEnabled(!enabled);
+
+  Future<void> setLegacyEnabled(bool enabled) =>
+      store.write('suho_pref_legacy_enabled', enabled ? 'true' : 'false');
 
   Future<void> setSpeechEnabled(bool enabled) =>
       store.write('suho_pref_speech_enabled', enabled ? 'true' : 'false');

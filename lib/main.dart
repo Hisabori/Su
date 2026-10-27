@@ -15,7 +15,7 @@ class SuhoAngelApp extends StatefulWidget {
 
 class _SuhoAngelAppState extends State<SuhoAngelApp> {
   final preferences = AppPreferences();
-  bool beta = false, saving = false, restoring = true;
+  bool beta = true, saving = false, restoring = true;
   @override
   void initState() {
     super.initState();

@@ -305,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('v1.11.0 · 빌드 23',
+              const Text('v1.12.0 · 빌드 24',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
@@ -327,8 +327,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       Text('화면 설정을 저장하지 못했습니다. 다시 시도해 주세요.')));
                         }
                       },
-                icon: Icon(beta ? Icons.toggle_on : Icons.toggle_off),
-                label: Text(beta ? '베타버전 끄기' : '베타버전 켜기')),
+                icon: Icon(beta ? Icons.toggle_off : Icons.toggle_on),
+                label: Text(beta ? '레거시 모드 켜기' : '레거시 모드 끄기')),
           ],
         )));
   }
