@@ -72,11 +72,11 @@ let debugPage;
  const spoken=await page.evaluate(()=>window.__speechCalls[0]);
  assert.equal(spoken.text,'첫 번째 확인');assert.equal(spoken.rate,0.95);assert.equal(spoken.lang,'ko-KR');
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
- await page.getByText('키오스크 현황',{exact:true}).waitFor();
- await page.getByText('0.0%  (0/1000)',{exact:true}).waitFor();
- await page.getByText('비어있음',{exact:true}).waitFor();
+ await page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
+ await page.getByText('0.0%',{exact:true}).last().waitFor();
+ await page.getByLabel(/페트병 수거기 적재율 추이 그래프/).waitFor();
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(500); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'kiosk-status.png')}); }
- await page.getByRole('button',{name:'닫기',exact:true}).click();
+ await page.getByRole('button',{name:'Back',exact:true}).click();
  await page.getByText('질문 1 / 2',{exact:true}).waitFor();
  console.log('PASS assigned kiosk popup uses API values and returns to the same question');
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(1200); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'question-panel.png')}); }

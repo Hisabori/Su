@@ -28,9 +28,10 @@ let debugPage;
  // Allow the first foreground baseline to finish before opening the history.
  await page.waitForTimeout(1800);assert.equal(calls,1);
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
- await page.getByRole('button',{name:'기록과 그래프 보기',exact:true}).click();
  await page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
  await page.getByText('25.0%',{exact:true}).last().waitFor();
+ const graph=page.getByLabel(/페트병 수거기 적재율 추이 그래프/);await graph.waitFor();
+ assert.ok((await graph.boundingBox()).y<400);
  await page.getByRole('checkbox',{name:'7일',exact:true}).click();
  const baseline=calls,baseTime=await page.evaluate(()=>Date.now());
  current=500;await page.clock.setFixedTime(new Date(baseTime+10*60*1000));

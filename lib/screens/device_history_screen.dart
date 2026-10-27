@@ -94,10 +94,26 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   const SizedBox(height: 10),
                   const Text('페트병 수거기 · 10분마다 적재율 조회',
                       style: TextStyle(height: 1.6)),
-                  const Text(
-                      '앱이 열려 있을 때 조회하며 최근 7일(최대 1,500회)을 이 기기에 저장합니다. 중단된 구간과 미확인 값은 선으로 연결하지 않습니다.',
-                      style: TextStyle(fontSize: 12, height: 1.6)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    ChoiceChip(
+                        label: const Text('오늘'),
+                        selected: !week,
+                        onSelected: (_) => setState(() => week = false)),
+                    const SizedBox(width: 10),
+                    ChoiceChip(
+                        label: const Text('7일'),
+                        selected: week,
+                        onSelected: (_) => setState(() => week = true))
+                  ]),
+                  const SizedBox(height: 18),
+                  if (loading) const Center(child: CircularProgressIndicator()),
+                  if (error != null) Text(error!),
+                  GlassCard(
+                      child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: DeviceHistoryChart(records: visible))),
+                  const SizedBox(height: 16),
                   if (latest != null)
                     GlassCard(
                         semanticContainer: false,
@@ -126,25 +142,11 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   if (widget.monitor.storageFailed)
                     const Text('현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),
                   const SizedBox(height: 20),
-                  Row(children: [
-                    ChoiceChip(
-                        label: const Text('오늘'),
-                        selected: !week,
-                        onSelected: (_) => setState(() => week = false)),
-                    const SizedBox(width: 10),
-                    ChoiceChip(
-                        label: const Text('7일'),
-                        selected: week,
-                        onSelected: (_) => setState(() => week = true))
-                  ]),
-                  const SizedBox(height: 18),
-                  if (loading) const Center(child: CircularProgressIndicator()),
-                  if (error != null) Text(error!),
-                  GlassCard(
-                      child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: DeviceHistoryChart(records: visible))),
                   const SizedBox(height: 20),
+                  const Text(
+                      '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
+                      style: TextStyle(fontSize: 12, height: 1.6)),
+                  const SizedBox(height: 16),
                   Text('조회 기록 ${visible.length}회',
                       style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800)),

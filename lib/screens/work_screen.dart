@@ -553,6 +553,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         });
       }
       if (!mounted) return;
+      if (AppStyle.isBeta(context)) {
+        await showDeviceHistory();
+        return;
+      }
       holdMedia();
       try {
         await showDialog<void>(
@@ -1301,7 +1305,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.15.0',
+                          const Text('수호천사 v1.16.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();
