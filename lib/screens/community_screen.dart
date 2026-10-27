@@ -182,37 +182,41 @@ class _CommunityScreenState extends State<CommunityScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                         children: [
                           if (AppStyle.isBeta(context))
-                            GlassSurface(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(children: [
-                                        Icon(Icons.spa_outlined,
-                                            color: AppStyle.teal, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('우리의 작은 쉼터',
-                                            style: TextStyle(
-                                                color: AppStyle.teal,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700))
-                                      ]),
-                                      const SizedBox(height: 14),
-                                      const Text('함께 나누는 이야기',
-                                          style: TextStyle(
-                                              fontSize: 26,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppStyle.navy)),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                          me == null
-                                              ? '동료들과 일상의 이야기를 나눠보세요.'
-                                              : '$me 님, 오늘의 이야기를 들려주세요.',
-                                          style: const TextStyle(
-                                              height: 1.7,
-                                              color: AppStyle.muted)),
-                                    ]))
+                            Semantics(
+                                container: true,
+                                explicitChildNodes: true,
+                                child: GlassSurface(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Row(children: [
+                                            Icon(Icons.spa_outlined,
+                                                color: AppStyle.teal, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('우리의 작은 쉼터',
+                                                style: TextStyle(
+                                                    color: AppStyle.teal,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.w700))
+                                          ]),
+                                          const SizedBox(height: 14),
+                                          const Text('함께 나누는 이야기',
+                                              style: TextStyle(
+                                                  fontSize: 26,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppStyle.navy)),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                              me == null
+                                                  ? '동료들과 일상의 이야기를 나눠보세요.'
+                                                  : '$me 님, 오늘의 이야기를 들려주세요.',
+                                              style: const TextStyle(
+                                                  height: 1.7,
+                                                  color: AppStyle.muted)),
+                                        ])))
                           else ...[
                             const Text('함께 나누는 이야기',
                                 style: TextStyle(
