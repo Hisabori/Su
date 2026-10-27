@@ -74,7 +74,7 @@ let debugPage;
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
  await page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
  await page.getByText('0.0%',{exact:true}).last().waitFor();
- await page.getByLabel(/페트병 수거기 적재율 추이 그래프/).waitFor();
+ await page.getByRole('img',{name:/페트병 수거기 적재율 추이 그래프/}).waitFor();
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(500); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'kiosk-status.png')}); }
  await page.getByRole('button',{name:'Back',exact:true}).click();
  await page.getByText('질문 1 / 2',{exact:true}).waitFor();

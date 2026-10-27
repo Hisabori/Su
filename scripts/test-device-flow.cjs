@@ -30,7 +30,7 @@ let debugPage;
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
  await page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
  await page.getByText('25.0%',{exact:true}).last().waitFor();
- const graph=page.getByLabel(/페트병 수거기 적재율 추이 그래프/);await graph.waitFor();
+ const graph=page.getByRole('img',{name:/페트병 수거기 적재율 추이 그래프/});await graph.waitFor();
  assert.ok((await graph.boundingBox()).y<400);
  await page.getByRole('checkbox',{name:'7일',exact:true}).click();
  const baseline=calls,baseTime=await page.evaluate(()=>Date.now());
