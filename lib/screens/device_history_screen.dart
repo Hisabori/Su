@@ -110,6 +110,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   if (loading) const Center(child: CircularProgressIndicator()),
                   if (error != null) Text(error!),
                   GlassCard(
+                      semanticContainer: false,
                       child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: DeviceHistoryChart(records: visible))),

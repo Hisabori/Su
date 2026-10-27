@@ -78,9 +78,9 @@ let debugPage;
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(500); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'kiosk-status.png')}); }
  await page.getByRole('button',{name:'Back',exact:true}).click();
  await page.getByText('질문 1 / 2',{exact:true}).waitFor();
- console.log('PASS assigned kiosk popup uses API values and returns to the same question');
+ console.log('PASS assigned collector chart uses API values and returns to the same question');
  if(process.env.PWA_SCREENSHOT_DIR) { await page.waitForTimeout(1200); await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'question-panel.png')}); }
- await page.getByRole('button',{name:'설정',exact:true}).click();
+ await page.getByText('설정',{exact:true}).click();
  await page.getByRole('switch',{name:/질문 자동 읽기/}).click();
  await page.getByRole('switch',{name:/자동 읽기가 꺼져 있습니다/}).waitFor();
  await page.getByRole('button',{name:'설정 닫기',exact:true}).click();
