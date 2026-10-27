@@ -13,6 +13,7 @@ void main() {
     await tester.pumpWidget(const SuhoAngelApp());
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNWidgets(2));
+    await tester.ensureVisible(find.text('로그인'));
     await tester.tap(find.text('로그인'));
     await tester.pump();
     expect(find.text('아이디와 비밀번호를 입력해 주세요.'), findsOneWidget);
