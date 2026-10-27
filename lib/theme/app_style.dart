@@ -5,14 +5,16 @@ import 'appearance_scope.dart';
 abstract final class AppStyle {
   static bool isBeta(BuildContext context) =>
       Theme.of(context).extension<BetaTheme>() != null;
-  static const navy = Color(0xFF254A52);
+  static const navy = Color(0xFF202633);
+  static const coral = Color(0xFFD34A22);
+  static const blue = Color(0xFF0867C5);
   static const teal = Color(0xFF287B70);
-  static const background = Color(0xFFF5F8FA);
-  static const ink = Color(0xFF233447);
-  static const muted = Color(0xFF647574);
-  static const line = Color(0xFFDCE7E1);
+  static const background = Color(0xFFF2F2F7);
+  static const ink = Color(0xFF1C1C1E);
+  static const muted = Color(0xFF63636E);
+  static const line = Color(0xFFE5E5EA);
   static const shadow = [
-    BoxShadow(color: Color(0x102A5149), blurRadius: 28, offset: Offset(0, 10))
+    BoxShadow(color: Color(0x071C1C1E), blurRadius: 16, offset: Offset(0, 4))
   ];
   static ThemeData theme() => ThemeData(
         extensions: const [BetaTheme()],
@@ -52,28 +54,28 @@ abstract final class AppStyle {
             foregroundColor: navy,
             elevation: 5),
         colorScheme: ColorScheme.fromSeed(seedColor: navy).copyWith(
-            primary: navy,
+            primary: blue,
             secondary: teal,
             surface: Colors.white,
             onSurface: ink,
             outline: muted,
             outlineVariant: line),
         appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xBFFFFFFF),
+            backgroundColor: Color(0xF2F2F2F7),
             foregroundColor: ink,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
-            centerTitle: true,
+            centerTitle: false,
             titleTextStyle: TextStyle(
                 fontFamily: 'NanumGothic',
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: ink)),
         filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
                 minimumSize: const Size(48, 54),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24)),
+                    borderRadius: BorderRadius.circular(18)),
                 textStyle: const TextStyle(
                     fontFamily: 'NanumGothic',
                     fontSize: 17,
@@ -86,7 +88,7 @@ abstract final class AppStyle {
                     borderRadius: BorderRadius.circular(24)))),
         inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: const Color(0x99FFFFFF),
+            fillColor: const Color(0xFFF7F7FA),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: line)),

@@ -26,7 +26,7 @@ class GlassSurface extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: opaque
                     ? const [Colors.white, Colors.white]
-                    : const [Color(0xD9FFFFFF), Color(0x8CFFFFFF)]),
+                    : const [Color(0xFAFFFFFF), Color(0xF2FFFFFF)]),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
                 color: opaque ? AppStyle.muted : const Color(0xE6FFFFFF),
@@ -130,9 +130,9 @@ class GlassBackdrop extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                    Color(0xFFF8F5EF),
-                                    Color(0xFFEDF5F1),
-                                    Color(0xFFF1F2F8)
+                                    Color(0xFFF2F2F7),
+                                    Color(0xFFF6F6FA),
+                                    Color(0xFFF2F2F7)
                                   ])
                             : null)))),
         Positioned.fill(
@@ -142,11 +142,11 @@ class GlassBackdrop extends StatelessWidget {
                         Positioned(
                             top: -110,
                             right: -85,
-                            child: _Glow(color: Color(0x55E6CDAE), size: 340)),
+                            child: _Glow(color: Color(0x18F7B59E), size: 340)),
                         Positioned(
                             bottom: -100,
                             left: -120,
-                            child: _Glow(color: Color(0x5589C7B5), size: 390)),
+                            child: _Glow(color: Color(0x18AEC8EA), size: 390)),
                       ])
                     : const SizedBox.shrink())),
         child,

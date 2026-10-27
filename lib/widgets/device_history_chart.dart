@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../services/device_history_service.dart';
+import '../theme/app_style.dart';
 
 class DeviceHistoryChart extends StatelessWidget {
   const DeviceHistoryChart({super.key, required this.records});
@@ -16,7 +17,11 @@ class DeviceHistoryChart extends StatelessWidget {
         child: SizedBox(
             height: 240,
             child: CustomPaint(
-                painter: _Chart(records, Theme.of(context).colorScheme.primary,
+                painter: _Chart(
+                    records,
+                    AppStyle.isBeta(context)
+                        ? AppStyle.coral
+                        : Theme.of(context).colorScheme.primary,
                     Theme.of(context).colorScheme.onSurface))));
   }
 }
@@ -52,7 +57,7 @@ class _Chart extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       final y = area.bottom - area.height * i / 2;
       canvas.drawLine(Offset(area.left, y), Offset(area.right, y),
-          Paint()..color = const Color(0xFFE1E9EF));
+          Paint()..color = const Color(0xFFE5E5EA));
       label(canvas, '${(maximum * i / 2).toStringAsFixed(0)}%',
           Offset(area.left - 8, y - 7),
           right: true);

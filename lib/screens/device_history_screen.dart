@@ -1,4 +1,5 @@
 import '../theme/glass_surface.dart';
+import '../theme/app_style.dart';
 import 'package:flutter/material.dart';
 import '../services/device_history_service.dart';
 import '../widgets/device_history_chart.dart';
@@ -90,7 +91,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                 child: ListView(padding: const EdgeInsets.all(22), children: [
                   Text(latest?.name ?? '배정된 기기',
                       style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.w800)),
+                          fontSize: 30, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 10),
                   const Text('페트병 수거기 · 10분마다 적재율 조회',
                       style: TextStyle(height: 1.6)),
@@ -112,8 +113,36 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   GlassCard(
                       semanticContainer: false,
                       child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: DeviceHistoryChart(records: visible))),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (AppStyle.isBeta(context)) ...[
+                                  const Row(children: [
+                                    Icon(Icons.bar_chart_rounded,
+                                        color: AppStyle.coral, size: 20),
+                                    SizedBox(width: 6),
+                                    Text('적재율 추이',
+                                        style: TextStyle(
+                                            color: AppStyle.coral,
+                                            fontWeight: FontWeight.w800))
+                                  ]),
+                                  const SizedBox(height: 10),
+                                  Text(latest?.percentLabel ?? '측정 전',
+                                      style: const TextStyle(
+                                          fontSize: 38,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppStyle.ink)),
+                                  Text(
+                                      latest == null
+                                          ? '조회 후 그래프가 표시됩니다.'
+                                          : '마지막 조회 · ${time(latest.at)}',
+                                      style: const TextStyle(
+                                          fontSize: 12, color: AppStyle.muted)),
+                                  const SizedBox(height: 12),
+                                ],
+                                DeviceHistoryChart(records: visible),
+                              ]))),
                   const SizedBox(height: 16),
                   if (latest != null)
                     GlassCard(
@@ -142,7 +171,6 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                 ]))),
                   if (widget.monitor.storageFailed)
                     const Text('현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),
-                  const SizedBox(height: 20),
                   const SizedBox(height: 20),
                   const Text(
                       '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
