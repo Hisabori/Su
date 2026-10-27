@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
+import 'liquid_page_transition.dart';
 import 'appearance_scope.dart';
 
 abstract final class AppStyle {
@@ -21,6 +21,14 @@ abstract final class AppStyle {
         useMaterial3: true,
         fontFamily: 'NanumGothic',
         visualDensity: VisualDensity.standard,
+        iconTheme: const IconThemeData(color: blue, size: 22),
+        iconButtonTheme: IconButtonThemeData(
+            style: IconButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                foregroundColor: blue,
+                backgroundColor: const Color(0xBFFFFFFF),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)))),
         tooltipTheme:
             const TooltipThemeData(waitDuration: Duration(milliseconds: 500)),
         snackBarTheme: SnackBarThemeData(
@@ -30,9 +38,9 @@ abstract final class AppStyle {
                 borderRadius: BorderRadius.circular(18))),
         scaffoldBackgroundColor: Colors.transparent,
         pageTransitionsTheme: const PageTransitionsTheme(builders: {
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder()
+          TargetPlatform.iOS: LiquidPageTransitionsBuilder(),
+          TargetPlatform.android: LiquidPageTransitionsBuilder(),
+          TargetPlatform.macOS: LiquidPageTransitionsBuilder()
         }),
         cardTheme: CardThemeData(
             color: const Color(0xB3FFFFFF),

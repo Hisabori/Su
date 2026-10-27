@@ -4,6 +4,34 @@ import 'package:suho_angel/widgets/completion_panel.dart';
 import 'package:suho_angel/theme/app_style.dart';
 
 void main() {
+  testWidgets('large text completion keeps both actions reachable',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var checkout = false;
+    await tester.pumpWidget(MaterialApp(
+        theme: AppStyle.theme(),
+        home: MediaQuery(
+            data: const MediaQueryData(
+                size: Size(320, 568), textScaler: TextScaler.linear(2)),
+            child: Scaffold(
+                body: CompletionPanel(
+              name: '이름이 긴 사용자',
+              start: DateTime(2026, 10, 28, 9),
+              end: DateTime(2026, 10, 28, 12),
+              onHistory: () {},
+              onCheckout: () => checkout = true,
+              onDevice: () {},
+            )))));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('퇴근하기'));
+    await tester.tap(find.text('퇴근하기'));
+    expect(checkout, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'modern completion actions fit a portrait phone without scrolling',
       (tester) async {

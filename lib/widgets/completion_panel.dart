@@ -33,6 +33,8 @@ class CompletionPanel extends StatelessWidget {
         final width = math.min(bounds.maxWidth, 600.0);
         final scale = (width / 524).clamp(.7, 1.1);
         final today = DateTime.now();
+        final extra =
+            math.max(0.0, MediaQuery.textScalerOf(context).scale(16) / 16 - 1);
         final prefix = start == null ||
                 (start!.year == today.year &&
                     start!.month == today.month &&
@@ -55,8 +57,10 @@ class CompletionPanel extends StatelessWidget {
                 child: Center(
                     child: SizedBox(
                         width: width,
-                        height: math.max(bounds.maxHeight,
-                            (AppStyle.isBeta(context) ? 900 : 1100) * scale),
+                        height: math.max(
+                            bounds.maxHeight,
+                            (AppStyle.isBeta(context) ? 900 : 1100) * scale +
+                                extra * 700 * scale),
                         child: Padding(
                             padding:
                                 EdgeInsets.symmetric(horizontal: 64 * scale),
@@ -154,8 +158,9 @@ class CompletionPanel extends StatelessWidget {
                                               fontSize: 12,
                                               color: Color(0xFF616970)))),
                                   SizedBox(height: 14 * scale),
-                                  SizedBox(
-                                      height: 65 * scale,
+                                  ConstrainedBox(
+                                      constraints:
+                                          BoxConstraints(minHeight: 65 * scale),
                                       child: FilledButton(
                                           onPressed: onHistory,
                                           style: FilledButton.styleFrom(
@@ -175,8 +180,9 @@ class CompletionPanel extends StatelessWidget {
                                                   fontWeight:
                                                       FontWeight.w800)))),
                                   SizedBox(height: 24 * scale),
-                                  SizedBox(
-                                      height: 65 * scale,
+                                  ConstrainedBox(
+                                      constraints:
+                                          BoxConstraints(minHeight: 65 * scale),
                                       child: OutlinedButton(
                                           onPressed: onCheckout,
                                           style: OutlinedButton.styleFrom(

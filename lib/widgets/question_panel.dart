@@ -29,35 +29,68 @@ class QuestionPanel extends StatelessWidget {
   final VoidCallback onReplay, onSpeech, onSettings, onDevice;
   final VoidCallback? onYes, onNo;
 
-  Widget roundButton(String asset, String label, VoidCallback action) =>
-      Container(
-          width: 42,
-          height: 42,
-          decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 8)]),
-          child: Semantics(
-              label: label,
-              button: true,
-              onTap: action,
-              excludeSemantics: true,
-              child: Tooltip(
-                  message: label,
-                  excludeFromSemantics: true,
-                  child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: action,
-                      icon: Image.asset(asset,
-                          excludeFromSemantics: true,
-                          width: 42, height: 42, fit: BoxFit.contain)))));
+  Widget roundButton(
+      BuildContext context, String asset, String label, VoidCallback action) {
+    final modern = AppStyle.isBeta(context);
+    final button = Semantics(
+        label: label,
+        button: true,
+        onTap: action,
+        excludeSemantics: true,
+        child: Tooltip(
+            message: label,
+            excludeFromSemantics: true,
+            child: IconButton(
+                padding: EdgeInsets.zero,
+                style:
+                    IconButton.styleFrom(backgroundColor: Colors.transparent),
+                onPressed: action,
+                icon: modern
+                    ? Icon(
+                        label == '설정'
+                            ? Icons.tune_rounded
+                            : label == '기기 상태'
+                                ? Icons.recycling_rounded
+                                : Icons.replay_rounded,
+                        color: AppStyle.blue,
+                        size: 25)
+                    : Image.asset(asset,
+                        excludeFromSemantics: true,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.contain))));
+    if (modern) {
+      return GlassSurface(
+          width: 48, radius: 17, child: SizedBox(height: 48, child: button));
+    }
+    return Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 8)]),
+        child: button);
+  }
 
   @override
   Widget build(BuildContext context) =>
       LayoutBuilder(builder: (context, bounds) {
         final width = math.min(bounds.maxWidth, 560.0);
         final scale = (width / 414).clamp(.75, 1.25);
-        final minHeight = math.max(bounds.maxHeight, 840 * scale + 20);
+        final textScale = MediaQuery.textScalerOf(context);
+        final extra = math.max(0.0, textScale.scale(16) / 16 - 1);
+        final answerHeight =
+            math.max(66 * scale, textScale.scale(21 * scale) * 1.4 + 24);
+        final answerAreaHeight =
+            extra > .4 ? answerHeight * 2 + 12 : answerHeight;
+        final statusHeight =
+            math.max(60 * scale, textScale.scale(17 * scale) * 1.5 + 24);
+        final cardExtra = extra * 160 * scale +
+            (answerAreaHeight - 66 * scale) +
+            (statusHeight - 60 * scale);
+        final minHeight = math.max(bounds.maxHeight,
+            840 * scale + 32 + cardExtra + extra * 160 * scale);
         final fraction = (current / total).clamp(0.0, 1.0);
         final border = Border.all(
             color: (AppStyle.isBeta(context)
@@ -69,24 +102,27 @@ class QuestionPanel extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: AppStyle.isBeta(context) ? AppStyle.ink : Colors.black,
             height: 1.25);
-        Widget answerButton(String text, Color color, VoidCallback? callback) =>
-            Expanded(
-                child: SizedBox(
-                    height: 66 * scale,
-                    child: FilledButton(
-                        onPressed: callback,
-                        style: FilledButton.styleFrom(
-                            backgroundColor: color,
-                            foregroundColor: Colors.white,
-                            textStyle: TextStyle(
-                                fontFamily: 'NanumGothic',
-                                fontSize: 21 * scale,
-                                fontWeight: FontWeight.w800),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    (AppStyle.isBeta(context) ? 24 : 11) *
-                                        scale))),
-                        child: Text(text))));
+        Widget answerButton(String text, Color color, VoidCallback? callback) {
+          final button = SizedBox(
+              height: answerHeight,
+              child: FilledButton(
+                  onPressed: callback,
+                  style: FilledButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      textStyle: TextStyle(
+                          fontFamily: 'NanumGothic',
+                          fontSize: 21 * scale,
+                          fontWeight: FontWeight.w800),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                              (AppStyle.isBeta(context) ? 24 : 11) * scale))),
+                  child: Text(text)));
+          return extra > .4
+              ? SizedBox(width: double.infinity, child: button)
+              : Expanded(child: button);
+        }
+
         return SingleChildScrollView(
             child: Center(
                 child: SizedBox(
@@ -99,23 +135,35 @@ class QuestionPanel extends StatelessWidget {
                           Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                roundButton('assets/images/Icon_set.png', '설정',
+                                roundButton(
+                                    context,
+                                    'assets/images/Icon_set.png',
+                                    '설정',
                                     onSettings),
-                                roundButton('assets/images/icon_device.png',
-                                    '기기 상태', onDevice),
+                                roundButton(
+                                    context,
+                                    'assets/images/icon_device.png',
+                                    '기기 상태',
+                                    onDevice),
                               ]),
                           SizedBox(height: 18 * scale),
                           Stack(alignment: Alignment.center, children: [
                             Container(
                                 margin: EdgeInsets.symmetric(
                                     horizontal: 60 * scale),
-                                height: 44 * scale,
+                                constraints:
+                                    BoxConstraints(minHeight: 44 * scale),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 8),
                                 decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(30)),
-                                child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
+                                child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 16,
+                                    runSpacing: 4,
                                     children: [
                                       Text('질문 $current / $total',
                                           style: textStyle.copyWith(
@@ -128,6 +176,7 @@ class QuestionPanel extends StatelessWidget {
                               Align(
                                   alignment: Alignment.centerRight,
                                   child: roundButton(
+                                      context,
                                       'assets/images/Icon_replay.png',
                                       '다시 듣기',
                                       onReplay)),
@@ -136,7 +185,8 @@ class QuestionPanel extends StatelessWidget {
                           Stack(alignment: Alignment.topCenter, children: [
                             GlassBox(
                                 margin: EdgeInsets.only(top: 44 * scale),
-                                height: (media == null ? 480 : 520) * scale,
+                                height: (media == null ? 480 : 520) * scale +
+                                    cardExtra,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                     color: AppStyle.isBeta(context)
@@ -177,7 +227,7 @@ class QuestionPanel extends StatelessWidget {
                                   SizedBox(height: 24 * scale),
                                   SizedBox(
                                       width: double.infinity,
-                                      height: 60 * scale,
+                                      height: statusHeight,
                                       child: OutlinedButton.icon(
                                           onPressed: speaking || media != null
                                               ? null
@@ -220,23 +270,33 @@ class QuestionPanel extends StatelessWidget {
                                       height: media == null ? 26 * scale : 0),
                                   // Reserve the answer area while speaking to avoid moving the card.
                                   SizedBox(
-                                      height: media == null ? 66 * scale : 0,
+                                      height:
+                                          media == null ? answerAreaHeight : 0,
                                       child: speaking || media != null
                                           ? null
-                                          : Row(children: [
-                                              answerButton(
-                                                  '예',
-                                                  (AppStyle.isBeta(context)
-                                                      ? AppStyle.navy
-                                                      : const Color(
-                                                          0xFF104B83)),
-                                                  onYes),
-                                              SizedBox(width: 18 * scale),
-                                              answerButton(
-                                                  '아니요',
-                                                  const Color(0xFFEB7134),
-                                                  onNo),
-                                            ])),
+                                          : Flex(
+                                              direction: extra > .4
+                                                  ? Axis.vertical
+                                                  : Axis.horizontal,
+                                              children: [
+                                                  answerButton(
+                                                      '예',
+                                                      (AppStyle.isBeta(context)
+                                                          ? AppStyle.navy
+                                                          : const Color(
+                                                              0xFF104B83)),
+                                                      onYes),
+                                                  SizedBox(
+                                                      width: extra > .4
+                                                          ? 0
+                                                          : 18 * scale,
+                                                      height:
+                                                          extra > .4 ? 12 : 0),
+                                                  answerButton(
+                                                      '아니요',
+                                                      const Color(0xFFEB7134),
+                                                      onNo),
+                                                ])),
                                 ])),
                             Image.asset('assets/images/chr_rab.png',
                                 width: 92 * scale, height: 92 * scale),
