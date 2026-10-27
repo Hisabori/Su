@@ -55,7 +55,8 @@ class CompletionPanel extends StatelessWidget {
                 child: Center(
                     child: SizedBox(
                         width: width,
-                        height: math.max(bounds.maxHeight, 1100 * scale),
+                        height: math.max(bounds.maxHeight,
+                            (AppStyle.isBeta(context) ? 900 : 1100) * scale),
                         child: Padding(
                             padding:
                                 EdgeInsets.symmetric(horizontal: 64 * scale),
@@ -87,7 +88,10 @@ class CompletionPanel extends StatelessWidget {
                                       height: 90 * scale,
                                       fit: BoxFit.contain,
                                       semanticLabel: '수호천사'),
-                                  SizedBox(height: 98 * scale),
+                                  SizedBox(
+                                      height:
+                                          (AppStyle.isBeta(context) ? 48 : 98) *
+                                              scale),
                                   Text.rich(
                                       TextSpan(children: [
                                         if (name != null &&
@@ -101,7 +105,10 @@ class CompletionPanel extends StatelessWidget {
                                         const TextSpan(text: '수고하셨습니다.'),
                                       ]),
                                       style: style),
-                                  SizedBox(height: 52 * scale),
+                                  SizedBox(
+                                      height:
+                                          (AppStyle.isBeta(context) ? 32 : 52) *
+                                              scale),
                                   Text.rich(
                                       TextSpan(children: [
                                         TextSpan(text: prefix),

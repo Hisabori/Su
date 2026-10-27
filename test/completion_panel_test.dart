@@ -1,8 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/widgets/completion_panel.dart';
+import 'package:suho_angel/theme/app_style.dart';
 
 void main() {
+  testWidgets(
+      'modern completion actions fit a portrait phone without scrolling',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+        theme: AppStyle.theme(),
+        home: Scaffold(
+            body: CompletionPanel(
+          name: '서버 이름',
+          start: DateTime(2026, 10, 27, 9),
+          end: DateTime(2026, 10, 27, 12),
+          onHistory: () {},
+          onCheckout: () {},
+          onDevice: () {},
+        ))));
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(find.text('퇴근하기')).dy, lessThanOrEqualTo(844));
+    expect(tester.getTopLeft(find.text('근무기록 자세히 보기')).dy, greaterThan(0));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('reentry schedule never claims an unconfirmed saved result',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

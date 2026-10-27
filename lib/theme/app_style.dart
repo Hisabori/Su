@@ -5,19 +5,27 @@ import 'appearance_scope.dart';
 abstract final class AppStyle {
   static bool isBeta(BuildContext context) =>
       Theme.of(context).extension<BetaTheme>() != null;
-  static const navy = Color(0xFF173B63);
-  static const teal = Color(0xFF23877F);
+  static const navy = Color(0xFF254A52);
+  static const teal = Color(0xFF287B70);
   static const background = Color(0xFFF5F8FA);
   static const ink = Color(0xFF233447);
-  static const muted = Color(0xFF697A8A);
-  static const line = Color(0xFFE1E9EF);
+  static const muted = Color(0xFF647574);
+  static const line = Color(0xFFDCE7E1);
   static const shadow = [
-    BoxShadow(color: Color(0x151B3861), blurRadius: 32, offset: Offset(0, 12))
+    BoxShadow(color: Color(0x102A5149), blurRadius: 28, offset: Offset(0, 10))
   ];
   static ThemeData theme() => ThemeData(
         extensions: const [BetaTheme()],
         useMaterial3: true,
         fontFamily: 'NanumGothic',
+        visualDensity: VisualDensity.standard,
+        tooltipTheme:
+            const TooltipThemeData(waitDuration: Duration(milliseconds: 500)),
+        snackBarTheme: SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: ink,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18))),
         scaffoldBackgroundColor: Colors.transparent,
         pageTransitionsTheme: const PageTransitionsTheme(builders: {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),

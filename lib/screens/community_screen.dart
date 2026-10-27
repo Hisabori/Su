@@ -181,16 +181,52 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                         children: [
-                          const Text('함께 나누는 이야기',
-                              style: TextStyle(
-                                  fontSize: 26, fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 10),
-                          Text(
-                              me == null
-                                  ? '동료들과 일상의 이야기를 나눠보세요.'
-                                  : '$me 님, 오늘의 이야기를 들려주세요.',
-                              style: const TextStyle(height: 1.6)),
-                          const SizedBox(height: 24),
+                          if (AppStyle.isBeta(context))
+                            GlassSurface(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(children: [
+                                        Icon(Icons.spa_outlined,
+                                            color: AppStyle.teal, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('우리의 작은 쉼터',
+                                            style: TextStyle(
+                                                color: AppStyle.teal,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700))
+                                      ]),
+                                      const SizedBox(height: 14),
+                                      const Text('함께 나누는 이야기',
+                                          style: TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppStyle.navy)),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                          me == null
+                                              ? '동료들과 일상의 이야기를 나눠보세요.'
+                                              : '$me 님, 오늘의 이야기를 들려주세요.',
+                                          style: const TextStyle(
+                                              height: 1.7,
+                                              color: AppStyle.muted)),
+                                    ]))
+                          else ...[
+                            const Text('함께 나누는 이야기',
+                                style: TextStyle(
+                                    fontSize: 26, fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 10),
+                            Text(
+                                me == null
+                                    ? '동료들과 일상의 이야기를 나눠보세요.'
+                                    : '$me 님, 오늘의 이야기를 들려주세요.',
+                                style: const TextStyle(height: 1.6)),
+                            const SizedBox(height: 24),
+                          ],
+                          if (AppStyle.isBeta(context))
+                            const SizedBox(height: 24),
                           TextField(
                               controller: search,
                               textInputAction: TextInputAction.search,
@@ -518,57 +554,64 @@ class _CommunityComposerState extends State<CommunityComposer> {
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
-                child: ListView(padding: const EdgeInsets.all(24), children: [
-                  Text('작성자 · ${widget.name ?? '로그인 사용자'}',
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 24),
-                  TextField(
-                      controller: title,
-                      enabled: !saving && draftReady,
-                      maxLength: 80,
-                      decoration: const InputDecoration(
-                          labelText: '제목', hintText: '어떤 이야기를 나누고 싶으세요?')),
-                  const SizedBox(height: 20),
-                  TextField(
-                      controller: body,
-                      enabled: !saving && draftReady,
-                      maxLength: 2000,
-                      minLines: 8,
-                      maxLines: 16,
-                      decoration: const InputDecoration(
-                          labelText: '내용',
-                          alignLabelWithHint: true,
-                          hintText: '동료들에게 전하고 싶은 이야기를 적어주세요.')),
-                  if (editing) const Text('수정 시 기존 사진은 유지됩니다.'),
-                  if (!editing && communityPhotoAvailable)
-                    OutlinedButton.icon(
-                        onPressed: saving || picking ? null : pickPhoto,
-                        icon: const Icon(Icons.add_photo_alternate_outlined),
-                        label: Text(picking ? '사진 준비 중…' : '사진 첨부')),
-                  if (image != null) ...[
-                    Image.memory(base64Decode(image!['data'] as String),
-                        height: 180, semanticLabel: '첨부할 사진'),
-                    TextButton(
-                        onPressed:
-                            saving ? null : () => setState(() => image = null),
-                        child: const Text('사진 제거')),
-                    const Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
-                  ],
-                  if (!draftReady) const LinearProgressIndicator(),
-                  if (!editing) ...[
-                    if (draftStatus != null)
-                      Text(draftStatus!, style: const TextStyle(fontSize: 12)),
-                    TextButton(
-                        onPressed: saving || !draftReady ? null : saveDraft,
-                        child: const Text('제목·내용 임시저장')),
-                  ],
-                  if (error != null)
-                    Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child:
-                            Semantics(liveRegion: true, child: Text(error!))),
-                  const SizedBox(height: 20),
-                  if (!AppStyle.isBeta(context)) submitButton(),
-                ]))),
+                child: ListView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Text('작성자 · ${widget.name ?? '로그인 사용자'}',
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 24),
+                      TextField(
+                          controller: title,
+                          enabled: !saving && draftReady,
+                          maxLength: 80,
+                          decoration: const InputDecoration(
+                              labelText: '제목', hintText: '어떤 이야기를 나누고 싶으세요?')),
+                      const SizedBox(height: 20),
+                      TextField(
+                          controller: body,
+                          enabled: !saving && draftReady,
+                          maxLength: 2000,
+                          minLines: 8,
+                          maxLines: 16,
+                          decoration: const InputDecoration(
+                              labelText: '내용',
+                              alignLabelWithHint: true,
+                              hintText: '동료들에게 전하고 싶은 이야기를 적어주세요.')),
+                      if (editing) const Text('수정 시 기존 사진은 유지됩니다.'),
+                      if (!editing && communityPhotoAvailable)
+                        OutlinedButton.icon(
+                            onPressed: saving || picking ? null : pickPhoto,
+                            icon:
+                                const Icon(Icons.add_photo_alternate_outlined),
+                            label: Text(picking ? '사진 준비 중…' : '사진 첨부')),
+                      if (image != null) ...[
+                        Image.memory(base64Decode(image!['data'] as String),
+                            height: 180, semanticLabel: '첨부할 사진'),
+                        TextButton(
+                            onPressed: saving
+                                ? null
+                                : () => setState(() => image = null),
+                            child: const Text('사진 제거')),
+                        const Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
+                      ],
+                      if (!draftReady) const LinearProgressIndicator(),
+                      if (!editing) ...[
+                        if (draftStatus != null)
+                          Text(draftStatus!,
+                              style: const TextStyle(fontSize: 12)),
+                        TextButton(
+                            onPressed: saving || !draftReady ? null : saveDraft,
+                            child: const Text('제목·내용 임시저장')),
+                      ],
+                      if (error != null)
+                        Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Semantics(
+                                liveRegion: true, child: Text(error!))),
+                      const SizedBox(height: 20),
+                      if (!AppStyle.isBeta(context)) submitButton(),
+                    ]))),
       ));
 }

@@ -130,9 +130,9 @@ class GlassBackdrop extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                    Color(0xFFE5F3FC),
-                                    Color(0xFFF1F2FC),
-                                    Color(0xFFE1F5ED)
+                                    Color(0xFFF8F5EF),
+                                    Color(0xFFEDF5F1),
+                                    Color(0xFFF1F2F8)
                                   ])
                             : null)))),
         Positioned.fill(
@@ -142,11 +142,11 @@ class GlassBackdrop extends StatelessWidget {
                         Positioned(
                             top: -110,
                             right: -85,
-                            child: _Glow(color: Color(0x667CBFFF), size: 340)),
+                            child: _Glow(color: Color(0x55E6CDAE), size: 340)),
                         Positioned(
                             bottom: -100,
                             left: -120,
-                            child: _Glow(color: Color(0x667CDAC6), size: 390)),
+                            child: _Glow(color: Color(0x5589C7B5), size: 390)),
                       ])
                     : const SizedBox.shrink())),
         child,
