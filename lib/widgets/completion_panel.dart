@@ -33,8 +33,6 @@ class CompletionPanel extends StatelessWidget {
         final width = math.min(bounds.maxWidth, 600.0);
         final scale = (width / 524).clamp(.7, 1.1);
         final today = DateTime.now();
-        final extra =
-            math.max(0.0, MediaQuery.textScalerOf(context).scale(16) / 16 - 1);
         final prefix = start == null ||
                 (start!.year == today.year &&
                     start!.month == today.month &&
@@ -55,157 +53,164 @@ class CompletionPanel extends StatelessWidget {
                 : const Color(0xFFEDF1F6)),
             child: SingleChildScrollView(
                 child: Center(
-                    child: SizedBox(
-                        width: width,
-                        height: math.max(
-                            bounds.maxHeight,
-                            (AppStyle.isBeta(context) ? 900 : 1100) * scale +
-                                extra * 700 * scale),
-                        child: Padding(
-                            padding:
-                                EdgeInsets.symmetric(horizontal: 64 * scale),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  SizedBox(height: 20 * scale),
-                                  Row(children: [
-                                    if (onCommunity != null)
-                                      IconButton(
-                                          tooltip: '커뮤니티',
-                                          onPressed: onCommunity,
-                                          icon:
-                                              const Icon(Icons.forum_outlined)),
-                                    const Spacer(),
-                                    SizedBox(
-                                        width: 50 * scale,
-                                        height: 50 * scale,
-                                        child: IconButton(
-                                            padding: EdgeInsets.zero,
-                                            tooltip: '기기 상태',
-                                            onPressed: onDevice,
-                                            icon: Image.asset(
-                                                'assets/images/icon_device.png',
-                                                fit: BoxFit.contain))),
-                                  ]),
-                                  SizedBox(height: 44 * scale),
-                                  Image.asset('assets/images/logo.png',
-                                      height: 90 * scale,
-                                      fit: BoxFit.contain,
-                                      semanticLabel: '수호천사'),
-                                  SizedBox(
-                                      height:
-                                          (AppStyle.isBeta(context) ? 48 : 98) *
-                                              scale),
-                                  Text.rich(
-                                      TextSpan(children: [
-                                        if (name != null &&
-                                            name!.trim().isNotEmpty) ...[
-                                          TextSpan(
-                                              text: name!.trim(),
-                                              style:
-                                                  TextStyle(color: highlight)),
-                                          const TextSpan(text: ' 님,\n'),
-                                        ],
-                                        const TextSpan(text: '수고하셨습니다.'),
+                    child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                            minWidth: width,
+                            maxWidth: width,
+                            minHeight: math.max(
+                                bounds.maxHeight,
+                                (AppStyle.isBeta(context) ? 900 : 1100) *
+                                    scale)),
+                        child: IntrinsicHeight(
+                            child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 64 * scale),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      SizedBox(height: 20 * scale),
+                                      Row(children: [
+                                        if (onCommunity != null)
+                                          IconButton(
+                                              tooltip: '커뮤니티',
+                                              onPressed: onCommunity,
+                                              icon: const Icon(
+                                                  Icons.forum_outlined)),
+                                        const Spacer(),
+                                        SizedBox(
+                                            width: 50 * scale,
+                                            height: 50 * scale,
+                                            child: IconButton(
+                                                padding: EdgeInsets.zero,
+                                                tooltip: '기기 상태',
+                                                onPressed: onDevice,
+                                                icon: Image.asset(
+                                                    'assets/images/icon_device.png',
+                                                    fit: BoxFit.contain))),
                                       ]),
-                                      style: style),
-                                  SizedBox(
-                                      height:
-                                          (AppStyle.isBeta(context) ? 32 : 52) *
+                                      SizedBox(height: 44 * scale),
+                                      Image.asset('assets/images/logo.png',
+                                          height: 90 * scale,
+                                          fit: BoxFit.contain,
+                                          semanticLabel: '수호천사'),
+                                      SizedBox(
+                                          height: (AppStyle.isBeta(context)
+                                                  ? 48
+                                                  : 98) *
                                               scale),
-                                  Text.rich(
-                                      TextSpan(children: [
-                                        TextSpan(text: prefix),
-                                        if (start != null)
-                                          TextSpan(
-                                              text: completionTime(start!),
-                                              style:
-                                                  TextStyle(color: highlight))
-                                        else
-                                          TextSpan(
-                                              text: '시각 미확인',
-                                              style:
-                                                  TextStyle(color: highlight)),
-                                        TextSpan(
-                                            text: scheduled
-                                                ? ' 근무 시작,\n'
-                                                : '에\n일을 시작 하셨고,\n'),
-                                        if (end != null)
-                                          TextSpan(
-                                              text: completionTime(end!),
-                                              style:
-                                                  TextStyle(color: highlight))
-                                        else
-                                          TextSpan(
-                                              text: '시각 미확인',
-                                              style:
-                                                  TextStyle(color: highlight)),
-                                        TextSpan(
-                                            text: scheduled
-                                                ? '에 일을\n마무리할 예정입니다.'
-                                                : '에 일을\n마무리 하셨습니다.'),
-                                      ]),
-                                      style: style),
-                                  const Spacer(),
-                                  Semantics(
-                                      liveRegion: true,
-                                      child: Text(
-                                          scheduled
-                                              ? '예정된 근무 시간입니다. 완료 기록은 근무기록에서 확인해 주세요.'
-                                              : '서버에 작업 결과를 저장했습니다.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF616970)))),
-                                  SizedBox(height: 14 * scale),
-                                  ConstrainedBox(
-                                      constraints:
-                                          BoxConstraints(minHeight: 65 * scale),
-                                      child: FilledButton(
-                                          onPressed: onHistory,
-                                          style: FilledButton.styleFrom(
-                                              backgroundColor: (AppStyle.isBeta(
-                                                      context)
-                                                  ? AppStyle.navy
-                                                  : const Color(0xFF104B83)),
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          26 * scale))),
-                                          child: Text('근무기록 자세히 보기',
+                                      Text.rich(
+                                          TextSpan(children: [
+                                            if (name != null &&
+                                                name!.trim().isNotEmpty) ...[
+                                              TextSpan(
+                                                  text: name!.trim(),
+                                                  style: TextStyle(
+                                                      color: highlight)),
+                                              const TextSpan(text: ' 님,\n'),
+                                            ],
+                                            const TextSpan(text: '수고하셨습니다.'),
+                                          ]),
+                                          style: style),
+                                      SizedBox(
+                                          height: (AppStyle.isBeta(context)
+                                                  ? 32
+                                                  : 52) *
+                                              scale),
+                                      Text.rich(
+                                          TextSpan(children: [
+                                            TextSpan(text: prefix),
+                                            if (start != null)
+                                              TextSpan(
+                                                  text: completionTime(start!),
+                                                  style: TextStyle(
+                                                      color: highlight))
+                                            else
+                                              TextSpan(
+                                                  text: '시각 미확인',
+                                                  style: TextStyle(
+                                                      color: highlight)),
+                                            TextSpan(
+                                                text: scheduled
+                                                    ? ' 근무 시작,\n'
+                                                    : '에\n일을 시작 하셨고,\n'),
+                                            if (end != null)
+                                              TextSpan(
+                                                  text: completionTime(end!),
+                                                  style: TextStyle(
+                                                      color: highlight))
+                                            else
+                                              TextSpan(
+                                                  text: '시각 미확인',
+                                                  style: TextStyle(
+                                                      color: highlight)),
+                                            TextSpan(
+                                                text: scheduled
+                                                    ? '에 일을\n마무리할 예정입니다.'
+                                                    : '에 일을\n마무리 하셨습니다.'),
+                                          ]),
+                                          style: style),
+                                      const Spacer(),
+                                      Semantics(
+                                          liveRegion: true,
+                                          child: Text(
+                                              scheduled
+                                                  ? '예정된 근무 시간입니다. 완료 기록은 근무기록에서 확인해 주세요.'
+                                                  : '서버에 작업 결과를 저장했습니다.',
+                                              textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                  fontFamily: 'NanumGothic',
-                                                  fontSize: 23 * scale,
-                                                  fontWeight:
-                                                      FontWeight.w800)))),
-                                  SizedBox(height: 24 * scale),
-                                  ConstrainedBox(
-                                      constraints:
-                                          BoxConstraints(minHeight: 65 * scale),
-                                      child: OutlinedButton(
-                                          onPressed: onCheckout,
-                                          style: OutlinedButton.styleFrom(
-                                              backgroundColor: Colors.white,
-                                              foregroundColor:
-                                                  const Color(0xFF505050),
-                                              side: BorderSide(
-                                                  color:
-                                                      AppStyle.isBeta(context)
+                                                  fontSize: 12,
+                                                  color: Color(0xFF616970)))),
+                                      SizedBox(height: 14 * scale),
+                                      ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                              minHeight: 65 * scale),
+                                          child: FilledButton(
+                                              onPressed: onHistory,
+                                              style: FilledButton.styleFrom(
+                                                  backgroundColor:
+                                                      (AppStyle.isBeta(context)
+                                                          ? AppStyle.navy
+                                                          : const Color(
+                                                              0xFF104B83)),
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              26 * scale))),
+                                              child: Text('근무기록 자세히 보기',
+                                                  style: TextStyle(
+                                                      fontFamily: 'NanumGothic',
+                                                      fontSize: 23 * scale,
+                                                      fontWeight:
+                                                          FontWeight.w800)))),
+                                      SizedBox(height: 24 * scale),
+                                      ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                              minHeight: 65 * scale),
+                                          child: OutlinedButton(
+                                              onPressed: onCheckout,
+                                              style: OutlinedButton.styleFrom(
+                                                  backgroundColor: Colors.white,
+                                                  foregroundColor:
+                                                      const Color(0xFF505050),
+                                                  side: BorderSide(
+                                                      color: AppStyle.isBeta(
+                                                              context)
                                                           ? AppStyle.line
                                                           : const Color(
                                                               0xFF96999D)),
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          26 * scale))),
-                                          child: Text(checkoutLabel,
-                                              style: TextStyle(
-                                                  fontFamily: 'NanumGothic',
-                                                  fontSize: 23 * scale,
-                                                  fontWeight:
-                                                      FontWeight.w800)))),
-                                  SizedBox(height: 40 * scale),
-                                ]))))));
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              26 * scale))),
+                                              child: Text(checkoutLabel,
+                                                  style: TextStyle(
+                                                      fontFamily: 'NanumGothic',
+                                                      fontSize: 23 * scale,
+                                                      fontWeight:
+                                                          FontWeight.w800)))),
+                                      SizedBox(height: 40 * scale),
+                                    ])))))));
       });
 }
