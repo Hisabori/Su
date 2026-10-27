@@ -27,8 +27,14 @@ const assert = require('node:assert/strict');
       await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
     }
     async function passwordLogin() {
-      await page.locator('input').nth(0).click(); await page.keyboard.type('demo');
-      await page.locator('input').nth(1).click(); await page.keyboard.type('not-a-real-password');
+      for (const [index,value] of ['demo','not-a-real-password'].entries()) {
+        const field=page.locator('input').nth(index);
+        await field.click();await page.waitForTimeout(200);
+        await page.keyboard.press('ControlOrMeta+A');
+        await page.keyboard.type(value,{delay:40});
+        await page.keyboard.press('Tab');await page.waitForTimeout(150);
+        assert.equal(await field.inputValue(),value);
+      }
       await page.getByRole('button', {name: '로그인', exact: true}).click();
       await page.getByRole('button', {name: '패스키 로그인 설정', exact: true}).waitFor();
     }
