@@ -49,8 +49,13 @@ let debugPage;
  await page.getByRole('button',{name:'레거시 모드 끄기',exact:true}).waitFor();
  await page.getByRole('button',{name:'레거시 모드 끄기',exact:true}).click();
  await page.getByRole('button',{name:'레거시 모드 켜기',exact:true}).waitFor();
- await page.locator('input').nth(0).click();await page.keyboard.type('demo');
- await page.locator('input').nth(1).click();await page.keyboard.type('fake-password');
+ for(const [index,value] of ['demo','fake-password'].entries()) {
+  const field=page.locator('input').nth(index);
+  await field.click();await page.waitForTimeout(200);
+  await page.keyboard.press('ControlOrMeta+A');await page.keyboard.type(value,{delay:40});
+  await page.keyboard.press('Tab');await page.waitForTimeout(150);
+  assert.equal(await field.inputValue(),value);
+ }
  await page.getByRole('button',{name:'로그인',exact:true}).click();
 
  await page.getByText('안녕하세요!',{exact:true}).waitFor();
@@ -132,8 +137,13 @@ let debugPage;
  assert.equal(await page.getByRole('button',{name:'결과 재전송'}).count(),0);
  console.log('PASS checkout stays on completion; read-only history remains available');
  await page.reload();await ready();
- await page.locator('input').nth(0).click();await page.keyboard.type('demo');
- await page.locator('input').nth(1).click();await page.keyboard.type('fake-password');
+ for(const [index,value] of ['demo','fake-password'].entries()) {
+  const field=page.locator('input').nth(index);
+  await field.click();await page.waitForTimeout(200);
+  await page.keyboard.press('ControlOrMeta+A');await page.keyboard.type(value,{delay:40});
+  await page.keyboard.press('Tab');await page.waitForTimeout(150);
+  assert.equal(await field.inputValue(),value);
+ }
  await page.getByRole('button',{name:'로그인',exact:true}).click();
  await page.getByText('계정 상태는 관리자에게 확인해 주세요.',{exact:true}).last().waitFor();
  await page.getByRole('button',{name:'자세한 오류',exact:true}).click();
