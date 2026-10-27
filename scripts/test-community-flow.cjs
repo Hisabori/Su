@@ -81,6 +81,7 @@ let debugPage;const requests=[];
  await page.locator('input').click();await page.waitForTimeout(200);await page.keyboard.insertText('없는 검색어');
  await page.getByText('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.',{exact:true}).waitFor();
  await page.getByRole('button',{name:'검색 지우기',exact:true}).click();
+ await page.locator('input').click();await page.waitForTimeout(200);
  assert.equal(await page.locator('input').inputValue(),'');
  await page.getByRole('button',{name:'댓글 · 좋아요',exact:true}).click();
  await page.getByRole('img',{name:'첨부 사진',exact:true}).waitFor();
