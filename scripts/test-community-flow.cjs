@@ -80,7 +80,8 @@ let debugPage;const requests=[];
  // Search is deliberately scoped to the posts already loaded.
  await page.locator('input').click();await page.waitForTimeout(200);await page.keyboard.insertText('없는 검색어');
  await page.getByText('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.',{exact:true}).waitFor();
- await page.locator('input').click();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.press('Backspace');
+ await page.getByRole('button',{name:'검색 지우기',exact:true}).click();
+ assert.equal(await page.locator('input').inputValue(),'');
  await page.getByRole('button',{name:'댓글 · 좋아요',exact:true}).click();
  await page.getByRole('img',{name:'첨부 사진',exact:true}).waitFor();
  await page.getByRole('button',{name:'내 글 수정',exact:true}).click();
