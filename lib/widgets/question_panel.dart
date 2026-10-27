@@ -39,6 +39,9 @@ class QuestionPanel extends StatelessWidget {
               boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 8)]),
           child: Semantics(
               label: label,
+              button: true,
+              onTap: action,
+              excludeSemantics: true,
               child: Tooltip(
                   message: label,
                   excludeFromSemantics: true,
