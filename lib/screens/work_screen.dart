@@ -915,14 +915,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Widget content() {
-    if (loading) return const Center(child: CircularProgressIndicator());
-    if (error != null) {
-      return Center(
+    if (loading) {
+      return const Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(error!),
-        const SizedBox(height: 16),
-        FilledButton(onPressed: load, child: const Text('다시 시도'))
+        CircularProgressIndicator(),
+        SizedBox(height: 20),
+        Text('오늘의 근무 정보를 확인하고 있어요.', textAlign: TextAlign.center),
       ]));
+    }
+    if (error != null) {
+      return WorkMessage(title: '근무 정보를 확인해 주세요', children: [
+        Text(error!, textAlign: TextAlign.center),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+            onPressed: load,
+            icon: const Icon(Icons.refresh),
+            label: const Text('다시 시도')),
+      ]);
     }
     if (complete || workStatus != null) {
       return CompletionPanel(
@@ -1246,7 +1255,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.12.0',
+                          const Text('수호천사 v1.13.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

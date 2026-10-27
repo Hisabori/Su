@@ -13,6 +13,17 @@ void main() {
     await tester.pumpWidget(const SuhoAngelApp());
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNWidgets(2));
+    await tester.enterText(find.byType(TextField).at(1), 'example');
+    expect(tester.widget<TextField>(find.byType(TextField).at(1)).obscureText,
+        isTrue);
+    await tester.tap(find.byTooltip('비밀번호 보기'));
+    await tester.pump();
+    expect(tester.widget<TextField>(find.byType(TextField).at(1)).obscureText,
+        isFalse);
+    expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+        'example');
+    await tester.enterText(find.byType(TextField).at(1), '');
     await tester.ensureVisible(find.text('로그인'));
     await tester.tap(find.text('로그인'));
     await tester.pump();

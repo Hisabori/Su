@@ -1,3 +1,4 @@
+import '../theme/app_style.dart';
 import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -21,6 +22,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String? error, cursor, me;
   bool loading = true, deleting = false, onlyMine = false, isAdmin = false;
   String query = '';
+  final search = TextEditingController();
   int loadGeneration = 0;
   List<Map<String, dynamic>> get visiblePosts => posts
       .where((p) =>
@@ -38,6 +40,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   void dispose() {
+    search.dispose();
     service.close();
     super.dispose();
   }
@@ -79,6 +82,24 @@ class _CommunityScreenState extends State<CommunityScreen> {
         setState(() => loading = false);
       }
     }
+  }
+
+  Future<void> openPost(Map<String, dynamic> post) async {
+    FocusScope.of(context).unfocus();
+    await Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+            builder: (_) => CommunityDetailScreen(
+                service: service, id: post['id'] as String)));
+    if (mounted) load();
+  }
+
+  void resetFilters() {
+    search.clear();
+    setState(() {
+      query = '';
+      onlyMine = false;
+    });
   }
 
   Future<void> compose() async {
@@ -155,6 +176,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 child: RefreshIndicator(
                     onRefresh: load,
                     child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                         children: [
                           const Text('함께 나누는 이야기',
@@ -168,11 +192,26 @@ class _CommunityScreenState extends State<CommunityScreen> {
                               style: const TextStyle(height: 1.6)),
                           const SizedBox(height: 24),
                           TextField(
+                              controller: search,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: (_) =>
+                                  FocusScope.of(context).unfocus(),
+                              onTapOutside: (_) =>
+                                  FocusScope.of(context).unfocus(),
                               onChanged: (v) => setState(() => query = v),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
+                                  suffixIcon: query.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          tooltip: '검색 지우기',
+                                          onPressed: () {
+                                            search.clear();
+                                            setState(() => query = '');
+                                          },
+                                          icon: const Icon(Icons.close)),
                                   labelText: '불러온 글 검색',
                                   hintText: '제목 · 내용 · 작성자',
-                                  prefixIcon: Icon(Icons.search))),
+                                  prefixIcon: const Icon(Icons.search))),
                           const SizedBox(height: 12),
                           Wrap(spacing: 8, children: [
                             FilterChip(
@@ -180,7 +219,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 selected: onlyMine,
                                 onSelected: (v) =>
                                     setState(() => onlyMine = v)),
-                            Chip(label: Text('불러온 글 ${posts.length}개'))
+                            Chip(label: Text('불러온 글 ${posts.length}개')),
+                            if (query.isNotEmpty || onlyMine)
+                              TextButton(
+                                  onPressed: resetFilters,
+                                  child: const Text('필터 초기화'))
                           ]),
                           const SizedBox(height: 12),
                           if (!loading &&
@@ -198,7 +241,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                           onPressed: loading ? null : load,
                                           child: const Text('다시 시도'))
                                     ]))),
-                          if (loading)
+                          if (loading && posts.isNotEmpty)
+                            const LinearProgressIndicator(),
+                          if (loading && posts.isEmpty)
                             const Padding(
                                 padding: EdgeInsets.all(24),
                                 child:
@@ -261,11 +306,20 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                             const Chip(label: Text('공지')),
                                           if (post['hasImage'] == true)
                                             const Text('사진 첨부'),
-                                          Text('${post['title']}',
-                                              style: const TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w800,
-                                                  height: 1.4)),
+                                          InkWell(
+                                              onTap: () => openPost(post),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 6),
+                                                  child: Text(
+                                                      '${post['title']}',
+                                                      style: const TextStyle(
+                                                          fontSize: 20,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          height: 1.4)))),
                                           const SizedBox(height: 10),
                                           Text('${post['body']}',
                                               maxLines: 4,
@@ -274,18 +328,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                                   fontSize: 16, height: 1.7)),
                                           const SizedBox(height: 12),
                                           OutlinedButton.icon(
-                                              onPressed: () async {
-                                                await Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute<void>(
-                                                        builder: (_) =>
-                                                            CommunityDetailScreen(
-                                                                service:
-                                                                    service,
-                                                                id: post['id']
-                                                                    as String)));
-                                                if (mounted) load();
-                                              },
+                                              onPressed: () => openPost(post),
                                               icon: const Icon(
                                                   Icons.chat_bubble_outline),
                                               label: const Text('댓글 · 좋아요')),
@@ -440,11 +483,38 @@ class _CommunityComposerState extends State<CommunityComposer> {
     }
   }
 
+  Widget submitButton() => FilledButton(
+      onPressed: saving || picking || !draftReady ? null : save,
+      child: Text(saving
+          ? '저장 중…'
+          : editing
+              ? '수정 저장'
+              : '글 등록'));
+
   @override
   Widget build(BuildContext context) => PopScope(
       canPop: !saving && !picking,
       child: Scaffold(
         appBar: AppBar(title: Text(editing ? '이야기 수정' : '이야기 쓰기')),
+        bottomNavigationBar: AppStyle.isBeta(context)
+            ? Padding(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom),
+                child: SafeArea(
+                    top: false,
+                    child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        child: Center(
+                            heightFactor: 1,
+                            child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 760),
+                                child: GlassSurface(
+                                    padding: const EdgeInsets.all(10),
+                                    child: SizedBox(
+                                        width: double.infinity,
+                                        child: submitButton())))))))
+            : null,
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
@@ -498,13 +568,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
                         child:
                             Semantics(liveRegion: true, child: Text(error!))),
                   const SizedBox(height: 20),
-                  FilledButton(
-                      onPressed: saving || picking || !draftReady ? null : save,
-                      child: Text(saving
-                          ? '저장 중…'
-                          : editing
-                              ? '수정 저장'
-                              : '글 등록')),
+                  if (!AppStyle.isBeta(context)) submitButton(),
                 ]))),
       ));
 }

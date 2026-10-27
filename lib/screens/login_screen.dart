@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool passkeyAvailable = false, passkeyConfigured = false;
   bool busy = false;
   bool autoLogin = true, restoringSession = false, sessionRetry = false;
+  bool hidePassword = true;
   String? error;
   @override
   void initState() {
@@ -196,6 +197,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       const BorderSide(color: AppStyle.teal, width: 1.5))
               : border,
         );
+    final helper = <Widget>[
+      const SizedBox(height: 8),
+      const Text('패스키는 로그인 후 열쇠 버튼에서 설정할 수 있습니다. 세션 만료 시 비밀번호 로그인이 필요합니다.',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+      const SizedBox(height: 14),
+      const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+      const SizedBox(height: 8),
+      const Text('v1.13.0 · 빌드 25',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+      const SizedBox(height: 8),
+      const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+    ];
     return SizedBox(
         width: width,
         child: AutofillGroup(
@@ -213,6 +228,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(
                       fontSize: (16 * scale).clamp(14, 18),
                       color: const Color(0xFF616161)),
+                  autocorrect: false,
+                  enableSuggestions: false,
                   autofillHints: const [AutofillHints.username],
                   textInputAction: TextInputAction.next,
                   decoration: decoration('아이디를 입력하세요.'),
@@ -225,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: TextField(
                   controller: password,
                   enabled: !busy,
-                  obscureText: true,
+                  obscureText: hidePassword,
                   autocorrect: false,
                   enableSuggestions: false,
                   style: TextStyle(
@@ -234,7 +251,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   autofillHints: const [AutofillHints.password],
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => login(),
-                  decoration: decoration('비밀번호를 입력하세요.'),
+                  decoration: decoration('비밀번호를 입력하세요.').copyWith(
+                      suffixIcon: IconButton(
+                          tooltip: hidePassword ? '비밀번호 보기' : '비밀번호 숨기기',
+                          onPressed: busy
+                              ? null
+                              : () =>
+                                  setState(() => hidePassword = !hidePassword),
+                          icon: Icon(hidePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined))),
                 )),
             CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -296,20 +322,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       : loginWithPasskey,
                   icon: const Icon(Icons.key),
                   label: const Text('이 기기 패스키로 로그인')),
-              const SizedBox(height: 8),
-              const Text(
-                  '패스키는 로그인 후 열쇠 버튼에서 설정할 수 있습니다. 세션 만료 시 비밀번호 로그인이 필요합니다.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 14),
-              const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              const Text('v1.12.0 · 빌드 24',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+              if (beta)
+                ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title:
+                        const Text('설치·로그인 안내', style: TextStyle(fontSize: 13)),
+                    children: helper)
+              else
+                ...helper,
             ],
             const SizedBox(height: 14),
             TextButton.icon(
@@ -335,7 +355,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget betaLayout(BuildContext context) => Scaffold(
         body: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 850;
+          final wide = constraints.maxWidth >= 850 ||
+              (constraints.maxWidth >= 700 &&
+                  constraints.maxWidth > constraints.maxHeight);
+          final short = constraints.maxHeight < 600;
           final scale =
               (math.min(constraints.maxWidth, constraints.maxHeight) / 390)
                   .clamp(.85, 1.05);
@@ -347,22 +370,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
               children: [
                 Image.asset('assets/images/logo.png',
-                    height: wide ? 134 : 104,
+                    height: wide ? (short ? 72 : 134) : 64,
                     fit: BoxFit.contain,
                     semanticLabel: '수호천사'),
-                const SizedBox(height: 24),
-                Text('함께하는 근무,\n더 편안한 하루',
+                SizedBox(height: wide ? 24 : 12),
+                Text(wide ? '함께하는 근무,\n더 편안한 하루' : '오늘의 근무를 편안하게',
                     textAlign: wide ? TextAlign.start : TextAlign.center,
                     style: TextStyle(
-                        fontSize: wide ? 34 : 26,
+                        fontSize: wide ? (short ? 24 : 34) : 22,
                         height: 1.4,
                         fontWeight: FontWeight.w800,
                         color: AppStyle.navy)),
-                const SizedBox(height: 12),
-                Text('오늘의 질문부터 근무 마무리까지\n수호천사가 함께합니다.',
-                    textAlign: wide ? TextAlign.start : TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 14, height: 1.7, color: AppStyle.muted)),
+                if (wide) const SizedBox(height: 12),
+                if (wide)
+                  Text('오늘의 질문부터 근무 마무리까지\n수호천사가 함께합니다.',
+                      textAlign: wide ? TextAlign.start : TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 14, height: 1.7, color: AppStyle.muted)),
               ]);
           final card = GlassSurface(
               width: cardWidth,
@@ -405,7 +429,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ])
                           : Column(mainAxisSize: MainAxisSize.min, children: [
                               brand,
-                              const SizedBox(height: 28),
+                              const SizedBox(height: 20),
                               card
                             ]),
                     ))),
