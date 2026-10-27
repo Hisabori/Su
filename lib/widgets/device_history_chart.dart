@@ -15,6 +15,7 @@ class DeviceHistoryChart extends StatelessWidget {
         label:
             '페트병 수거기 적재율 추이 그래프. 유효한 측정 $valid회. 자세한 수치는 아래 기록에서 확인할 수 있습니다.',
         child: SizedBox(
+            width: double.infinity,
             height: 240,
             child: CustomPaint(
                 painter: _Chart(

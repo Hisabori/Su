@@ -28,6 +28,27 @@ class FullStore extends MemoryStore {
 }
 
 void main() {
+  testWidgets('chart fills a metric card column with start alignment',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: Center(
+                child: SizedBox(
+                    width: 350,
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('적재율 추이'),
+                          DeviceHistoryChart(
+                              records: [reading(DateTime(2026, 10, 27, 9))]),
+                        ]))))));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(DeviceHistoryChart)).width, 350);
+    expect(tester.getSize(find.byType(DeviceHistoryChart)).height, 240);
+    expect(tester.takeException(), isNull);
+  });
+
   test(
       'capacity percentage distinguishes empty, unknown, full and over capacity',
       () {
