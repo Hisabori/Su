@@ -9,6 +9,7 @@ import '../services/session_restore_service.dart';
 import 'work_screen.dart';
 import '../widgets/login_notice.dart';
 import '../theme/app_style.dart';
+import '../theme/glass_surface.dart';
 import '../theme/appearance_scope.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -181,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
     InputDecoration decoration(String hint) => InputDecoration(
           hintText: hint,
           filled: true,
-          fillColor: beta ? AppStyle.background : const Color(0xFFE9E9EF),
+          fillColor: beta ? const Color(0x99FFFFFF) : const Color(0xFFE9E9EF),
           hintStyle: TextStyle(
               color: const Color(0xFFA0A0A0),
               fontSize: (13 * scale).clamp(11, 16)),
@@ -304,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('v1.10.0 · 빌드 22',
+              const Text('v1.11.0 · 빌드 23',
                   textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
@@ -333,17 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget betaLayout(BuildContext context) => Scaffold(
-          body: Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-              Color(0xFFEAF5F2),
-              AppStyle.background,
-              Color(0xFFEDF2F8)
-            ])),
-        child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+        body: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
           final wide = constraints.maxWidth >= 850;
           final scale =
               (math.min(constraints.maxWidth, constraints.maxHeight) / 390)
@@ -373,14 +364,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: const TextStyle(
                         fontSize: 14, height: 1.7, color: AppStyle.muted)),
               ]);
-          final card = Container(
+          final card = GlassSurface(
               width: cardWidth,
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: AppStyle.line),
-                  boxShadow: AppStyle.shadow),
               child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ))),
           );
         })),
-      ));
+      );
   Widget classicLayout(BuildContext context) => Scaffold(
         backgroundColor: const Color(0xFFF2F2F2),
         body: SafeArea(child: LayoutBuilder(builder: (context, constraints) {

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
+import '../theme/glass_surface.dart';
 
 class QuestionPanel extends StatelessWidget {
   const QuestionPanel(
@@ -74,8 +75,9 @@ class QuestionPanel extends StatelessWidget {
                                 fontSize: 21 * scale,
                                 fontWeight: FontWeight.w800),
                             shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(11 * scale))),
+                                borderRadius: BorderRadius.circular(
+                                    (AppStyle.isBeta(context) ? 24 : 11) *
+                                        scale))),
                         child: Text(text))));
         return SingleChildScrollView(
             child: Center(
@@ -124,12 +126,14 @@ class QuestionPanel extends StatelessWidget {
                           ]),
                           SizedBox(height: 16 * scale),
                           Stack(alignment: Alignment.topCenter, children: [
-                            Container(
+                            GlassBox(
                                 margin: EdgeInsets.only(top: 44 * scale),
                                 height: (media == null ? 480 : 520) * scale,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppStyle.isBeta(context)
+                                        ? const Color(0xBFFFFFFF)
+                                        : Colors.white,
                                     border: border,
                                     borderRadius: BorderRadius.circular(
                                         (AppStyle.isBeta(context) ? 28 : 20) *

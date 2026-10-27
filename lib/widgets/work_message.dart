@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
+import '../theme/glass_surface.dart';
 
 /// Responsive reconstruction of the APK's AppMessageScreenLayout.
 class WorkMessage extends StatelessWidget {
@@ -23,17 +24,10 @@ class WorkMessage extends StatelessWidget {
               height: (landscape ? 118 : 138) * scale,
               fit: BoxFit.contain,
               semanticLabel: '수호천사');
-          final message = Container(
+          final content = Container(
               padding: AppStyle.isBeta(context)
                   ? const EdgeInsets.all(28)
                   : EdgeInsets.zero,
-              decoration: AppStyle.isBeta(context)
-                  ? BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: AppStyle.line),
-                      boxShadow: AppStyle.shadow)
-                  : null,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,6 +45,7 @@ class WorkMessage extends StatelessWidget {
                   ...children,
                 ],
               ));
+          final message = BetaGlass(child: content);
           return SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 32),
             child: ConstrainedBox(

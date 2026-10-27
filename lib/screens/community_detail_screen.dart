@@ -1,3 +1,4 @@
+import '../theme/glass_surface.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -306,7 +307,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   const SizedBox(height: 20),
                   if (comments.isEmpty && !loading) const Text('첫 댓글을 남겨보세요.'),
                   for (final c in comments)
-                    Card(
+                    GlassCard(
                         semanticContainer: false,
                         child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -424,7 +425,7 @@ class _CommunityReportsScreenState extends State<CommunityReportsScreen> {
         if (rows.isEmpty && !loading && error == null)
           const Text('접수된 신고가 없습니다.'),
         for (final r in rows)
-          Card(
+          GlassCard(
               semanticContainer: false,
               child: Padding(
                   padding: const EdgeInsets.all(20),

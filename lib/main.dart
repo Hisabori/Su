@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'services/app_preferences.dart';
 import 'theme/app_style.dart';
+import 'theme/glass_surface.dart';
 import 'theme/appearance_scope.dart';
 
 void main() => runApp(const SuhoAngelApp());
@@ -64,6 +65,8 @@ class _SuhoAngelAppState extends State<SuhoAngelApp> {
                 inputDecorationTheme:
                     const InputDecorationTheme(border: OutlineInputBorder()),
               ),
+        builder: (context, child) => GlassBackdrop(
+            enabled: beta, child: child ?? const SizedBox.shrink()),
         home: const LoginScreen(),
       ));
 }

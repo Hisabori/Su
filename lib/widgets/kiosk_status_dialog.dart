@@ -28,7 +28,7 @@ class KioskStatusDialog extends StatelessWidget {
     return Dialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 26 * scale, vertical: 24),
       backgroundColor: (AppStyle.isBeta(context)
-          ? AppStyle.background
+          ? const Color(0xF0FFFFFF)
           : const Color(0xFFE9ECF1)),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(36 * scale)),

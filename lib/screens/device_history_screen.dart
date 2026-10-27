@@ -1,3 +1,4 @@
+import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
 import '../services/device_history_service.dart';
 import '../widgets/device_history_chart.dart';
@@ -98,7 +99,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                       style: TextStyle(fontSize: 12, height: 1.6)),
                   const SizedBox(height: 20),
                   if (latest != null)
-                    Card(
+                    GlassCard(
                         semanticContainer: false,
                         child: Padding(
                             padding: const EdgeInsets.all(22),
@@ -139,7 +140,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   const SizedBox(height: 18),
                   if (loading) const Center(child: CircularProgressIndicator()),
                   if (error != null) Text(error!),
-                  Card(
+                  GlassCard(
                       child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: DeviceHistoryChart(records: visible))),

@@ -1,3 +1,4 @@
+import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
 import '../services/api_service.dart';
@@ -118,7 +119,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
         context: context,
         builder: (dialog) => AlertDialog(
               backgroundColor: (AppStyle.isBeta(context)
-                  ? AppStyle.background
+                  ? Colors.transparent
                   : const Color(0xFFEDF1F6)),
               title: const Text('일일 근무 성과',
                   style: TextStyle(fontWeight: FontWeight.w800)),
@@ -187,7 +188,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
     final request =
         record['request'] is Map ? record['request'] as Map : const {};
     final answers = answersOf(record);
-    return Card(
+    return GlassCard(
         color: Colors.white,
         margin: const EdgeInsets.only(bottom: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -250,11 +251,11 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
       backgroundColor: (AppStyle.isBeta(context)
-          ? AppStyle.background
+          ? Colors.transparent
           : const Color(0xFFEDF1F6)),
       appBar: AppBar(
           backgroundColor: (AppStyle.isBeta(context)
-              ? AppStyle.background
+              ? Colors.transparent
               : const Color(0xFFEDF1F6)),
           title: Text(showAll ? '근무 기록' : '오늘의 근무 기록')),
       body: FutureBuilder<List<Map<String, dynamic>>>(

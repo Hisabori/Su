@@ -251,3 +251,17 @@ user ID; pictures are deliberately excluded and labeled as such. A successful
 post clears its draft. Temporary draft cleanup failure never becomes a resend.
 List refresh generations ignore outdated responses while preserving loaded
 items on ordinary errors.
+
+
+### v1.11.0: opt-in frosted glass beta
+
+Only beta mode receives a soft blue/mint backdrop, clipped translucent panels,
+14px background blur, light borders, broad shadows, rounded controls and iOS
+page transitions. Login, work messages/questions, community, comment/report
+cards and work/device history share glass components. Classic mode keeps its
+original card decorations. High contrast replaces blur with opaque white.
+The app-wide backdrop keeps Navigator in a stable widget slot; a regression
+test verifies toggling beta preserves the current route. Backgrounds are static
+and blur is limited to clipped panels. Beta community browser coverage includes
+photo/draft/post edits/comments/likes/moderation. Browser fixtures now wait for
+Flutter focus before typing and avoid duplicate live-region selectors.

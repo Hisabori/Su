@@ -1,3 +1,4 @@
+import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -187,7 +188,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                               visiblePosts.isEmpty)
                             const Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
                           if (error != null)
-                            Card(
+                            GlassCard(
                                 child: Padding(
                                     padding: const EdgeInsets.all(20),
                                     child: Column(children: [
@@ -216,7 +217,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   Text('첫 번째 이야기를 남겨보세요.')
                                 ])),
                           for (final post in visiblePosts)
-                            Card(
+                            GlassCard(
                                 semanticContainer: false,
                                 margin: const EdgeInsets.only(bottom: 16),
                                 child: Padding(

@@ -21,8 +21,8 @@ let debugPage;
  const page=await context.newPage();debugPage=page;page.on('pageerror',e=>errors.push(e.message));
  await page.goto(process.env.PWA_TEST_URL||'http://127.0.0.1:8765/');
  await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());
- await page.locator('input').nth(0).click();await page.keyboard.type('demo');
- await page.locator('input').nth(1).click();await page.keyboard.type('fake');
+ await page.locator('input').nth(0).click();await page.waitForTimeout(200);await page.keyboard.type('demo',{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('input').nth(0).inputValue(),'demo');
+ await page.locator('input').nth(1).click();await page.waitForTimeout(200);await page.keyboard.type('fake',{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('input').nth(1).inputValue(),'fake');
  await page.getByRole('button',{name:'로그인',exact:true}).click();
  await page.getByText('안녕하세요!',{exact:true}).waitFor();
  // Allow the first foreground baseline to finish before opening the history.

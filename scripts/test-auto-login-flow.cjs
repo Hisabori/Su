@@ -40,7 +40,7 @@ let debugPage;
  await reload();await page.getByText('안녕하세요!',{exact:true}).waitFor();assert.equal(logins,1);assert.equal(validations,1);
  offline=true;await reload();await page.getByRole('button',{name:'자동 로그인 다시 시도',exact:true}).waitFor();
  offline=false;await page.getByRole('button',{name:'자동 로그인 다시 시도',exact:true}).click();await page.getByText('안녕하세요!',{exact:true}).waitFor();assert.equal(logins,1);
- expired=true;await reload();await page.getByText('저장된 로그인이 만료되었습니다. 다시 로그인해 주세요.',{exact:true}).waitFor();
+ expired=true;await reload();await page.getByText('저장된 로그인이 만료되었습니다. 다시 로그인해 주세요.',{exact:true}).last().waitFor();
  expired=false;const afterExpired=validations;await reload();await checkbox().waitFor();assert.equal(validations,afterExpired);
  await checkbox().click();await page.waitForTimeout(250);assert.equal(await checkbox().getAttribute('aria-checked'),'false');
  await login();const offWork=workLoads,offValidations=validations;await reload();await checkbox().waitFor();assert.equal(await checkbox().getAttribute('aria-checked'),'false');assert.equal(workLoads,offWork);assert.equal(validations,offValidations);

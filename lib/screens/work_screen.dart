@@ -1083,7 +1083,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: (AppStyle.isBeta(context)
-            ? AppStyle.background
+            ? const Color(0xF0FFFFFF)
             : const Color(0xFFF2F2F2)),
         builder: (sheet) => StatefulBuilder(
             builder: (sheet, updateSheet) => ConstrainedBox(
@@ -1244,7 +1244,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.10.0',
+                          const Text('수호천사 v1.11.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();
@@ -1256,13 +1256,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       canPop: !started || complete,
       child: Scaffold(
           backgroundColor: (AppStyle.isBeta(context)
-              ? AppStyle.background
+              ? Colors.transparent
               : const Color(0xFFF2F2F2)),
           appBar: questionVisible || complete || workStatus != null
               ? null
               : AppBar(
                   backgroundColor: (AppStyle.isBeta(context)
-                      ? AppStyle.background
+                      ? Colors.transparent
                       : const Color(0xFFF2F2F2)),
                   automaticallyImplyLeading: false,
                   title: const Text('수호천사'),

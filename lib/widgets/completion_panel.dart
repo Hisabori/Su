@@ -49,7 +49,7 @@ class CompletionPanel extends StatelessWidget {
             AppStyle.isBeta(context) ? AppStyle.teal : const Color(0xFF5A83A7);
         return ColoredBox(
             color: (AppStyle.isBeta(context)
-                ? AppStyle.background
+                ? Colors.transparent
                 : const Color(0xFFEDF1F6)),
             child: SingleChildScrollView(
                 child: Center(
