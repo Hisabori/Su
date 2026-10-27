@@ -962,6 +962,15 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         Text(info.name,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
+        if (AppStyle.isBeta(context)) ...[
+          const SizedBox(height: 10),
+          Text(
+              displayName == null || displayName!.trim().isEmpty
+                  ? '오늘도 차근차근 함께해요.'
+                  : '${displayName!.trim()} 님, 오늘도 차근차근 함께해요.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppStyle.muted, height: 1.6)),
+        ],
         const SizedBox(height: 16),
         if (info.startTime != null)
           Text('시작: ${info.startTime}', textAlign: TextAlign.center),
@@ -981,10 +990,47 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                       ? null
                       : start,
               child: const Text('작업 시작')),
+        if (AppStyle.isBeta(context) && info.steps.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text('버튼을 누르면 오늘의 안내가 시작돼요.\n질문은 음성으로 듣고 버튼으로 답할 수 있어요.',
+              textAlign: TextAlign.center,
+              style:
+                  TextStyle(color: AppStyle.muted, fontSize: 13, height: 1.7)),
+        ],
         if (plannedStart != null && DateTime.now().isBefore(plannedStart!))
           Text(
               '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}',
               textAlign: TextAlign.center),
+        if (AppStyle.isBeta(context)) ...[
+          const SizedBox(height: 28),
+          const Divider(),
+          const SizedBox(height: 12),
+          const Text('필요한 기능을 바로 찾아보세요',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppStyle.muted, fontSize: 13)),
+          const SizedBox(height: 12),
+          Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                OutlinedButton.icon(
+                    onPressed: showDeviceHistory,
+                    icon: const Icon(Icons.recycling_outlined),
+                    label: const Text('수거기 기록')),
+                OutlinedButton.icon(
+                    onPressed: showCommunity,
+                    icon: const Icon(Icons.forum_outlined),
+                    label: const Text('동료 이야기')),
+                OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (_) => const ResultLogScreen())),
+                    icon: const Icon(Icons.history_rounded),
+                    label: const Text('내 근무기록')),
+              ]),
+        ],
       ]);
     }
     if (awaitingSave) {
@@ -1255,7 +1301,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.14.0',
+                          const Text('수호천사 v1.15.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

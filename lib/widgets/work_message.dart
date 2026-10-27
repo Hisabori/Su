@@ -21,7 +21,10 @@ class WorkMessage extends StatelessWidget {
           final scale =
               (MediaQuery.sizeOf(context).shortestSide / 390).clamp(0.8, 1.08);
           final logo = Image.asset('assets/images/logo.png',
-              height: (landscape ? 118 : 138) * scale,
+              height: (AppStyle.isBeta(context)
+                      ? (landscape ? 90 : 76)
+                      : (landscape ? 118 : 138)) *
+                  scale,
               fit: BoxFit.contain,
               semanticLabel: '수호천사');
           final content = Container(
@@ -63,7 +66,9 @@ class WorkMessage extends StatelessWidget {
                         ])
                       : Column(mainAxisSize: MainAxisSize.min, children: [
                           logo,
-                          SizedBox(height: 40 * scale),
+                          SizedBox(
+                              height:
+                                  (AppStyle.isBeta(context) ? 24 : 40) * scale),
                           message,
                         ]),
                 ),

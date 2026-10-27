@@ -49,7 +49,7 @@ let debugPage;const requests=[];
  await page.locator('input').nth(1).click();await page.waitForTimeout(200);await page.keyboard.type('fake',{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await page.locator('input').nth(1).inputValue(),'fake');
  await page.getByRole('button',{name:'로그인',exact:true}).click();
  await page.getByText('안녕하세요!',{exact:true}).waitFor();
- await page.getByRole('button',{name:'커뮤니티',exact:true}).click();
+ await page.getByRole('button',{name:'동료 이야기',exact:true}).click();
  await page.getByText('정훈 님, 오늘의 이야기를 들려주세요.',{exact:true}).waitFor();
  await page.getByText('아직 이야기가 없어요.',{exact:false}).waitFor();
  await page.getByRole('button',{name:'글쓰기',exact:true}).click();
