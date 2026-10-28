@@ -58,6 +58,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('근무 시간 정보가 없습니다.'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('내 근무기록'), 250);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('내 근무기록'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('내 근무기록'));
     expect(history, 1);
     expect(tester.takeException(), isNull);
