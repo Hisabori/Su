@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -205,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
       const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
       const SizedBox(height: 8),
-      const Text('v1.18.0 · 빌드 30',
+      const Text('v1.19.0 · 빌드 31',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
       const SizedBox(height: 8),
       const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
@@ -320,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: busy || !passkeyAvailable || !passkeyConfigured
                       ? null
                       : loginWithPasskey,
-                  icon: const Icon(Icons.key),
+                  icon: const AppIcon(AppIconKind.passkey),
                   label: const Text('이 기기 패스키로 로그인')),
               if (beta)
                 ExpansionTile(

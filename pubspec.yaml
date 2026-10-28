@@ -1,7 +1,7 @@
 name: suho_angel
 description: APK evidence based reconstruction of the Suhoangel Android app.
 publish_to: none
-version: 1.18.0+30
+version: 1.19.0+31
 environment:
   sdk: '>=3.5.0 <4.0.0'
 dependencies:
@@ -28,5 +28,6 @@ flutter:
         - asset: assets/fonts/NanumGothic-ExtraBold.ttf
           weight: 800
   assets:
+    - assets/icons/lucide/
     - assets/images/
     - assets/fonts/OFL-NanumGothic.txt

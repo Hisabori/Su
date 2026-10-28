@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
@@ -1020,18 +1021,18 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               children: [
                 OutlinedButton.icon(
                     onPressed: showDeviceHistory,
-                    icon: const Icon(Icons.recycling_outlined),
+                    icon: const AppIcon(AppIconKind.collector),
                     label: const Text('수거기 기록')),
                 OutlinedButton.icon(
                     onPressed: showCommunity,
-                    icon: const Icon(Icons.forum_outlined),
+                    icon: const AppIcon(AppIconKind.community),
                     label: const Text('동료 이야기')),
                 OutlinedButton.icon(
                     onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute<void>(
                             builder: (_) => const ResultLogScreen())),
-                    icon: const Icon(Icons.history_rounded),
+                    icon: const AppIcon(AppIconKind.history),
                     label: const Text('내 근무기록')),
               ]),
         ],
@@ -1255,21 +1256,21 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 }),
                           const Divider(),
                           ListTile(
-                              leading: const Icon(Icons.show_chart),
+                              leading: const AppIcon(AppIconKind.chart),
                               title: const Text('기기 기록 · 그래프'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 showDeviceHistory();
                               }),
                           ListTile(
-                              leading: const Icon(Icons.forum_outlined),
+                              leading: const AppIcon(AppIconKind.community),
                               title: const Text('커뮤니티'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 showCommunity();
                               }),
                           ListTile(
-                              leading: const Icon(Icons.key),
+                              leading: const AppIcon(AppIconKind.passkey),
                               title: const Text('패스키 로그인 설정'),
                               onTap: () {
                                 Navigator.pop(sheet);
@@ -1279,7 +1280,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                         builder: (_) => const PasskeyScreen()));
                               }),
                           ListTile(
-                              leading: const Icon(Icons.history),
+                              leading: const AppIcon(AppIconKind.history),
                               title: const Text('근무 기록'),
                               onTap: () {
                                 Navigator.pop(sheet);
@@ -1305,7 +1306,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.18.0',
+                          const Text('수호천사 v1.19.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();
@@ -1332,7 +1333,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                           tooltip: '커뮤니티',
                           onPressed:
                               saving || awaitingSave ? null : showCommunity,
-                          icon: const Icon(Icons.forum_outlined)),
+                          icon: const AppIcon(AppIconKind.community)),
                       if (PasskeyService().enrolled)
                         IconButton(
                             tooltip: '앱 잠그기',
@@ -1346,7 +1347,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                   context,
                                   MaterialPageRoute<void>(
                                       builder: (_) => const PasskeyScreen())),
-                          icon: const Icon(Icons.key)),
+                          icon: const AppIcon(AppIconKind.passkey)),
                       IconButton(
                           tooltip: '기기 상태',
                           onPressed: saving || awaitingSave ? null : showDevice,
@@ -1359,7 +1360,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                   context,
                                   MaterialPageRoute<void>(
                                       builder: (_) => const ResultLogScreen())),
-                          icon: const Icon(Icons.history)),
+                          icon: const AppIcon(AppIconKind.history)),
                       IconButton(
                           tooltip: '로그아웃',
                           onPressed: saving ? null : logout,

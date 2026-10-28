@@ -1,3 +1,4 @@
+import 'app_icon.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
@@ -46,14 +47,13 @@ class QuestionPanel extends StatelessWidget {
                     IconButton.styleFrom(backgroundColor: Colors.transparent),
                 onPressed: action,
                 icon: modern
-                    ? Icon(
+                    ? AppIcon(
                         label == '설정'
-                            ? Icons.tune_rounded
+                            ? AppIconKind.settings
                             : label == '기기 상태'
-                                ? Icons.recycling_rounded
-                                : Icons.replay_rounded,
-                        color: AppStyle.blue,
-                        size: 25)
+                                ? AppIconKind.collector
+                                : AppIconKind.replay,
+                        size: 28)
                     : Image.asset(asset,
                         excludeFromSemantics: true,
                         width: 42,

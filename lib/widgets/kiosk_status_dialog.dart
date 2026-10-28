@@ -1,3 +1,4 @@
+import 'app_icon.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
 
@@ -114,7 +115,7 @@ class KioskStatusDialog extends StatelessWidget {
                         if (onHistory != null)
                           TextButton.icon(
                               onPressed: onHistory,
-                              icon: const Icon(Icons.show_chart),
+                              icon: const AppIcon(AppIconKind.chart),
                               label: const Text('기록과 그래프 보기')),
                         SizedBox(height: 36 * scale),
                         SizedBox(

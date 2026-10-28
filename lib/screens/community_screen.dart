@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import '../theme/app_style.dart';
 import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
@@ -168,7 +169,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ? null
             : FloatingActionButton.extended(
                 onPressed: loading ? null : compose,
-                icon: const Icon(Icons.edit_outlined),
+                icon: const AppIcon(AppIconKind.compose),
                 label: const Text('글쓰기')),
         body: Center(
             child: ConstrainedBox(
@@ -292,7 +293,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 64),
                                 child: Column(children: [
-                                  Icon(Icons.forum_outlined, size: 48),
+                                  AppIcon(AppIconKind.community, size: 48),
                                   SizedBox(height: 16),
                                   Text('아직 이야기가 없어요.',
                                       style: TextStyle(

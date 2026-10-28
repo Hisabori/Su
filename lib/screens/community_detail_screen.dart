@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import '../theme/glass_surface.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -324,8 +325,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                                           onPressed: busy
                                               ? null
                                               : () => editComment(c),
-                                          icon:
-                                              const Icon(Icons.edit_outlined)),
+                                          icon: const AppIcon(
+                                              AppIconKind.compose)),
                                     if (c['mine'] == true || admin)
                                       IconButton(
                                           tooltip: '댓글 삭제',

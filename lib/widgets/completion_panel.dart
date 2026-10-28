@@ -1,3 +1,4 @@
+import 'app_icon.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
@@ -75,8 +76,8 @@ class CompletionPanel extends StatelessWidget {
                                           IconButton(
                                               tooltip: '커뮤니티',
                                               onPressed: onCommunity,
-                                              icon: const Icon(
-                                                  Icons.forum_outlined)),
+                                              icon: const AppIcon(
+                                                  AppIconKind.community)),
                                         const Spacer(),
                                         SizedBox(
                                             width: 50 * scale,

@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -87,7 +88,7 @@ class _PasskeyScreenState extends State<PasskeyScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(24),
                   children: [
-                    const Icon(Icons.key, size: 64),
+                    const AppIcon(AppIconKind.passkey, size: 64),
                     const SizedBox(height: 20),
                     const Text('이 기기의 로그인 세션을 패스키로 암호화합니다. 비밀번호는 저장하지 않습니다.'),
                     const SizedBox(height: 12),
@@ -116,7 +117,7 @@ class _PasskeyScreenState extends State<PasskeyScreen> {
                               ? null
                               : () => run(() => passkeys.enroll(tokens, '수호천사'),
                                   '패스키 로그인을 설정했습니다.'),
-                          icon: const Icon(Icons.key),
+                          icon: const AppIcon(AppIconKind.passkey),
                           label: const Text('이 기기에 패스키 설정')),
                     if (state?['enrolled'] == true) ...[
                       const Text('이 기기에 패스키 로그인이 설정돼 있습니다.'),

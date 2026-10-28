@@ -1,3 +1,4 @@
+import '../widgets/app_icon.dart';
 import '../theme/glass_surface.dart';
 import '../theme/app_style.dart';
 import 'package:flutter/material.dart';
@@ -119,8 +120,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               children: [
                                 if (AppStyle.isBeta(context)) ...[
                                   const Row(children: [
-                                    Icon(Icons.bar_chart_rounded,
-                                        color: AppStyle.coral, size: 20),
+                                    AppIcon(AppIconKind.chart, size: 20),
                                     SizedBox(width: 6),
                                     Text('적재율 추이',
                                         style: TextStyle(
