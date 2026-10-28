@@ -1,3 +1,4 @@
+import '../widgets/work_home_panel.dart';
 import '../widgets/app_icon.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -963,6 +964,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     final info = work!;
     if (!started) {
+      if (AppStyle.isBeta(context)) {
+        final waiting =
+            plannedStart != null && DateTime.now().isBefore(plannedStart!);
+        return WorkHomePanel(
+            info: info,
+            name: displayName,
+            onStart: waiting ? null : start,
+            waitText: waiting
+                ? '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}'
+                : null,
+            onCollector: showDeviceHistory,
+            onCommunity: showCommunity,
+            onHistory: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                    builder: (_) => const ResultLogScreen())));
+      }
       return WorkMessage(title: '안녕하세요!', children: [
         Text(info.name,
             textAlign: TextAlign.center,
@@ -1306,7 +1324,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.19.0',
+                          const Text('수호천사 v1.20.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

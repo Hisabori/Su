@@ -130,9 +130,9 @@ class GlassBackdrop extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                    Color(0xFFF2F2F7),
-                                    Color(0xFFF6F6FA),
-                                    Color(0xFFF2F2F7)
+                                    Color(0xFFF2F7F5),
+                                    Color(0xFFFAFAF7),
+                                    Color(0xFFF2F7F5)
                                   ])
                             : null)))),
         Positioned.fill(
