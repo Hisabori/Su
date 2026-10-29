@@ -37,4 +37,9 @@ function fixture() {
   const fallback=fixture();fallback.voices.length=0;
   const missing=fallback.api.speak('한국어입니다.',()=>{});assert.equal(fallback.spoken[0].lang,'ko-KR');fallback.spoken[0].onend();await missing;
   console.log('PASS autoplay rejection and empty voice list settle without a stuck reading state');
+  const slow=f.api.speak('천천히 읽습니다.',()=>{},.85);
+  assert.equal(f.spoken.at(-1).rate,.95*.85);f.spoken.at(-1).onend();await slow;
+  const clamped=f.api.speak('속도 범위를 확인합니다.',()=>{},100);
+  assert.equal(f.spoken.at(-1).rate,.95*1.1);f.spoken.at(-1).onend();await clamped;
+  console.log('PASS reading speed preference is applied and bounded');
 })().catch(e=>{console.error(e);process.exit(1)});

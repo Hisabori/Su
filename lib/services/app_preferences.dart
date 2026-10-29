@@ -4,6 +4,19 @@ class AppPreferences {
   final LocalStore store;
   AppPreferences({LocalStore? store})
       : store = store ?? const SecureLocalStore();
+  Future<double> speechSpeed() async {
+    try {
+      final value =
+          double.tryParse(await store.read('suho_pref_speech_speed') ?? '');
+      return const [.85, 1.0, 1.1].contains(value) ? value! : 1.0;
+    } catch (_) {
+      return 1.0;
+    }
+  }
+
+  Future<void> setSpeechSpeed(double value) => store.write(
+      'suho_pref_speech_speed',
+      (const [.85, 1.0, 1.1].contains(value) ? value : 1.0).toString());
   Future<bool> speechEnabled() async {
     try {
       return await store.read('suho_pref_speech_enabled') != 'false';

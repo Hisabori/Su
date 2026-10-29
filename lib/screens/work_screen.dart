@@ -76,7 +76,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   final preferences = AppPreferences();
   late final DeviceMonitor deviceMonitor;
-  int promptReadGeneration = 0;
+  int promptReadGeneration = 0, speechRequestGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
   final answers = <Map<String, dynamic>>[];
@@ -103,6 +103,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     speech.onListeningChanged = (value) {
       if (mounted) setState(() => listening = value);
     };
+    speech.onErrorMessage = (message) {
+      if (!mounted) return;
+      setState(() {
+        listening = false;
+        speechUnavailable = true;
+      });
+      notice(message);
+    };
     tts.onSpeakingChanged = (value) {
       if (mounted) setState(() => speaking = value);
     };
@@ -116,6 +124,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     deviceMonitor.dispose();
     tts.onSpeakingChanged = null;
     speech.onListeningChanged = null;
+    speech.onErrorMessage = null;
     unawaited(stopAudio());
     api.close();
     super.dispose();
@@ -141,6 +150,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     });
     try {
       speechEnabled = await preferences.speechEnabled();
+      tts.speed = await preferences.speechSpeed();
       autoLoginEnabled = await preferences.autoLoginEnabled();
       sessionUser = await api.tokens.userId();
       final profile = await api.tokens.device();
@@ -397,6 +407,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     if (!speechEnabled && !manual) return;
     final request = ++promptReadGeneration;
+    speechRequestGeneration++;
     final text = prompt;
     try {
       await speech.stop();
@@ -588,6 +599,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> stopAudio() async {
+    speechRequestGeneration++;
     promptReadGeneration++;
     await Future.wait([
       (() async {
@@ -606,32 +618,53 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   Future<void> toggleSpeech() async {
     if (listening) {
+      speechRequestGeneration++;
       await speech.stop();
       if (mounted) setState(() => listening = false);
       return;
     }
+    final request = ++speechRequestGeneration;
+    final question = prompt;
+    var received = false;
     promptReadGeneration++;
     await tts.stop();
+    if (!mounted || request != speechRequestGeneration) return;
     try {
       final ok = await speech.listen((text) {
-        if (!mounted || !listening || restUntil != null || saving || complete) {
+        if (!mounted ||
+            request != speechRequestGeneration ||
+            question != prompt ||
+            restUntil != null ||
+            saving ||
+            complete ||
+            awaitingSave) {
           return;
         }
-        final normalized = text.replaceAll(RegExp(r'\s'), '');
-        if (['네', '예', '응', '다음', '아니요', '아니오'].contains(normalized)) {
-          setState(() => listening = false);
-          answer(!['아니요', '아니오'].contains(normalized), recognized: text);
+        received = true;
+        final value = interpretSpokenAnswer(text);
+        setState(() => listening = false);
+        if (value != null) {
+          speechRequestGeneration++;
+          answer(value, recognized: text);
+        } else {
+          notice('예 또는 아니요로 다시 말씀하거나 버튼으로 답해 주세요.');
         }
       });
-      if (!mounted) return;
+      if (!mounted || request != speechRequestGeneration || received) return;
       setState(() {
         listening = ok;
         speechUnavailable = !ok;
       });
-      if (!ok) notice('음성 인식 권한과 기기 지원 여부를 확인해 주세요.');
+      if (!ok && speech.lastError == null) {
+        notice('마이크 권한과 음성 인식 지원 여부를 확인해 주세요.');
+      }
     } catch (_) {
-      if (mounted) setState(() => speechUnavailable = true);
-      notice('음성 인식을 시작하지 못했습니다.');
+      if (!mounted || request != speechRequestGeneration) return;
+      setState(() {
+        listening = false;
+        speechUnavailable = true;
+      });
+      notice('음성 인식을 시작하지 못했습니다. 다시 누르거나 버튼으로 답해 주세요.');
     }
   }
 
@@ -1264,6 +1297,44 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                         }
                                       }
                                     }),
+                          Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: DropdownButtonFormField<double>(
+                                key: ValueKey(tts.speed),
+                                initialValue: tts.speed,
+                                decoration:
+                                    const InputDecoration(labelText: '읽기 속도'),
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: .85, child: Text('천천히')),
+                                  DropdownMenuItem(
+                                      value: 1.0, child: Text('보통')),
+                                  DropdownMenuItem(
+                                      value: 1.1, child: Text('조금 빠르게'))
+                                ],
+                                onChanged: preferenceSaving
+                                    ? null
+                                    : (value) async {
+                                        if (value == null) return;
+                                        updateSheet(
+                                            () => preferenceSaving = true);
+                                        try {
+                                          await preferences
+                                              .setSpeechSpeed(value);
+                                          if (!mounted) return;
+                                          setState(() => tts.speed = value);
+                                          await stopAudio();
+                                        } catch (_) {
+                                          notice('읽기 속도를 저장하지 못했습니다.');
+                                        } finally {
+                                          if (sheet.mounted) {
+                                            updateSheet(
+                                                () => preferenceSaving = false);
+                                          }
+                                        }
+                                      },
+                              )),
                           if (started && !complete)
                             ListTile(
                                 leading: const Icon(Icons.volume_up),
@@ -1324,7 +1395,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           const SizedBox(height: 8),
-                          const Text('수호천사 v1.20.0',
+                          const Text('수호천사 v1.21.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

@@ -12,6 +12,17 @@ class BrokenStore extends MemoryStore implements LocalStore {
 }
 
 void main() {
+  test('reading speed persists and rejects unsupported values', () async {
+    final store = MemoryStore();
+    final preferences = AppPreferences(store: store);
+    expect(await preferences.speechSpeed(), 1.0);
+    await preferences.setSpeechSpeed(.85);
+    expect(await AppPreferences(store: store).speechSpeed(), .85);
+    await preferences.setSpeechSpeed(999);
+    expect(await preferences.speechSpeed(), 1.0);
+    expect(await AppPreferences(store: BrokenStore()).speechSpeed(), 1.0);
+  });
+
   test(
       'automatic login choice persists and storage failures disable restoration',
       () async {

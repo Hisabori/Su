@@ -41,6 +41,7 @@ Map<String, String>? preferredKoreanVoice(List<dynamic> voices) {
 class TtsService {
   final FlutterTts tts;
   int _generation = 0;
+  double speed = 1.0;
   void Function(bool)? onSpeakingChanged;
   TtsService({FlutterTts? engine}) : tts = engine ?? FlutterTts() {
     if (!kIsWeb) {
@@ -58,7 +59,9 @@ class TtsService {
         throw const TtsFailure('이 브라우저에서는 음성 읽기를 지원하지 않습니다. 화면의 질문을 확인해 주세요.');
       }
       final result = jsonDecode(await web.speakWeb(
-          content, (value) => onSpeakingChanged?.call(value))) as Map;
+          content,
+          (value) => onSpeakingChanged?.call(value),
+          speed.clamp(.85, 1.1))) as Map;
       if (result['ok'] != true) {
         throw TtsFailure(result['code'] == 'not-allowed'
             ? '자동 읽기가 차단됐습니다. ‘다시 듣기’를 눌러주세요.'
@@ -78,7 +81,7 @@ class TtsService {
       if (voice != null) await tts.setVoice(voice);
     } catch (_) {/* Default Korean voice remains usable. */}
     if (generation != _generation) return;
-    await tts.setSpeechRate(0.48);
+    await tts.setSpeechRate((0.48 * speed).clamp(.3, .65));
     if (generation != _generation) return;
     await tts.setPitch(1.0);
     if (generation != _generation) return;

@@ -23,11 +23,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String? error, cursor, me;
   bool loading = true, deleting = false, onlyMine = false, isAdmin = false;
   String query = '';
+  bool onlyNotices = false, onlyPhotos = false;
   final search = TextEditingController();
   int loadGeneration = 0;
   List<Map<String, dynamic>> get visiblePosts => posts
       .where((p) =>
           (!onlyMine || p['mine'] == true) &&
+          (!onlyNotices || p['pinned'] == true) &&
+          (!onlyPhotos || p['hasImage'] == true) &&
           [p['title'], p['body'], p['author']]
               .join(' ')
               .toLowerCase()
@@ -100,6 +103,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
     setState(() {
       query = '';
       onlyMine = false;
+      onlyNotices = false;
+      onlyPhotos = false;
     });
   }
 
@@ -260,13 +265,39 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 selected: onlyMine,
                                 onSelected: (v) =>
                                     setState(() => onlyMine = v)),
+                            FilterChip(
+                                label: const Text('공지'),
+                                selected: onlyNotices,
+                                onSelected: (v) =>
+                                    setState(() => onlyNotices = v)),
+                            FilterChip(
+                                label: const Text('사진 있는 글'),
+                                selected: onlyPhotos,
+                                onSelected: (v) =>
+                                    setState(() => onlyPhotos = v)),
                             Chip(label: Text('불러온 글 ${posts.length}개')),
-                            if (query.isNotEmpty || onlyMine)
+                            if (query.isNotEmpty ||
+                                onlyMine ||
+                                onlyNotices ||
+                                onlyPhotos)
                               TextButton(
                                   onPressed: resetFilters,
                                   child: const Text('필터 초기화'))
                           ]),
                           const SizedBox(height: 12),
+                          if (!loading &&
+                              (query.isNotEmpty ||
+                                  onlyMine ||
+                                  onlyNotices ||
+                                  onlyPhotos))
+                            Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Semantics(
+                                    container: true,
+                                    child: Text(
+                                        '검색 결과 ${visiblePosts.length}개 · 불러온 글 기준',
+                                        style: const TextStyle(
+                                            color: AppStyle.muted)))),
                           if (!loading &&
                               posts.isNotEmpty &&
                               visiblePosts.isEmpty)

@@ -41,7 +41,7 @@
     }
     return result;
   }
-  async function speak(text, callback) {
+  async function speak(text, callback, speed = 1) {
     stop();
     const id = generation;
     stateCallback = callback;
@@ -56,7 +56,7 @@
         await new Promise((resolve, reject) => {
           const utterance = new SpeechSynthesisUtterance(parts[i]);
           utterance.lang = 'ko-KR';
-          utterance.rate = 0.95;
+          utterance.rate = 0.95 * (Number.isFinite(speed) ? Math.min(1.1, Math.max(.85, speed)) : 1);
           utterance.pitch = 1;
           utterance.volume = 1;
           const voice = selectVoice();
