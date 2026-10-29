@@ -45,7 +45,8 @@ class _AppIconState extends State<AppIcon> {
               width: size,
               height: size,
               child: CustomPaint(
-                  painter: _IconPainter(widget.kind, media.highContrast))),
+                  painter: _IconPainter(widget.kind, media.highContrast,
+                      Theme.of(context).brightness == Brightness.dark))),
         ),
       ),
     ));
@@ -53,9 +54,9 @@ class _AppIconState extends State<AppIcon> {
 }
 
 class _IconPainter extends CustomPainter {
-  _IconPainter(this.kind, this.highContrast);
+  _IconPainter(this.kind, this.highContrast, this.dark);
   final AppIconKind kind;
-  final bool highContrast;
+  final bool highContrast, dark;
   static const colors = <Color>[
     Color(0xFF5265B8),
     Color(0xFF207767),
@@ -68,7 +69,11 @@ class _IconPainter extends CustomPainter {
   ];
   @override
   void paint(Canvas canvas, Size size) {
-    final color = highContrast ? Colors.black : colors[kind.index];
+    final color = highContrast
+        ? Colors.black
+        : dark
+            ? Color.lerp(colors[kind.index], Colors.white, .45)!
+            : colors[kind.index];
     canvas.save();
     canvas.scale(size.width / 24, size.height / 24);
     canvas.drawRRect(
@@ -91,5 +96,5 @@ class _IconPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _IconPainter old) =>
-      old.kind != kind || old.highContrast != highContrast;
+      old.kind != kind || old.highContrast != highContrast || old.dark != dark;
 }

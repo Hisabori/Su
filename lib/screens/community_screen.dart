@@ -121,15 +121,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
-                title: const Text('이 글을 삭제할까요?'),
-                content: const Text('삭제한 글은 복구할 수 없습니다.'),
+                title: Text('이 글을 삭제할까요?'),
+                content: Text('삭제한 글은 복구할 수 없습니다.'),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(dialog, false),
-                      child: const Text('취소')),
+                      child: Text('취소')),
                   TextButton(
                       onPressed: () => Navigator.pop(dialog, true),
-                      child: const Text('삭제'))
+                      child: Text('삭제'))
                 ]));
     if (confirmed != true || !mounted) return;
     setState(() => deleting = true);
@@ -155,11 +155,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('커뮤니티'), actions: [
+        appBar: AppBar(title: Text('커뮤니티'), actions: [
           if (isAdmin)
             IconButton(
                 tooltip: '신고 관리',
-                icon: const Icon(Icons.admin_panel_settings_outlined),
+                icon: Icon(Icons.admin_panel_settings_outlined),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
@@ -168,75 +168,78 @@ class _CommunityScreenState extends State<CommunityScreen> {
           IconButton(
               tooltip: '새로고침',
               onPressed: loading ? null : load,
-              icon: const Icon(Icons.refresh))
+              icon: Icon(Icons.refresh))
         ]),
         floatingActionButton: me == null
             ? null
             : FloatingActionButton.extended(
                 onPressed: loading ? null : compose,
-                icon: const AppIcon(AppIconKind.compose),
-                label: const Text('글쓰기')),
+                icon: AppIcon(AppIconKind.compose),
+                label: Text('글쓰기')),
         body: Center(
             child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
+                constraints: BoxConstraints(maxWidth: 760),
                 child: RefreshIndicator(
                     onRefresh: load,
                     child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
+                        physics: AlwaysScrollableScrollPhysics(),
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                        padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
                         children: [
                           if (AppStyle.isBeta(context))
                             Semantics(
                                 container: true,
                                 explicitChildNodes: true,
                                 child: GlassSurface(
-                                    padding: const EdgeInsets.all(24),
+                                    padding: EdgeInsets.all(24),
                                     child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Row(children: [
+                                          Row(children: [
                                             Icon(Icons.spa_outlined,
-                                                color: AppStyle.teal, size: 18),
+                                                color: AppStyle.mintOf(context),
+                                                size: 18),
                                             SizedBox(width: 8),
                                             Text('우리의 작은 쉼터',
                                                 style: TextStyle(
-                                                    color: AppStyle.teal,
+                                                    color: AppStyle.mintOf(
+                                                        context),
                                                     fontSize: 12,
                                                     fontWeight:
                                                         FontWeight.w700))
                                           ]),
-                                          const SizedBox(height: 14),
-                                          const Text('함께 나누는 이야기',
+                                          SizedBox(height: 14),
+                                          Text('함께 나누는 이야기',
                                               style: TextStyle(
                                                   fontSize: 26,
                                                   fontWeight: FontWeight.w800,
-                                                  color: AppStyle.navy)),
-                                          const SizedBox(height: 10),
+                                                  color:
+                                                      AppStyle.inkOf(context))),
+                                          SizedBox(height: 10),
                                           Text(
                                               me == null
                                                   ? '동료들과 일상의 이야기를 나눠보세요.'
                                                   : '$me 님, 오늘의 이야기를 들려주세요.',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                   height: 1.7,
-                                                  color: AppStyle.muted)),
+                                                  color: AppStyle.mutedOf(
+                                                      context))),
                                         ])))
                           else ...[
-                            const Text('함께 나누는 이야기',
+                            Text('함께 나누는 이야기',
                                 style: TextStyle(
                                     fontSize: 26, fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             Text(
                                 me == null
                                     ? '동료들과 일상의 이야기를 나눠보세요.'
                                     : '$me 님, 오늘의 이야기를 들려주세요.',
-                                style: const TextStyle(height: 1.6)),
-                            const SizedBox(height: 24),
+                                style: TextStyle(height: 1.6)),
+                            SizedBox(height: 24),
                           ],
-                          if (AppStyle.isBeta(context))
-                            const SizedBox(height: 24),
+                          if (AppStyle.isBeta(context)) SizedBox(height: 24),
                           TextField(
                               controller: search,
                               textInputAction: TextInputAction.search,
@@ -254,24 +257,24 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                             search.clear();
                                             setState(() => query = '');
                                           },
-                                          icon: const Icon(Icons.close)),
+                                          icon: Icon(Icons.close)),
                                   labelText: '불러온 글 검색',
                                   hintText: '제목 · 내용 · 작성자',
-                                  prefixIcon: const Icon(Icons.search))),
-                          const SizedBox(height: 12),
+                                  prefixIcon: Icon(Icons.search))),
+                          SizedBox(height: 12),
                           Wrap(spacing: 8, children: [
                             FilterChip(
-                                label: const Text('내 글만'),
+                                label: Text('내 글만'),
                                 selected: onlyMine,
                                 onSelected: (v) =>
                                     setState(() => onlyMine = v)),
                             FilterChip(
-                                label: const Text('공지'),
+                                label: Text('공지'),
                                 selected: onlyNotices,
                                 onSelected: (v) =>
                                     setState(() => onlyNotices = v)),
                             FilterChip(
-                                label: const Text('사진 있는 글'),
+                                label: Text('사진 있는 글'),
                                 selected: onlyPhotos,
                                 onSelected: (v) =>
                                     setState(() => onlyPhotos = v)),
@@ -282,46 +285,47 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 onlyPhotos)
                               TextButton(
                                   onPressed: resetFilters,
-                                  child: const Text('필터 초기화'))
+                                  child: Text('필터 초기화'))
                           ]),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           if (!loading &&
                               (query.isNotEmpty ||
                                   onlyMine ||
                                   onlyNotices ||
                                   onlyPhotos))
                             Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+                                padding: EdgeInsets.only(bottom: 12),
                                 child: Semantics(
                                     container: true,
                                     child: Text(
                                         '검색 결과 ${visiblePosts.length}개 · 불러온 글 기준',
-                                        style: const TextStyle(
-                                            color: AppStyle.muted)))),
+                                        style: TextStyle(
+                                            color:
+                                                AppStyle.mutedOf(context))))),
                           if (!loading &&
                               posts.isNotEmpty &&
                               visiblePosts.isEmpty)
-                            const Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
+                            Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
                           if (error != null)
                             GlassCard(
                                 child: Padding(
-                                    padding: const EdgeInsets.all(20),
+                                    padding: EdgeInsets.all(20),
                                     child: Column(children: [
                                       Text(error!),
-                                      const SizedBox(height: 12),
+                                      SizedBox(height: 12),
                                       OutlinedButton(
                                           onPressed: loading ? null : load,
-                                          child: const Text('다시 시도'))
+                                          child: Text('다시 시도'))
                                     ]))),
                           if (loading && posts.isNotEmpty)
-                            const LinearProgressIndicator(),
+                            LinearProgressIndicator(),
                           if (loading && posts.isEmpty)
-                            const Padding(
+                            Padding(
                                 padding: EdgeInsets.all(24),
                                 child:
                                     Center(child: CircularProgressIndicator())),
                           if (!loading && error == null && posts.isEmpty)
-                            const Padding(
+                            Padding(
                                 padding: EdgeInsets.symmetric(vertical: 64),
                                 child: Column(children: [
                                   AppIcon(AppIconKind.community, size: 48),
@@ -336,20 +340,20 @@ class _CommunityScreenState extends State<CommunityScreen> {
                           for (final post in visiblePosts)
                             GlassCard(
                                 semanticContainer: false,
-                                margin: const EdgeInsets.only(bottom: 16),
+                                margin: EdgeInsets.only(bottom: 16),
                                 child: Padding(
-                                    padding: const EdgeInsets.all(22),
+                                    padding: EdgeInsets.all(22),
                                     child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Row(children: [
-                                            const CircleAvatar(
+                                            CircleAvatar(
                                                 radius: 18,
                                                 child: Icon(
                                                     Icons.person_outline,
                                                     size: 20)),
-                                            const SizedBox(width: 10),
+                                            SizedBox(width: 10),
                                             Expanded(
                                                 child: Column(
                                                     crossAxisAlignment:
@@ -357,11 +361,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                                             .start,
                                                     children: [
                                                   Text('${post['author']}',
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                           fontWeight:
                                                               FontWeight.w800)),
                                                   Text(stamp(post['createdAt']),
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                           fontSize: 12))
                                                 ])),
                                             if (post['mine'] == true)
@@ -370,45 +374,45 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                                   onPressed: deleting
                                                       ? null
                                                       : () => remove(post),
-                                                  icon: const Icon(
+                                                  icon: Icon(
                                                       Icons.delete_outline))
                                           ]),
-                                          const SizedBox(height: 18),
+                                          SizedBox(height: 18),
                                           if (post['pinned'] == true)
-                                            const Chip(label: Text('공지')),
+                                            Chip(label: Text('공지')),
                                           if (post['hasImage'] == true)
-                                            const Text('사진 첨부'),
+                                            Text('사진 첨부'),
                                           InkWell(
                                               onTap: () => openPost(post),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                               child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(vertical: 6),
+                                                  padding: EdgeInsets.symmetric(
+                                                      vertical: 6),
                                                   child: Text(
                                                       '${post['title']}',
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                           fontSize: 20,
                                                           fontWeight:
                                                               FontWeight.w800,
                                                           height: 1.4)))),
-                                          const SizedBox(height: 10),
+                                          SizedBox(height: 10),
                                           Text('${post['body']}',
                                               maxLines: 4,
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                   fontSize: 16, height: 1.7)),
-                                          const SizedBox(height: 12),
+                                          SizedBox(height: 12),
                                           OutlinedButton.icon(
                                               onPressed: () => openPost(post),
-                                              icon: const Icon(
+                                              icon: Icon(
                                                   Icons.chat_bubble_outline),
-                                              label: const Text('댓글 · 좋아요')),
+                                              label: Text('댓글 · 좋아요')),
                                         ]))),
                           if (cursor != null && !loading)
                             OutlinedButton(
                                 onPressed: () => load(more: true),
-                                child: const Text('이전 글 더 보기')),
+                                child: Text('이전 글 더 보기')),
                         ])))),
       );
 }
@@ -468,7 +472,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
     if (editing || published) return;
     draftTimer?.cancel();
     draftTimer =
-        Timer(const Duration(milliseconds: 600), () => unawaited(saveDraft()));
+        Timer(Duration(milliseconds: 600), () => unawaited(saveDraft()));
   }
 
   Future<void> saveDraft() async {
@@ -575,52 +579,50 @@ class _CommunityComposerState extends State<CommunityComposer> {
                 child: SafeArea(
                     top: false,
                     child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
                         child: Center(
                             heightFactor: 1,
                             child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 760),
+                                constraints: BoxConstraints(maxWidth: 760),
                                 child: GlassSurface(
-                                    padding: const EdgeInsets.all(10),
+                                    padding: EdgeInsets.all(10),
                                     child: SizedBox(
                                         width: double.infinity,
                                         child: submitButton())))))))
             : null,
         body: Center(
             child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
+                constraints: BoxConstraints(maxWidth: 760),
                 child: ListView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(24),
                     children: [
                       Text('작성자 · ${widget.name ?? '로그인 사용자'}',
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 24),
+                          style: TextStyle(fontWeight: FontWeight.w800)),
+                      SizedBox(height: 24),
                       TextField(
                           controller: title,
                           enabled: !saving && draftReady,
                           maxLength: 80,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                               labelText: '제목', hintText: '어떤 이야기를 나누고 싶으세요?')),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       TextField(
                           controller: body,
                           enabled: !saving && draftReady,
                           maxLength: 2000,
                           minLines: 8,
                           maxLines: 16,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                               labelText: '내용',
                               alignLabelWithHint: true,
                               hintText: '동료들에게 전하고 싶은 이야기를 적어주세요.')),
-                      if (editing) const Text('수정 시 기존 사진은 유지됩니다.'),
+                      if (editing) Text('수정 시 기존 사진은 유지됩니다.'),
                       if (!editing && communityPhotoAvailable)
                         OutlinedButton.icon(
                             onPressed: saving || picking ? null : pickPhoto,
-                            icon:
-                                const Icon(Icons.add_photo_alternate_outlined),
+                            icon: Icon(Icons.add_photo_alternate_outlined),
                             label: Text(picking ? '사진 준비 중…' : '사진 첨부')),
                       if (image != null) ...[
                         Image.memory(base64Decode(image!['data'] as String),
@@ -629,24 +631,23 @@ class _CommunityComposerState extends State<CommunityComposer> {
                             onPressed: saving
                                 ? null
                                 : () => setState(() => image = null),
-                            child: const Text('사진 제거')),
-                        const Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
+                            child: Text('사진 제거')),
+                        Text('사진 1장 · 최대 512KB · 위치 정보 없이 전송'),
                       ],
-                      if (!draftReady) const LinearProgressIndicator(),
+                      if (!draftReady) LinearProgressIndicator(),
                       if (!editing) ...[
                         if (draftStatus != null)
-                          Text(draftStatus!,
-                              style: const TextStyle(fontSize: 12)),
+                          Text(draftStatus!, style: TextStyle(fontSize: 12)),
                         TextButton(
                             onPressed: saving || !draftReady ? null : saveDraft,
-                            child: const Text('제목·내용 임시저장')),
+                            child: Text('제목·내용 임시저장')),
                       ],
                       if (error != null)
                         Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: EdgeInsets.symmetric(vertical: 12),
                             child: Semantics(
                                 liveRegion: true, child: Text(error!))),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       if (!AppStyle.isBeta(context)) submitButton(),
                     ]))),
       ));

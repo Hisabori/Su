@@ -46,16 +46,16 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
     final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('저장되지 않은 결과를 전송할까요?'),
-                content: const Text(
+                title: Text('저장되지 않은 결과를 전송할까요?'),
+                content: Text(
                     '네트워크 오류로 응답만 받지 못한 경우에는 서버에 이미 저장돼 있을 수 있습니다. 서버 기록을 확인한 뒤 전송하세요.'),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('취소')),
+                      child: Text('취소')),
                   TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('전송'))
+                      child: Text('전송'))
                 ]));
     if (confirm != true || !mounted) return;
     setState(() => sending = true);
@@ -68,7 +68,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
       record['result_id'] = outcome.resultId;
       if (!outcome.persistedLocally && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('서버 저장 완료. 기기 내 기록 갱신에 실패했습니다.')));
+            SnackBar(content: Text('서버 저장 완료. 기기 내 기록 갱신에 실패했습니다.')));
       }
       if (mounted) setState(() => records = load());
     } catch (e) {
@@ -103,15 +103,14 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
       ? (record['answers'] as List).whereType<Map>().toList()
       : [];
   Widget stat(String label, String value) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
             width: 84,
-            child:
-                Text(label, style: const TextStyle(color: Color(0xFF626A70)))),
+            child: Text(label,
+                style: TextStyle(color: AppStyle.mutedOf(context)))),
         Expanded(
-            child: Text(value,
-                style: const TextStyle(fontWeight: FontWeight.w800))),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w800))),
       ]));
   void detail(Map<String, dynamic> record) {
     final answers = answersOf(record);
@@ -120,8 +119,8 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
         builder: (dialog) => AlertDialog(
               backgroundColor: (AppStyle.isBeta(context)
                   ? Colors.transparent
-                  : const Color(0xFFEDF1F6)),
-              title: const Text('일일 근무 성과',
+                  : Color(0xFFEDF1F6)),
+              title: Text('일일 근무 성과',
                   style: TextStyle(fontWeight: FontWeight.w800)),
               content: SizedBox(
                   width: 480,
@@ -132,30 +131,30 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                           children: [
                         stat('근무 시작', stamp(record['started_at'])),
                         stat('근무 종료', stamp(record['ended_at'])),
-                        const Divider(),
-                        if (answers.isEmpty) const Text('상세 답변 기록이 없습니다.'),
+                        Divider(),
+                        if (answers.isEmpty) Text('상세 답변 기록이 없습니다.'),
                         for (final answer in answers)
                           Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: EdgeInsets.symmetric(vertical: 12),
                               child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     Text('${answer['step_name'] ?? '작업 단계'}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontWeight: FontWeight.w800)),
                                     if (answer['question'] is String)
                                       Text(answer['question'] as String),
-                                    const SizedBox(height: 6),
+                                    SizedBox(height: 6),
                                     Text(
                                         '${answer['answer_label'] ?? '답변 미확인'} · ${stamp(answer['ended_at'])}'),
                                     if (progressOf(answer) != null) ...[
-                                      const SizedBox(height: 8),
+                                      SizedBox(height: 8),
                                       LinearProgressIndicator(
                                           value: progressOf(answer),
                                           color: (AppStyle.isBeta(context)
                                               ? AppStyle.navy
-                                              : const Color(0xFF104B83)),
+                                              : Color(0xFF104B83)),
                                           minHeight: 8),
                                       Text(
                                           '배정 시간 대비 경과 ${(progressOf(answer)! * 100).round()}%'),
@@ -165,7 +164,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(dialog),
-                    child: const Text('확인했어요'))
+                    child: Text('확인했어요'))
               ],
             ));
   }
@@ -185,18 +184,17 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
 
   Widget recordCard(Map<String, dynamic> record) {
     final sent = record['server_submitted'] == true;
-    final request =
-        record['request'] is Map ? record['request'] as Map : const {};
+    final request = record['request'] is Map ? record['request'] as Map : {};
     final answers = answersOf(record);
     return GlassCard(
-        color: Colors.white,
-        margin: const EdgeInsets.only(bottom: 18),
+        color: AppStyle.surfaceOf(context),
+        margin: EdgeInsets.only(bottom: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: () => detail(record),
             child: Padding(
-                padding: const EdgeInsets.all(22),
+                padding: EdgeInsets.all(22),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -205,8 +203,8 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                           children: [
                             Expanded(
                                 child: Text('${record['work_name'] ?? '근무 기록'}',
-                                    style: const TextStyle(
-                                        color: Color(0xFF104B83),
+                                    style: TextStyle(
+                                        color: AppStyle.blueOf(context),
                                         fontSize: 22,
                                         fontWeight: FontWeight.w800))),
                             if (widget.readOnlyRecords == null &&
@@ -216,15 +214,15 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                                   tooltip: '결과 재전송',
                                   onPressed:
                                       sending ? null : () => retry(record),
-                                  icon: const Icon(Icons.cloud_upload)),
+                                  icon: Icon(Icons.cloud_upload)),
                           ]),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(sent ? '서버 저장 완료' : '서버 저장 미확인',
                           style: TextStyle(
                               color: sent
-                                  ? const Color(0xFF187B49)
-                                  : const Color(0xFFAE4C19))),
-                      const Divider(height: 28),
+                                  ? AppStyle.mintOf(context)
+                                  : AppStyle.coralOf(context))),
+                      Divider(height: 28),
                       stat('근무 시작', stamp(record['started_at'])),
                       stat('근무 종료', stamp(record['ended_at'])),
                       stat(
@@ -237,26 +235,25 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                           request['rest_minutes'] == null
                               ? '시간 미확인'
                               : '${request['rest_minutes']}분'),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Text('답변 ${answers.length}개',
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                          style: TextStyle(fontWeight: FontWeight.w800)),
                       Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                               onPressed: () => detail(record),
-                              child: const Text('답변 기록 보기'))),
+                              child: Text('답변 기록 보기'))),
                     ]))));
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: (AppStyle.isBeta(context)
-          ? Colors.transparent
-          : const Color(0xFFEDF1F6)),
+      backgroundColor:
+          (AppStyle.isBeta(context) ? Colors.transparent : Color(0xFFEDF1F6)),
       appBar: AppBar(
           backgroundColor: (AppStyle.isBeta(context)
               ? Colors.transparent
-              : const Color(0xFFEDF1F6)),
+              : Color(0xFFEDF1F6)),
           title: Text(showAll ? '근무 기록' : '오늘의 근무 기록')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
           future: records,
@@ -264,14 +261,14 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
             if (snapshot.hasError) {
               return Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text('기록을 불러오지 못했습니다.'),
+                Text('기록을 불러오지 못했습니다.'),
                 TextButton(
                     onPressed: () => setState(() => records = load()),
-                    child: const Text('다시 시도')),
+                    child: Text('다시 시도')),
               ]));
             }
             if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator());
             }
             final visible = snapshot.data!
                 .where((r) =>
@@ -279,26 +276,25 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                 .toList();
             return Center(
                 child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child:
-                        ListView(padding: const EdgeInsets.all(24), children: [
+                    constraints: BoxConstraints(maxWidth: 800),
+                    child: ListView(padding: EdgeInsets.all(24), children: [
                       Row(children: [
                         ChoiceChip(
-                            label: const Text('오늘'),
+                            label: Text('오늘'),
                             selected: !showAll,
                             onSelected: (_) => setState(() => showAll = false)),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         ChoiceChip(
-                            label: const Text('전체'),
+                            label: Text('전체'),
                             selected: showAll,
                             onSelected: (_) => setState(() => showAll = true)),
                       ]),
-                      const SizedBox(height: 14),
-                      const Text('이 기기에 저장된 기록입니다. 저장 미확인 기록은 날짜와 관계없이 표시합니다.',
-                          style: TextStyle(color: Color(0xFF626A70))),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 14),
+                      Text('이 기기에 저장된 기록입니다. 저장 미확인 기록은 날짜와 관계없이 표시합니다.',
+                          style: TextStyle(color: AppStyle.mutedOf(context))),
+                      SizedBox(height: 20),
                       if (visible.isEmpty)
-                        const Padding(
+                        Padding(
                             padding: EdgeInsets.all(24),
                             child: Text('표시할 근무 기록이 없습니다. 전체 기록도 확인해 주세요.')),
                       ...visible.map(recordCard),

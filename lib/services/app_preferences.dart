@@ -4,6 +4,19 @@ class AppPreferences {
   final LocalStore store;
   AppPreferences({LocalStore? store})
       : store = store ?? const SecureLocalStore();
+  Future<String> colorMode() async {
+    try {
+      final value = await store.read('suho_pref_color_mode');
+      return const ['system', 'light', 'dark'].contains(value)
+          ? value!
+          : 'system';
+    } catch (_) {
+      return 'system';
+    }
+  }
+
+  Future<void> setColorMode(String value) => store.write('suho_pref_color_mode',
+      const ['system', 'light', 'dark'].contains(value) ? value : 'system');
   Future<double> speechSpeed() async {
     try {
       final value =

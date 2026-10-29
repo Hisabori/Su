@@ -16,6 +16,7 @@ class GlassSurface extends StatelessWidget {
   final double radius;
   @override
   Widget build(BuildContext context) {
+    final dark = AppStyle.isDark(context);
     final opaque = MediaQuery.highContrastOf(context);
     final panel = Container(
         width: width,
@@ -25,11 +26,17 @@ class GlassSurface extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: opaque
-                    ? const [Colors.white, Colors.white]
-                    : const [Color(0xEDFFFFFF), Color(0xCFFFFFFF)]),
+                    ? [AppStyle.surfaceOf(context), AppStyle.surfaceOf(context)]
+                    : dark
+                        ? const [Color(0xED283B32), Color(0xD01B2924)]
+                        : const [Color(0xEDFFFFFF), Color(0xCFFFFFFF)]),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
-                color: opaque ? AppStyle.muted : const Color(0xE6FFFFFF),
+                color: opaque
+                    ? AppStyle.mutedOf(context)
+                    : dark
+                        ? const Color(0x665E7C6E)
+                        : const Color(0xE6FFFFFF),
                 width: 1.2)),
         child: child);
     return Container(
@@ -126,14 +133,20 @@ class GlassBackdrop extends StatelessWidget {
                 child: DecoratedBox(
                     decoration: BoxDecoration(
                         gradient: enabled
-                            ? const LinearGradient(
+                            ? LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                    Color(0xFFF2F7F5),
-                                    Color(0xFFFAFAF7),
-                                    Color(0xFFF2F7F5)
-                                  ])
+                                colors: AppStyle.isDark(context)
+                                    ? const [
+                                        Color(0xFF101B16),
+                                        Color(0xFF15251E),
+                                        Color(0xFF111D23)
+                                      ]
+                                    : const [
+                                        Color(0xFFF2F7F5),
+                                        Color(0xFFFAFAF7),
+                                        Color(0xFFF2F7F5)
+                                      ])
                             : null)))),
         Positioned.fill(
             child: IgnorePointer(

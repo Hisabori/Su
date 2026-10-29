@@ -21,6 +21,7 @@ class WorkMessage extends StatelessWidget {
           final scale =
               (MediaQuery.sizeOf(context).shortestSide / 390).clamp(0.8, 1.08);
           final logo = Image.asset('assets/images/logo.png',
+              color: AppStyle.isDark(context) ? Color(0xFFE0F1E9) : null,
               height: (AppStyle.isBeta(context)
                       ? (landscape ? 90 : 76)
                       : (landscape ? 118 : 138)) *
@@ -29,7 +30,7 @@ class WorkMessage extends StatelessWidget {
               semanticLabel: '수호천사');
           final content = Container(
               padding: AppStyle.isBeta(context)
-                  ? const EdgeInsets.all(28)
+                  ? EdgeInsets.all(28)
                   : EdgeInsets.zero,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -39,8 +40,8 @@ class WorkMessage extends StatelessWidget {
                       textAlign: landscape ? TextAlign.start : TextAlign.center,
                       style: TextStyle(
                           color: AppStyle.isBeta(context)
-                              ? AppStyle.ink
-                              : const Color(0xFF111111),
+                              ? AppStyle.inkOf(context)
+                              : Color(0xFF111111),
                           fontSize: 32 * scale,
                           fontWeight: FontWeight.w600,
                           height: 1.4)),
@@ -57,7 +58,7 @@ class WorkMessage extends StatelessWidget {
                       (constraints.maxHeight - 64).clamp(0, double.infinity)),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
+                  constraints: BoxConstraints(maxWidth: 800),
                   child: landscape
                       ? Row(children: [
                           Expanded(child: logo),

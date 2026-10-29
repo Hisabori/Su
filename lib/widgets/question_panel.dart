@@ -66,7 +66,7 @@ class QuestionPanel extends StatelessWidget {
     return Container(
         width: 48,
         height: 48,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 8)]),
@@ -94,13 +94,15 @@ class QuestionPanel extends StatelessWidget {
         final fraction = (current / total).clamp(0.0, 1.0);
         final border = Border.all(
             color: (AppStyle.isBeta(context)
-                ? AppStyle.line
-                : const Color(0xFF596268)),
+                ? AppStyle.lineOf(context)
+                : Color(0xFF596268)),
             width: AppStyle.isBeta(context) ? 1.4 : 2.3);
         final textStyle = TextStyle(
             fontSize: 21 * scale,
             fontWeight: FontWeight.w800,
-            color: AppStyle.isBeta(context) ? AppStyle.ink : Colors.black,
+            color: AppStyle.isBeta(context)
+                ? AppStyle.inkOf(context)
+                : Colors.black,
             height: 1.25);
         Widget answerButton(String text, Color color, VoidCallback? callback) {
           final button = SizedBox(
@@ -153,10 +155,10 @@ class QuestionPanel extends StatelessWidget {
                                     horizontal: 60 * scale),
                                 constraints:
                                     BoxConstraints(minHeight: 44 * scale),
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 8),
                                 decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppStyle.surfaceOf(context),
                                     borderRadius: BorderRadius.circular(30)),
                                 child: Wrap(
                                     alignment: WrapAlignment.center,
@@ -190,7 +192,7 @@ class QuestionPanel extends StatelessWidget {
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                     color: AppStyle.isBeta(context)
-                                        ? const Color(0xBFFFFFFF)
+                                        ? Color(0xBFFFFFFF)
                                         : Colors.white,
                                     border: border,
                                     borderRadius: BorderRadius.circular(
@@ -198,7 +200,7 @@ class QuestionPanel extends StatelessWidget {
                                             scale),
                                     boxShadow: AppStyle.isBeta(context)
                                         ? AppStyle.shadow
-                                        : const [
+                                        : [
                                             BoxShadow(
                                                 color: Color(0x26000000),
                                                 blurRadius: 9,
@@ -235,24 +237,24 @@ class QuestionPanel extends StatelessWidget {
                                           style: OutlinedButton.styleFrom(
                                               side: BorderSide(
                                                   color: AppStyle.isBeta(context)
-                                                      ? AppStyle.line
-                                                      : const Color(0xFF596268),
+                                                      ? AppStyle.lineOf(context)
+                                                      : Color(0xFF596268),
                                                   width: AppStyle.isBeta(context)
                                                       ? 1.4
                                                       : 2.3),
                                               disabledForegroundColor:
-                                                  Colors.black,
-                                              foregroundColor: Colors.black,
+                                                  AppStyle.inkOf(context),
+                                              foregroundColor:
+                                                  AppStyle.inkOf(context),
                                               shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(
                                                       15 * scale))),
                                           icon: media != null
-                                              ? const Icon(Icons.ondemand_video,
-                                                  color: Colors.black)
+                                              ? Icon(Icons.ondemand_video,
+                                                  color:
+                                                      AppStyle.inkOf(context))
                                               : Image.asset(
-                                                  speaking
-                                                      ? 'assets/images/Icon_speak.png'
-                                                      : 'assets/images/Icon_mic.png',
+                                                  speaking ? 'assets/images/Icon_speak.png' : 'assets/images/Icon_mic.png',
                                                   width: 30 * scale,
                                                   height: 30 * scale),
                                           label: Text(
@@ -283,8 +285,7 @@ class QuestionPanel extends StatelessWidget {
                                                       '예',
                                                       (AppStyle.isBeta(context)
                                                           ? AppStyle.navy
-                                                          : const Color(
-                                                              0xFF104B83)),
+                                                          : Color(0xFF104B83)),
                                                       onYes),
                                                   SizedBox(
                                                       width: extra > .4
@@ -292,16 +293,14 @@ class QuestionPanel extends StatelessWidget {
                                                           : 18 * scale,
                                                       height:
                                                           extra > .4 ? 12 : 0),
-                                                  answerButton(
-                                                      '아니요',
-                                                      const Color(0xFFEB7134),
-                                                      onNo),
+                                                  answerButton('아니요',
+                                                      Color(0xFFEB7134), onNo),
                                                 ])),
                                 ])),
                             Image.asset('assets/images/chr_rab.png',
                                 width: 92 * scale, height: 92 * scale),
                           ]),
-                          const Spacer(),
+                          Spacer(),
                           Padding(
                               padding:
                                   EdgeInsets.symmetric(horizontal: 12 * scale),
@@ -316,12 +315,12 @@ class QuestionPanel extends StatelessWidget {
                                                 minHeight: 18 * scale,
                                                 color: AppStyle.isBeta(context)
                                                     ? AppStyle.teal
-                                                    : const Color(0xFF18832B),
+                                                    : Color(0xFF18832B),
                                                 backgroundColor:
                                                     AppStyle.isBeta(context)
-                                                        ? AppStyle.line
-                                                        : const Color(
-                                                            0xFFA6A6A6))),
+                                                        ? AppStyle.lineOf(
+                                                            context)
+                                                        : Color(0xFFA6A6A6))),
                                         Positioned(
                                             left: ((bar.maxWidth - 62 * scale) *
                                                     fraction)

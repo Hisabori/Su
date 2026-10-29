@@ -1,3 +1,4 @@
+import '../theme/appearance_mode_picker.dart';
 import '../widgets/app_icon.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -63,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await passkeys.unlock(api);
       if (!mounted) return;
       await Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const WorkScreen()));
+          .push(MaterialPageRoute<void>(builder: (_) => WorkScreen()));
     } catch (e) {
       if (mounted) {
         setState(
@@ -97,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result != SessionRestoreResult.restored) return;
       setState(() => restoringSession = false);
       await Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const WorkScreen()));
+          .push(MaterialPageRoute<void>(builder: (_) => WorkScreen()));
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -140,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
       password.clear();
       if (!mounted) return;
       await Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const WorkScreen()));
+          .push(MaterialPageRoute<void>(builder: (_) => WorkScreen()));
     } catch (e) {
       if (mounted) {
         setState(
@@ -175,19 +176,19 @@ class _LoginScreenState extends State<LoginScreen> {
     final beta = AppStyle.isBeta(context);
     final labelStyle = TextStyle(
         fontSize: (18 * scale).clamp(16, 20),
-        color: const Color(0xFF636363),
+        color: beta ? AppStyle.inkOf(context) : Color(0xFF636363),
         fontWeight: FontWeight.w600);
     final border = OutlineInputBorder(
         borderRadius: BorderRadius.circular(10 * scale),
-        borderSide:
-            beta ? const BorderSide(color: AppStyle.line) : BorderSide.none);
+        borderSide: beta
+            ? BorderSide(color: AppStyle.lineOf(context))
+            : BorderSide.none);
     InputDecoration decoration(String hint) => InputDecoration(
           hintText: hint,
           filled: true,
-          fillColor: beta ? const Color(0x99FFFFFF) : const Color(0xFFE9E9EF),
+          fillColor: beta ? AppStyle.surfaceOf(context) : Color(0xFFE9E9EF),
           hintStyle: TextStyle(
-              color: const Color(0xFFA0A0A0),
-              fontSize: (13 * scale).clamp(11, 16)),
+              color: Color(0xFFA0A0A0), fontSize: (13 * scale).clamp(11, 16)),
           contentPadding: EdgeInsets.symmetric(
               horizontal: 14 * scale, vertical: 10 * scale),
           border: border,
@@ -195,21 +196,21 @@ class _LoginScreenState extends State<LoginScreen> {
           focusedBorder: beta
               ? border.copyWith(
                   borderSide:
-                      const BorderSide(color: AppStyle.teal, width: 1.5))
+                      BorderSide(color: AppStyle.mintOf(context), width: 1.5))
               : border,
         );
     final helper = <Widget>[
-      const SizedBox(height: 8),
-      const Text('패스키는 로그인 후 열쇠 버튼에서 설정할 수 있습니다. 세션 만료 시 비밀번호 로그인이 필요합니다.',
+      SizedBox(height: 8),
+      Text('패스키는 로그인 후 열쇠 버튼에서 설정할 수 있습니다. 세션 만료 시 비밀번호 로그인이 필요합니다.',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-      const SizedBox(height: 14),
-      const Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
+      SizedBox(height: 14),
+      Text('홈 화면에 설치: Safari 공유 → 홈 화면에 추가 / Chrome 메뉴 → 앱 설치',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-      const SizedBox(height: 8),
-      const Text('v1.21.0 · 빌드 33',
+      SizedBox(height: 8),
+      Text('v1.22.0 · 빌드 34',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-      const SizedBox(height: 8),
-      const Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
+      SizedBox(height: 8),
+      Text('로그인과 결과 저장에는 인터넷 연결이 필요합니다.',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
     ];
     return SizedBox(
@@ -228,10 +229,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   enabled: !busy,
                   style: TextStyle(
                       fontSize: (16 * scale).clamp(14, 18),
-                      color: const Color(0xFF616161)),
+                      color:
+                          beta ? AppStyle.inkOf(context) : Color(0xFF616161)),
                   autocorrect: false,
                   enableSuggestions: false,
-                  autofillHints: const [AutofillHints.username],
+                  autofillHints: [AutofillHints.username],
                   textInputAction: TextInputAction.next,
                   decoration: decoration('아이디를 입력하세요.'),
                 )),
@@ -248,8 +250,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   enableSuggestions: false,
                   style: TextStyle(
                       fontSize: (16 * scale).clamp(14, 18),
-                      color: const Color(0xFF616161)),
-                  autofillHints: const [AutofillHints.password],
+                      color:
+                          beta ? AppStyle.inkOf(context) : Color(0xFF616161)),
+                  autofillHints: [AutofillHints.password],
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => login(),
                   decoration: decoration('비밀번호를 입력하세요.').copyWith(
@@ -266,20 +269,20 @@ class _LoginScreenState extends State<LoginScreen> {
             CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('자동 로그인'),
-                subtitle: const Text('서버에서 확인된 로그인 상태로 다시 접속합니다.'),
+                title: Text('자동 로그인'),
+                subtitle: Text('서버에서 확인된 로그인 상태로 다시 접속합니다.'),
                 value: autoLogin,
                 onChanged:
                     busy ? null : (value) => setAutoLogin(value == true)),
             if (restoringSession)
-              Semantics(liveRegion: true, child: const Text('자동 로그인 확인 중…')),
+              Semantics(liveRegion: true, child: Text('자동 로그인 확인 중…')),
             if (sessionRetry && autoLogin)
               OutlinedButton(
                   onPressed: busy ? null : restoreSession,
-                  child: const Text('자동 로그인 다시 시도')),
+                  child: Text('자동 로그인 다시 시도')),
             if (error != null)
               Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: EdgeInsets.only(top: 12),
                   child: beta
                       ? LoginNotice(message: error!)
                       : Semantics(
@@ -292,13 +295,12 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(
                 height: (54 * scale).clamp(46, 58),
                 child: FilledButton(
-                  key: const ValueKey('password-login'),
+                  key: ValueKey('password-login'),
                   onPressed: busy ? null : login,
                   style: FilledButton.styleFrom(
-                      backgroundColor:
-                          beta ? AppStyle.navy : const Color(0xFF104B83),
+                      backgroundColor: beta ? AppStyle.navy : Color(0xFF104B83),
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFF7A9BBC),
+                      disabledBackgroundColor: Color(0xFF7A9BBC),
                       disabledForegroundColor: Colors.white70,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10 * scale)),
@@ -307,32 +309,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: (17 * scale).clamp(15, 19),
                           fontWeight: FontWeight.w500)),
                   child: busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : const Text('로그인'),
+                      : Text('로그인'),
                 )),
             if (kIsWeb) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               OutlinedButton.icon(
-                  key: const ValueKey('passkey-login'),
+                  key: ValueKey('passkey-login'),
                   onPressed: busy || !passkeyAvailable || !passkeyConfigured
                       ? null
                       : loginWithPasskey,
-                  icon: const AppIcon(AppIconKind.passkey),
-                  label: const Text('이 기기 패스키로 로그인')),
+                  icon: AppIcon(AppIconKind.passkey),
+                  label: Text('이 기기 패스키로 로그인')),
               if (beta)
                 ExpansionTile(
                     tilePadding: EdgeInsets.zero,
-                    title:
-                        const Text('설치·로그인 안내', style: TextStyle(fontSize: 13)),
+                    title: Text('설치·로그인 안내', style: TextStyle(fontSize: 13)),
                     children: helper)
               else
                 ...helper,
             ],
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
+            AppearanceModePicker(),
             TextButton.icon(
                 onPressed: AppearanceScope.of(context)?.saving == true
                     ? null
@@ -342,10 +344,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         final saved =
                             await appearance.setEnabled(!appearance.enabled);
                         if (!saved && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text('화면 설정을 저장하지 못했습니다. 다시 시도해 주세요.')));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('화면 설정을 저장하지 못했습니다. 다시 시도해 주세요.')));
                         }
                       },
                 icon: Icon(beta ? Icons.toggle_off : Icons.toggle_on),
@@ -371,6 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
               children: [
                 Image.asset('assets/images/logo.png',
+                    color: AppStyle.isDark(context) ? Color(0xFFE0F1E9) : null,
                     height: wide ? (short ? 72 : 134) : 64,
                     fit: BoxFit.contain,
                     semanticLabel: '수호천사'),
@@ -381,31 +382,35 @@ class _LoginScreenState extends State<LoginScreen> {
                         fontSize: wide ? (short ? 24 : 34) : 22,
                         height: 1.4,
                         fontWeight: FontWeight.w800,
-                        color: AppStyle.navy)),
-                if (wide) const SizedBox(height: 12),
+                        color: AppStyle.inkOf(context))),
+                if (wide) SizedBox(height: 12),
                 if (wide)
                   Text('오늘의 질문부터 근무 마무리까지\n수호천사가 함께합니다.',
                       textAlign: wide ? TextAlign.start : TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 14, height: 1.7, color: AppStyle.muted)),
+                      style: TextStyle(
+                          fontSize: 14,
+                          height: 1.7,
+                          color: AppStyle.mutedOf(context))),
               ]);
           final card = GlassSurface(
               width: cardWidth,
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('반가워요',
+                    Text('반가워요',
                         style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppStyle.ink)),
-                    const SizedBox(height: 8),
-                    const Text('계정으로 로그인해 근무를 이어가세요.',
+                            color: AppStyle.inkOf(context))),
+                    SizedBox(height: 8),
+                    Text('계정으로 로그인해 근무를 이어가세요.',
                         style: TextStyle(
-                            fontSize: 13, color: AppStyle.muted, height: 1.5)),
-                    const SizedBox(height: 26),
+                            fontSize: 13,
+                            color: AppStyle.mutedOf(context),
+                            height: 1.5)),
+                    SizedBox(height: 26),
                     loginForm(cardWidth - 48, scale),
                   ]));
           return GestureDetector(
@@ -413,32 +418,28 @@ class _LoginScreenState extends State<LoginScreen> {
             behavior: HitTestBehavior.translucent,
             child: Center(
                 child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 32),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1000),
+                      constraints: BoxConstraints(maxWidth: 1000),
                       child: wide
                           ? Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                   Expanded(
                                       child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 48),
+                                          padding: EdgeInsets.only(right: 48),
                                           child: brand)),
                                   card,
                                 ])
-                          : Column(mainAxisSize: MainAxisSize.min, children: [
-                              brand,
-                              const SizedBox(height: 20),
-                              card
-                            ]),
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [brand, SizedBox(height: 20), card]),
                     ))),
           );
         })),
       );
   Widget classicLayout(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF2F2F2),
+        backgroundColor: Color(0xFFF2F2F2),
         body: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
           final scale =
               (math.min(constraints.maxWidth, constraints.maxHeight) / 390)
@@ -453,6 +454,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   : (constraints.maxWidth * .84).clamp(260.0, 430.0));
           final logoHeight = (180 * scale).clamp(140.0, 210.0);
           final logo = Image.asset('assets/images/logo.png',
+              color: AppStyle.isDark(context) ? Color(0xFFE0F1E9) : null,
               height:
                   landscape ? (logoHeight * 1.18).clamp(170, 250) : logoHeight,
               fit: BoxFit.contain,

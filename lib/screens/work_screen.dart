@@ -1,3 +1,4 @@
+import '../theme/appearance_mode_picker.dart';
 import '../widgets/work_home_panel.dart';
 import '../widgets/app_icon.dart';
 import 'dart:async';
@@ -201,7 +202,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() => loading = false);
         timer?.cancel();
-        timer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+        timer = Timer.periodic(Duration(seconds: 1), (_) => tick());
       }
     }
   }
@@ -390,7 +391,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           startedAt;
     });
     timer?.cancel();
-    timer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+    timer = Timer.periodic(Duration(seconds: 1), (_) => tick());
     unawaited(checkpoint());
     readPrompt();
   }
@@ -604,12 +605,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     await Future.wait([
       (() async {
         try {
-          await speech.stop().timeout(const Duration(seconds: 3));
+          await speech.stop().timeout(Duration(seconds: 3));
         } catch (_) {}
       })(),
       (() async {
         try {
-          await tts.stop().timeout(const Duration(seconds: 3));
+          await tts.stop().timeout(Duration(seconds: 3));
         } catch (_) {}
       })(),
     ]);
@@ -907,16 +908,16 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       final ok = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-                  title: const Text('작업을 중단할까요?'),
-                  content: const Text(
+                  title: Text('작업을 중단할까요?'),
+                  content: Text(
                       '현재 진행 상태는 기기에 보관됩니다. 같은 계정으로 다시 로그인하면 이어서 진행할 수 있습니다.'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('계속하기')),
+                        child: Text('계속하기')),
                     TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('로그아웃'))
+                        child: Text('로그아웃'))
                   ]));
       if (ok != true) return;
     }
@@ -955,7 +956,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   Widget content() {
     if (loading) {
-      return const Center(
+      return Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
         CircularProgressIndicator(),
         SizedBox(height: 20),
@@ -965,11 +966,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (error != null) {
       return WorkMessage(title: '근무 정보를 확인해 주세요', children: [
         Text(error!, textAlign: TextAlign.center),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         FilledButton.icon(
-            onPressed: load,
-            icon: const Icon(Icons.refresh),
-            label: const Text('다시 시도')),
+            onPressed: load, icon: Icon(Icons.refresh), label: Text('다시 시도')),
       ]);
     }
     if (complete || workStatus != null) {
@@ -1009,25 +1008,23 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                 : null,
             onCollector: showDeviceHistory,
             onCommunity: showCommunity,
-            onHistory: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                    builder: (_) => const ResultLogScreen())));
+            onHistory: () => Navigator.push(context,
+                MaterialPageRoute<void>(builder: (_) => ResultLogScreen())));
       }
       return WorkMessage(title: '안녕하세요!', children: [
         Text(info.name,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
+            style: TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
         if (AppStyle.isBeta(context)) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
               displayName == null || displayName!.trim().isEmpty
                   ? '오늘도 차근차근 함께해요.'
                   : '${displayName!.trim()} 님, 오늘도 차근차근 함께해요.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppStyle.muted, height: 1.6)),
+              style: TextStyle(color: AppStyle.mutedOf(context), height: 1.6)),
         ],
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         if (info.startTime != null)
           Text('시작: ${info.startTime}', textAlign: TextAlign.center),
         if (info.endTime != null)
@@ -1036,35 +1033,35 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           Text('기준 작업 시간: ${info.workMinutes}분', textAlign: TextAlign.center),
         if (info.restMinutes != null)
           Text('기준 휴식 시간: ${info.restMinutes}분', textAlign: TextAlign.center),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         if (info.steps.isEmpty)
-          const Text('진행할 작업 단계가 없습니다.', textAlign: TextAlign.center)
+          Text('진행할 작업 단계가 없습니다.', textAlign: TextAlign.center)
         else
           FilledButton(
               onPressed:
                   plannedStart != null && DateTime.now().isBefore(plannedStart!)
                       ? null
                       : start,
-              child: const Text('작업 시작')),
+              child: Text('작업 시작')),
         if (AppStyle.isBeta(context) && info.steps.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          const Text('버튼을 누르면 오늘의 안내가 시작돼요.\n질문은 음성으로 듣고 버튼으로 답할 수 있어요.',
+          SizedBox(height: 12),
+          Text('버튼을 누르면 오늘의 안내가 시작돼요.\n질문은 음성으로 듣고 버튼으로 답할 수 있어요.',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: AppStyle.muted, fontSize: 13, height: 1.7)),
+              style: TextStyle(
+                  color: AppStyle.mutedOf(context), fontSize: 13, height: 1.7)),
         ],
         if (plannedStart != null && DateTime.now().isBefore(plannedStart!))
           Text(
               '작업 시작까지 ${clock(plannedStart!.difference(DateTime.now()).inSeconds)}',
               textAlign: TextAlign.center),
         if (AppStyle.isBeta(context)) ...[
-          const SizedBox(height: 28),
-          const Divider(),
-          const SizedBox(height: 12),
-          const Text('필요한 기능을 바로 찾아보세요',
+          SizedBox(height: 28),
+          Divider(),
+          SizedBox(height: 12),
+          Text('필요한 기능을 바로 찾아보세요',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppStyle.muted, fontSize: 13)),
-          const SizedBox(height: 12),
+              style: TextStyle(color: AppStyle.mutedOf(context), fontSize: 13)),
+          SizedBox(height: 12),
           Wrap(
               alignment: WrapAlignment.center,
               spacing: 10,
@@ -1072,19 +1069,19 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               children: [
                 OutlinedButton.icon(
                     onPressed: showDeviceHistory,
-                    icon: const AppIcon(AppIconKind.collector),
-                    label: const Text('수거기 기록')),
+                    icon: AppIcon(AppIconKind.collector),
+                    label: Text('수거기 기록')),
                 OutlinedButton.icon(
                     onPressed: showCommunity,
-                    icon: const AppIcon(AppIconKind.community),
-                    label: const Text('동료 이야기')),
+                    icon: AppIcon(AppIconKind.community),
+                    label: Text('동료 이야기')),
                 OutlinedButton.icon(
                     onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute<void>(
-                            builder: (_) => const ResultLogScreen())),
-                    icon: const AppIcon(AppIconKind.history),
-                    label: const Text('내 근무기록')),
+                            builder: (_) => ResultLogScreen())),
+                    icon: AppIcon(AppIconKind.history),
+                    label: Text('내 근무기록')),
               ]),
         ],
       ]);
@@ -1092,14 +1089,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (awaitingSave) {
       return Center(
           child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.cloud_upload_outlined, size: 64),
-                const SizedBox(height: 16),
-                const Text('작업이 끝났습니다. 서버 저장을 확인해 주세요.'),
-                const SizedBox(height: 12),
-                const Text('응답을 받지 못했다면 이미 저장됐을 수 있습니다. 서버 기록 확인 후 다시 전송하세요.'),
-                const SizedBox(height: 16),
+                Icon(Icons.cloud_upload_outlined, size: 64),
+                SizedBox(height: 16),
+                Text('작업이 끝났습니다. 서버 저장을 확인해 주세요.'),
+                SizedBox(height: 12),
+                Text('응답을 받지 못했다면 이미 저장됐을 수 있습니다. 서버 기록 확인 후 다시 전송하세요.'),
+                SizedBox(height: 16),
                 FilledButton(
                     onPressed: saving ? null : finish,
                     child: Text(saving ? '저장 확인 중…' : '결과 저장 다시 시도')),
@@ -1107,10 +1104,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     if (restUntil != null) {
       return WorkMessage(title: '휴식 중', children: [
-        const Text('편하게 쉬고 오세요!',
+        Text('편하게 쉬고 오세요!',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF5A83A7), fontSize: 24)),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Text(clock(restUntil!.difference(DateTime.now()).inSeconds),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.displayMedium),
@@ -1162,7 +1159,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           onSettings: showSettings,
           onDevice: showDevice);
     }
-    return const Center(child: Text('작업 상태를 확인하고 있습니다.'));
+    return Center(child: Text('작업 상태를 확인하고 있습니다.'));
   }
 
   bool get questionVisible =>
@@ -1179,7 +1176,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     try {
       await Navigator.push<void>(
-          context, MaterialPageRoute(builder: (_) => const CommunityScreen()));
+          context, MaterialPageRoute(builder: (_) => CommunityScreen()));
     } finally {
       if (mounted) releaseMedia();
     }
@@ -1194,22 +1191,21 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: (AppStyle.isBeta(context)
-            ? const Color(0xF0FFFFFF)
-            : const Color(0xFFF2F2F2)),
+            ? AppStyle.surfaceOf(context)
+            : Color(0xFFF2F2F2)),
         builder: (sheet) => StatefulBuilder(
             builder: (sheet, updateSheet) => ConstrainedBox(
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.sizeOf(sheet).height * .85),
                 child: SingleChildScrollView(
                     child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         child:
                             Column(mainAxisSize: MainAxisSize.min, children: [
                           Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
+                              padding: EdgeInsets.symmetric(horizontal: 24),
                               child: Row(children: [
-                                const Expanded(
+                                Expanded(
                                     child: Text('설정',
                                         style: TextStyle(
                                             fontSize: 24,
@@ -1217,7 +1213,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 IconButton(
                                     tooltip: '설정 닫기',
                                     onPressed: () => Navigator.pop(sheet),
-                                    icon: const Icon(Icons.close)),
+                                    icon: Icon(Icons.close)),
                               ])),
                           ListTile(
                               leading: Icon(
@@ -1242,10 +1238,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                   notice('화면 설정을 저장하지 못했습니다. 다시 시도해 주세요.');
                                 }
                               }),
+                          Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: AppearanceModePicker()),
                           SwitchListTile(
-                              title: const Text('자동 로그인'),
-                              subtitle:
-                                  const Text('앱을 다시 열 때 저장된 세션을 서버에서 확인합니다.'),
+                              title: Text('자동 로그인'),
+                              subtitle: Text('앱을 다시 열 때 저장된 세션을 서버에서 확인합니다.'),
                               value: autoLoginEnabled,
                               onChanged: preferenceSaving
                                   ? null
@@ -1271,7 +1269,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                       }
                                     }),
                           SwitchListTile(
-                              title: const Text('질문 자동 읽기'),
+                              title: Text('질문 자동 읽기'),
                               subtitle: Text(speechEnabled
                                   ? '질문을 자동으로 읽습니다.'
                                   : '자동 읽기가 꺼져 있습니다.'),
@@ -1298,14 +1296,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                       }
                                     }),
                           Padding(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
                               child: DropdownButtonFormField<double>(
                                 key: ValueKey(tts.speed),
                                 initialValue: tts.speed,
-                                decoration:
-                                    const InputDecoration(labelText: '읽기 속도'),
-                                items: const [
+                                decoration: InputDecoration(labelText: '읽기 속도'),
+                                items: [
                                   DropdownMenuItem(
                                       value: .85, child: Text('천천히')),
                                   DropdownMenuItem(
@@ -1337,65 +1334,64 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                               )),
                           if (started && !complete)
                             ListTile(
-                                leading: const Icon(Icons.volume_up),
-                                title: const Text('현재 질문 다시 듣기'),
+                                leading: Icon(Icons.volume_up),
+                                title: Text('현재 질문 다시 듣기'),
                                 onTap: () {
                                   Navigator.pop(sheet);
                                   readPrompt(manual: true);
                                 }),
-                          const Divider(),
+                          Divider(),
                           ListTile(
-                              leading: const AppIcon(AppIconKind.chart),
-                              title: const Text('기기 기록 · 그래프'),
+                              leading: AppIcon(AppIconKind.chart),
+                              title: Text('기기 기록 · 그래프'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 showDeviceHistory();
                               }),
                           ListTile(
-                              leading: const AppIcon(AppIconKind.community),
-                              title: const Text('커뮤니티'),
+                              leading: AppIcon(AppIconKind.community),
+                              title: Text('커뮤니티'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 showCommunity();
                               }),
                           ListTile(
-                              leading: const AppIcon(AppIconKind.passkey),
-                              title: const Text('패스키 로그인 설정'),
+                              leading: AppIcon(AppIconKind.passkey),
+                              title: Text('패스키 로그인 설정'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute<void>(
-                                        builder: (_) => const PasskeyScreen()));
+                                        builder: (_) => PasskeyScreen()));
                               }),
                           ListTile(
-                              leading: const AppIcon(AppIconKind.history),
-                              title: const Text('근무 기록'),
+                              leading: AppIcon(AppIconKind.history),
+                              title: Text('근무 기록'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute<void>(
-                                        builder: (_) =>
-                                            const ResultLogScreen()));
+                                        builder: (_) => ResultLogScreen()));
                               }),
                           if (PasskeyService().enrolled)
                             ListTile(
-                                leading: const Icon(Icons.lock_outline),
-                                title: const Text('앱 잠그기'),
+                                leading: Icon(Icons.lock_outline),
+                                title: Text('앱 잠그기'),
                                 onTap: () {
                                   Navigator.pop(sheet);
                                   lockApp();
                                 }),
                           ListTile(
-                              leading: const Icon(Icons.logout),
-                              title: const Text('로그아웃'),
+                              leading: Icon(Icons.logout),
+                              title: Text('로그아웃'),
                               onTap: () {
                                 Navigator.pop(sheet);
                                 logout();
                               }),
-                          const SizedBox(height: 8),
-                          const Text('수호천사 v1.21.0',
+                          SizedBox(height: 8),
+                          Text('수호천사 v1.22.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();
@@ -1408,26 +1404,26 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       child: Scaffold(
           backgroundColor: (AppStyle.isBeta(context)
               ? Colors.transparent
-              : const Color(0xFFF2F2F2)),
+              : Color(0xFFF2F2F2)),
           appBar: questionVisible || complete || workStatus != null
               ? null
               : AppBar(
                   backgroundColor: (AppStyle.isBeta(context)
                       ? Colors.transparent
-                      : const Color(0xFFF2F2F2)),
+                      : Color(0xFFF2F2F2)),
                   automaticallyImplyLeading: false,
-                  title: const Text('수호천사'),
+                  title: Text('수호천사'),
                   actions: [
                       IconButton(
                           tooltip: '커뮤니티',
                           onPressed:
                               saving || awaitingSave ? null : showCommunity,
-                          icon: const AppIcon(AppIconKind.community)),
+                          icon: AppIcon(AppIconKind.community)),
                       if (PasskeyService().enrolled)
                         IconButton(
                             tooltip: '앱 잠그기',
                             onPressed: saving ? null : lockApp,
-                            icon: const Icon(Icons.lock_outline)),
+                            icon: Icon(Icons.lock_outline)),
                       IconButton(
                           tooltip: '패스키 로그인 설정',
                           onPressed: saving || awaitingSave
@@ -1435,12 +1431,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                               : () => Navigator.push(
                                   context,
                                   MaterialPageRoute<void>(
-                                      builder: (_) => const PasskeyScreen())),
-                          icon: const AppIcon(AppIconKind.passkey)),
+                                      builder: (_) => PasskeyScreen())),
+                          icon: AppIcon(AppIconKind.passkey)),
                       IconButton(
                           tooltip: '기기 상태',
                           onPressed: saving || awaitingSave ? null : showDevice,
-                          icon: const Icon(Icons.devices)),
+                          icon: Icon(Icons.devices)),
                       IconButton(
                           tooltip: '작업 기록',
                           onPressed: saving || awaitingSave
@@ -1448,16 +1444,16 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                               : () => Navigator.push(
                                   context,
                                   MaterialPageRoute<void>(
-                                      builder: (_) => const ResultLogScreen())),
-                          icon: const AppIcon(AppIconKind.history)),
+                                      builder: (_) => ResultLogScreen())),
+                          icon: AppIcon(AppIconKind.history)),
                       IconButton(
                           tooltip: '로그아웃',
                           onPressed: saving ? null : logout,
-                          icon: const Icon(Icons.logout))
+                          icon: Icon(Icons.logout))
                     ]),
           body: SafeArea(
               child: Center(
                   child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 900),
+                      constraints: BoxConstraints(maxWidth: 900),
                       child: content())))));
 }

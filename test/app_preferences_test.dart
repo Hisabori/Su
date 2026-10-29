@@ -12,6 +12,18 @@ class BrokenStore extends MemoryStore implements LocalStore {
 }
 
 void main() {
+  test('color mode persists, rejects invalid values and falls back to system',
+      () async {
+    final store = MemoryStore();
+    final preferences = AppPreferences(store: store);
+    expect(await preferences.colorMode(), 'system');
+    await preferences.setColorMode('dark');
+    expect(await AppPreferences(store: store).colorMode(), 'dark');
+    await preferences.setColorMode('invalid');
+    expect(await preferences.colorMode(), 'system');
+    expect(await AppPreferences(store: BrokenStore()).colorMode(), 'system');
+  });
+
   test('reading speed persists and rejects unsupported values', () async {
     final store = MemoryStore();
     final preferences = AppPreferences(store: store);

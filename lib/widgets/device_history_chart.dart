@@ -21,7 +21,7 @@ class DeviceHistoryChart extends StatelessWidget {
                 painter: _Chart(
                     records,
                     AppStyle.isBeta(context)
-                        ? AppStyle.coral
+                        ? AppStyle.coralOf(context)
                         : Theme.of(context).colorScheme.primary,
                     Theme.of(context).colorScheme.onSurface))));
   }
@@ -58,7 +58,7 @@ class _Chart extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       final y = area.bottom - area.height * i / 2;
       canvas.drawLine(Offset(area.left, y), Offset(area.right, y),
-          Paint()..color = const Color(0xFFE5E5EA));
+          Paint()..color = ink.withValues(alpha: .16));
       label(canvas, '${(maximum * i / 2).toStringAsFixed(0)}%',
           Offset(area.left - 8, y - 7),
           right: true);

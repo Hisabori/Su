@@ -45,13 +45,16 @@ class CompletionPanel extends StatelessWidget {
             fontSize: 29 * scale,
             fontWeight: FontWeight.w800,
             height: 1.6,
-            color: AppStyle.isBeta(context) ? AppStyle.ink : Colors.black);
-        final highlight =
-            AppStyle.isBeta(context) ? AppStyle.teal : const Color(0xFF5A83A7);
+            color: AppStyle.isBeta(context)
+                ? AppStyle.inkOf(context)
+                : Colors.black);
+        final highlight = AppStyle.isBeta(context)
+            ? AppStyle.mintOf(context)
+            : Color(0xFF5A83A7);
         return ColoredBox(
             color: (AppStyle.isBeta(context)
                 ? Colors.transparent
-                : const Color(0xFFEDF1F6)),
+                : Color(0xFFEDF1F6)),
             child: SingleChildScrollView(
                 child: Center(
                     child: ConstrainedBox(
@@ -76,9 +79,9 @@ class CompletionPanel extends StatelessWidget {
                                           IconButton(
                                               tooltip: '커뮤니티',
                                               onPressed: onCommunity,
-                                              icon: const AppIcon(
+                                              icon: AppIcon(
                                                   AppIconKind.community)),
-                                        const Spacer(),
+                                        Spacer(),
                                         SizedBox(
                                             width: 50 * scale,
                                             height: 50 * scale,
@@ -92,6 +95,9 @@ class CompletionPanel extends StatelessWidget {
                                       ]),
                                       SizedBox(height: 44 * scale),
                                       Image.asset('assets/images/logo.png',
+                                          color: AppStyle.isDark(context)
+                                              ? Color(0xFFE0F1E9)
+                                              : null,
                                           height: 90 * scale,
                                           fit: BoxFit.contain,
                                           semanticLabel: '수호천사'),
@@ -108,9 +114,9 @@ class CompletionPanel extends StatelessWidget {
                                                   text: name!.trim(),
                                                   style: TextStyle(
                                                       color: highlight)),
-                                              const TextSpan(text: ' 님,\n'),
+                                              TextSpan(text: ' 님,\n'),
                                             ],
-                                            const TextSpan(text: '수고하셨습니다.'),
+                                            TextSpan(text: '수고하셨습니다.'),
                                           ]),
                                           style: style),
                                       SizedBox(
@@ -151,7 +157,7 @@ class CompletionPanel extends StatelessWidget {
                                                     : '에 일을\n마무리 하셨습니다.'),
                                           ]),
                                           style: style),
-                                      const Spacer(),
+                                      Spacer(),
                                       Semantics(
                                           liveRegion: true,
                                           child: Text(
@@ -161,7 +167,8 @@ class CompletionPanel extends StatelessWidget {
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                   fontSize: 12,
-                                                  color: Color(0xFF616970)))),
+                                                  color: AppStyle.mutedOf(
+                                                      context)))),
                                       SizedBox(height: 14 * scale),
                                       ConstrainedBox(
                                           constraints: BoxConstraints(
@@ -172,8 +179,7 @@ class CompletionPanel extends StatelessWidget {
                                                   backgroundColor:
                                                       (AppStyle.isBeta(context)
                                                           ? AppStyle.navy
-                                                          : const Color(
-                                                              0xFF104B83)),
+                                                          : Color(0xFF104B83)),
                                                   foregroundColor: Colors.white,
                                                   shape: RoundedRectangleBorder(
                                                       borderRadius:
@@ -192,15 +198,15 @@ class CompletionPanel extends StatelessWidget {
                                           child: OutlinedButton(
                                               onPressed: onCheckout,
                                               style: OutlinedButton.styleFrom(
-                                                  backgroundColor: Colors.white,
+                                                  backgroundColor: AppStyle.surfaceOf(
+                                                      context),
                                                   foregroundColor:
-                                                      const Color(0xFF505050),
+                                                      AppStyle.inkOf(context),
                                                   side: BorderSide(
-                                                      color: AppStyle.isBeta(
+                                                      color: AppStyle.isBeta(context)
+                                                          ? AppStyle.lineOf(
                                                               context)
-                                                          ? AppStyle.line
-                                                          : const Color(
-                                                              0xFF96999D)),
+                                                          : Color(0xFF96999D)),
                                                   shape: RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -209,8 +215,7 @@ class CompletionPanel extends StatelessWidget {
                                                   style: TextStyle(
                                                       fontFamily: 'NanumGothic',
                                                       fontSize: 23 * scale,
-                                                      fontWeight:
-                                                          FontWeight.w800)))),
+                                                      fontWeight: FontWeight.w800)))),
                                       SizedBox(height: 40 * scale),
                                     ])))))));
       });
