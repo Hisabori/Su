@@ -1,6 +1,7 @@
 // Mocked API only. Checks persisted theme choice across login and graph navigation.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
+let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  try {
@@ -18,16 +19,17 @@ const assert=require('node:assert/strict');
    else throw Error('Unexpected API '+path);
    await route.fulfill({status:200,headers,body:JSON.stringify(data)});
   });
-  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await context.newPage(),errors=[];debugPage=page;page.on('pageerror',e=>errors.push(e.message));
   async function ready(){await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());}
   await page.goto(process.env.PWA_TEST_URL||'http://127.0.0.1:8765/');await ready();
   await page.mouse.move(210,650);await page.mouse.wheel(0,700);await page.waitForTimeout(400);
-  await page.getByText('시스템',{exact:true}).click();await page.getByText('다크',{exact:true}).last().click();await page.waitForTimeout(400);
+  await page.getByRole('checkbox',{name:'다크',exact:true}).click();await page.waitForTimeout(400);
   await page.reload();await ready();
   await page.mouse.move(210,650);await page.mouse.wheel(0,700);await page.waitForTimeout(400);
-  await page.getByText('다크',{exact:true}).waitFor();
-  await page.getByText('다크',{exact:true}).click();await page.getByText('라이트',{exact:true}).last().click();await page.waitForTimeout(400);
-  await page.getByText('라이트',{exact:true}).click();await page.getByText('다크',{exact:true}).last().click();await page.waitForTimeout(400);
+  await page.getByRole('checkbox',{name:'다크',exact:true}).waitFor();
+  assert.equal(await page.getByRole('checkbox',{name:'다크',exact:true}).getAttribute('aria-checked'),'true');
+  await page.getByRole('checkbox',{name:'라이트',exact:true}).click();await page.waitForTimeout(400);
+  await page.getByRole('checkbox',{name:'다크',exact:true}).click();await page.waitForTimeout(400);
   await page.mouse.wheel(0,-900);await page.waitForTimeout(300);
   for(const [index,value] of ['demo','fake'].entries()){
    const input=page.locator('input').nth(index);await input.click();await page.waitForTimeout(200);await page.keyboard.type(value,{delay:40});await page.keyboard.press('Tab');await page.waitForTimeout(150);assert.equal(await input.inputValue(),value);
@@ -38,5 +40,5 @@ const assert=require('node:assert/strict');
   await page.getByRole('button',{name:'Back',exact:true}).click();await page.getByText('안녕하세요!',{exact:true}).waitFor();
   assert.deepEqual(errors,[]);
   console.log('PASS dark mode selection persists across reload, light/dark switching and authenticated graph navigation');
- } finally {await browser.close();}
+ } catch(error) { if(debugPage) console.error('DARK MODE NODES',await debugPage.locator('[role]').evaluateAll(nodes=>nodes.map(n=>({role:n.getAttribute('role'),label:n.getAttribute('aria-label'),checked:n.getAttribute('aria-checked'),text:n.innerText?.slice(0,150)})).slice(-40)));throw error; } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
