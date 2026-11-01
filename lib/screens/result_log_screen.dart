@@ -1,3 +1,4 @@
+import '../widgets/loading_skeleton.dart';
 import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
@@ -268,7 +269,9 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
               ]));
             }
             if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
+              return AppStyle.isBeta(context)
+                  ? const LoadingSkeleton(label: '근무기록을 불러오고 있어요.')
+                  : Center(child: CircularProgressIndicator());
             }
             final visible = snapshot.data!
                 .where((r) =>

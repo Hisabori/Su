@@ -1,3 +1,4 @@
+import '../widgets/loading_skeleton.dart';
 import '../theme/appearance_mode_picker.dart';
 import '../widgets/work_home_panel.dart';
 import '../widgets/app_icon.dart';
@@ -956,6 +957,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   Widget content() {
     if (loading) {
+      if (AppStyle.isBeta(context)) {
+        return const LoadingSkeleton(
+            label: '오늘의 근무 정보를 확인하고 있어요.', layout: SkeletonLayout.work);
+      }
       return Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
         CircularProgressIndicator(),

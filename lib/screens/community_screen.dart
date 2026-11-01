@@ -1,3 +1,4 @@
+import '../widgets/loading_skeleton.dart';
 import '../widgets/app_icon.dart';
 import '../theme/app_style.dart';
 import '../theme/glass_surface.dart';
@@ -322,8 +323,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
                           if (loading && posts.isEmpty)
                             Padding(
                                 padding: EdgeInsets.all(24),
-                                child:
-                                    Center(child: CircularProgressIndicator())),
+                                child: AppStyle.isBeta(context)
+                                    ? const LoadingSkeleton(
+                                        label: '동료들의 이야기를 불러오고 있어요.',
+                                        scrollable: false)
+                                    : Center(
+                                        child: CircularProgressIndicator())),
                           if (!loading && error == null && posts.isEmpty)
                             Padding(
                                 padding: EdgeInsets.symmetric(vertical: 64),
