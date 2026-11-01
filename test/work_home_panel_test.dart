@@ -10,7 +10,6 @@ void main() {
   testWidgets('feature card keeps one named action and respects reduced motion',
       (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     var taps = 0;
     await tester.pumpWidget(MaterialApp(
         theme: AppStyle.darkTheme(),
@@ -38,6 +37,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(taps, 1);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 
   testWidgets('home uses server assignment and preserves start restrictions',
