@@ -32,7 +32,7 @@ void main() {
   testWidgets('refresh failure keeps records and permits retry',
       (tester) async {
     final history = DeviceHistoryService(store: MemoryStore());
-    await history.save(reading(DateTime.now()));
+    await tester.runAsync(() => history.save(reading(DateTime.now())));
     final monitor = DeviceMonitor(history: history, fetch: () async => null);
     var calls = 0;
     Completer<void>? pending;
