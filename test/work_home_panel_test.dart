@@ -1,10 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:suho_angel/widgets/feature_card.dart';
+import 'package:suho_angel/widgets/app_icon.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/models/work_info.dart';
 import 'package:suho_angel/theme/app_style.dart';
 import 'package:suho_angel/widgets/work_home_panel.dart';
 
 void main() {
+  testWidgets('feature card keeps one named action and respects reduced motion',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    var taps = 0;
+    await tester.pumpWidget(MaterialApp(
+        theme: AppStyle.darkTheme(),
+        home: MediaQuery(
+            data: const MediaQueryData(
+                disableAnimations: true,
+                highContrast: true,
+                textScaler: TextScaler.linear(2)),
+            child: Scaffold(
+                body: Center(
+                    child: SizedBox(
+                        width: 280,
+                        child: FeatureCard(
+                            label: '수거기 기록',
+                            description: '적재율 그래프와 조회 기록을 한눈에',
+                            kind: AppIconKind.collector,
+                            onTap: () => taps++)))))));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('수거기 기록'), findsOneWidget);
+    final gesture =
+        await tester.startGesture(tester.getCenter(find.byType(FeatureCard)));
+    await tester.pump();
+    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(taps, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home uses server assignment and preserves start restrictions',
       (tester) async {
     final info = WorkInfo(

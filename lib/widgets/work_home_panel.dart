@@ -3,6 +3,7 @@ import '../models/work_info.dart';
 import '../theme/app_style.dart';
 import '../theme/glass_surface.dart';
 import 'app_icon.dart';
+import 'feature_card.dart';
 
 /// A focused work home: server assignment first, then frequently used tools.
 class WorkHomePanel extends StatelessWidget {
@@ -143,31 +144,22 @@ class WorkHomePanel extends StatelessWidget {
                 : largeText
                     ? bounds.maxWidth
                     : (bounds.maxWidth - 12) / 2;
-            Widget action(
-                    String label, AppIconKind kind, VoidCallback callback) =>
+            Widget action(String label, String description, AppIconKind kind,
+                    VoidCallback callback) =>
                 SizedBox(
                     width: width,
-                    child: OutlinedButton(
-                      onPressed: callback,
-                      style: OutlinedButton.styleFrom(
-                          backgroundColor: AppStyle.surfaceOf(context),
-                          padding: EdgeInsets.all(18),
-                          alignment: Alignment.centerLeft),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppIcon(kind, size: 34),
-                            SizedBox(height: 12),
-                            Text(label,
-                                style: TextStyle(
-                                    color: AppStyle.inkOf(context),
-                                    fontWeight: FontWeight.w800))
-                          ]),
-                    ));
+                    child: FeatureCard(
+                        label: label,
+                        description: description,
+                        kind: kind,
+                        onTap: callback));
             return Wrap(spacing: 12, runSpacing: 12, children: [
-              action('수거기 기록', AppIconKind.collector, onCollector),
-              action('동료 이야기', AppIconKind.community, onCommunity),
-              action('내 근무기록', AppIconKind.history, onHistory),
+              action('수거기 기록', '적재율 그래프와 조회 기록을 한눈에', AppIconKind.collector,
+                  onCollector),
+              action('동료 이야기', '동료의 소식과 공지를 만나보세요', AppIconKind.community,
+                  onCommunity),
+              action(
+                  '내 근무기록', '차곡차곡 쌓인 나의 근무 내역', AppIconKind.history, onHistory),
             ]);
           }),
         ]),
