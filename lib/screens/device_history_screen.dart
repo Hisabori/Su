@@ -23,7 +23,7 @@ class DeviceHistoryScreen extends StatefulWidget {
 
 class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
   List<DeviceReading> records = [];
-  bool loading = true, week = false;
+  bool loading = true, week = false, refreshing = false;
   String? error;
   int generation = 0;
   @override
@@ -63,6 +63,22 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
     }
   }
 
+  Future<void> refresh() async {
+    if (refreshing || widget.monitor.fetching) return;
+    setState(() => refreshing = true);
+    try {
+      await widget.onRefresh();
+      await load();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('기기를 조회하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.')));
+      }
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
+  }
+
   String time(DateTime value) {
     final t = value.toLocal();
     return '${t.month}월 ${t.day}일 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -83,130 +99,160 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
         appBar: AppBar(title: Text('수거기 적재율 기록'), actions: [
           IconButton(
               tooltip: '지금 기기 조회',
-              onPressed: widget.monitor.fetching ? null : widget.onRefresh,
-              icon: Icon(Icons.refresh))
+              onPressed: refreshing || widget.monitor.fetching ? null : refresh,
+              icon: refreshing || widget.monitor.fetching
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, semanticsLabel: '기기 조회 중'))
+                  : const Icon(Icons.refresh))
         ]),
         body: Center(
             child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: 800),
-                child: ListView(padding: EdgeInsets.all(22), children: [
-                  Text(latest?.name ?? '배정된 기기',
-                      style:
-                          TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
-                  SizedBox(height: 10),
-                  Text('페트병 수거기 · 10분마다 적재율 조회', style: TextStyle(height: 1.6)),
-                  SizedBox(height: 16),
-                  Row(children: [
-                    ChoiceChip(
-                        label: Text('오늘'),
-                        selected: !week,
-                        onSelected: (_) => setState(() => week = false)),
-                    SizedBox(width: 10),
-                    ChoiceChip(
-                        label: Text('7일'),
-                        selected: week,
-                        onSelected: (_) => setState(() => week = true))
-                  ]),
-                  SizedBox(height: 18),
-                  if (loading) Center(child: CircularProgressIndicator()),
-                  if (error != null) Text(error!),
-                  GlassCard(
-                      semanticContainer: false,
-                      child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (AppStyle.isBeta(context)) ...[
-                                  Row(children: [
-                                    AppIcon(AppIconKind.chart, size: 20),
-                                    SizedBox(width: 6),
-                                    Text('적재율 추이',
-                                        style: TextStyle(
-                                            color: AppStyle.coralOf(context),
-                                            fontWeight: FontWeight.w800))
-                                  ]),
-                                  SizedBox(height: 10),
-                                  Text(latest?.percentLabel ?? '측정 전',
-                                      style: TextStyle(
-                                          fontSize: 38,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppStyle.inkOf(context))),
-                                  Text(
-                                      latest == null
-                                          ? '조회 후 그래프가 표시됩니다.'
-                                          : '마지막 조회 · ${time(latest.at)}',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppStyle.mutedOf(context))),
-                                  SizedBox(height: 12),
-                                ],
-                                DeviceHistoryChart(records: visible),
-                              ]))),
-                  SizedBox(height: 16),
-                  if (latest != null)
-                    GlassCard(
-                        semanticContainer: false,
-                        child: Padding(
-                            padding: EdgeInsets.all(22),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('마지막 적재율'),
-                                  SizedBox(height: 8),
-                                  Text(latest.percentLabel,
-                                      style: TextStyle(
-                                          fontSize: 38,
-                                          fontWeight: FontWeight.w800,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary)),
-                                  Text(time(latest.at)),
-                                  if (now.difference(latest.at) >
-                                      Duration(minutes: 15))
-                                    Text('갱신이 지연되고 있습니다. 지금 조회해 주세요.'),
-                                  if (latest.available == false)
-                                    Text('기기 사용 불가'),
-                                  if (latest.error != null) Text(latest.error!),
-                                ]))),
-                  if (widget.monitor.storageFailed)
-                    Text('현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),
-                  SizedBox(height: 20),
-                  Text(
-                      '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
-                      style: TextStyle(fontSize: 12, height: 1.6)),
-                  SizedBox(height: 16),
-                  Text('조회 기록 ${visible.length}회',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  SizedBox(height: 12),
-                  for (final reading in visible.reversed)
-                    Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
+                child: RefreshIndicator(
+                    onRefresh: refresh,
+                    child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.all(22),
+                        children: [
+                          Text(latest?.name ?? '배정된 기기',
+                              style: TextStyle(
+                                  fontSize: 30, fontWeight: FontWeight.w800)),
+                          SizedBox(height: 10),
+                          Text('페트병 수거기 · 10분마다 적재율 조회',
+                              style: TextStyle(height: 1.6)),
+                          SizedBox(height: 16),
+                          Row(children: [
+                            ChoiceChip(
+                                label: Text('오늘'),
+                                selected: !week,
+                                onSelected: (_) =>
+                                    setState(() => week = false)),
+                            SizedBox(width: 10),
+                            ChoiceChip(
+                                label: Text('7일'),
+                                selected: week,
+                                onSelected: (_) => setState(() => week = true))
+                          ]),
+                          SizedBox(height: 18),
+                          if (loading)
+                            Center(child: CircularProgressIndicator()),
+                          if (error != null)
+                            Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: TextButton.icon(
+                                    onPressed: load,
+                                    icon: const Icon(Icons.refresh),
+                                    label: Text('$error 다시 불러오기'))),
+                          GlassCard(
+                              semanticContainer: false,
+                              child: Padding(
+                                  padding: EdgeInsets.all(16),
                                   child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                    Text(time(reading.at)),
-                                    Text(
-                                        reading.error ??
-                                            (reading.current == null ||
-                                                    reading.capacity == null
-                                                ? '용량 정보 없음'
-                                                : '${reading.current} / ${reading.capacity}'),
-                                        style: TextStyle(fontSize: 12))
-                                  ])),
-                              Text(reading.percentLabel,
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800)),
-                            ])),
-                  if (!loading && visible.isEmpty)
-                    Text('조회 기록이 없습니다. 오른쪽 위 버튼으로 지금 확인할 수 있습니다.'),
-                ]))));
+                                        if (AppStyle.isBeta(context)) ...[
+                                          Row(children: [
+                                            AppIcon(AppIconKind.chart,
+                                                size: 20),
+                                            SizedBox(width: 6),
+                                            Text('적재율 추이',
+                                                style: TextStyle(
+                                                    color: AppStyle.coralOf(
+                                                        context),
+                                                    fontWeight:
+                                                        FontWeight.w800))
+                                          ]),
+                                          SizedBox(height: 10),
+                                          Text(latest?.percentLabel ?? '측정 전',
+                                              style: TextStyle(
+                                                  fontSize: 38,
+                                                  fontWeight: FontWeight.w800,
+                                                  color:
+                                                      AppStyle.inkOf(context))),
+                                          Text(
+                                              latest == null
+                                                  ? '조회 후 그래프가 표시됩니다.'
+                                                  : '마지막 조회 · ${time(latest.at)}',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppStyle.mutedOf(
+                                                      context))),
+                                          SizedBox(height: 12),
+                                        ],
+                                        DeviceHistoryChart(records: visible),
+                                      ]))),
+                          SizedBox(height: 16),
+                          if (latest != null)
+                            GlassCard(
+                                semanticContainer: false,
+                                child: Padding(
+                                    padding: EdgeInsets.all(22),
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('마지막 적재율'),
+                                          SizedBox(height: 8),
+                                          Text(latest.percentLabel,
+                                              style: TextStyle(
+                                                  fontSize: 38,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary)),
+                                          Text(time(latest.at)),
+                                          if (now.difference(latest.at) >
+                                              Duration(minutes: 15))
+                                            Text('갱신이 지연되고 있습니다. 지금 조회해 주세요.'),
+                                          if (latest.available == false)
+                                            Text('기기 사용 불가'),
+                                          if (latest.error != null)
+                                            Text(latest.error!),
+                                        ]))),
+                          if (widget.monitor.storageFailed)
+                            Text('현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),
+                          SizedBox(height: 20),
+                          Text(
+                              '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
+                              style: TextStyle(fontSize: 12, height: 1.6)),
+                          SizedBox(height: 16),
+                          Text('조회 기록 ${visible.length}회',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w800)),
+                          SizedBox(height: 12),
+                          for (final reading in visible.reversed)
+                            Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                          child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                            Text(time(reading.at)),
+                                            Text(
+                                                reading.error ??
+                                                    (reading.current == null ||
+                                                            reading.capacity ==
+                                                                null
+                                                        ? '용량 정보 없음'
+                                                        : '${reading.current} / ${reading.capacity}'),
+                                                style: TextStyle(fontSize: 12))
+                                          ])),
+                                      Text(reading.percentLabel,
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w800)),
+                                    ])),
+                          if (!loading && visible.isEmpty)
+                            Text('조회 기록이 없습니다. 오른쪽 위 버튼으로 지금 확인할 수 있습니다.'),
+                        ])))));
   }
 }

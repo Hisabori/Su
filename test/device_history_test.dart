@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:suho_angel/screens/device_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/services/device_history_service.dart';
@@ -28,6 +29,44 @@ class FullStore extends MemoryStore {
 }
 
 void main() {
+  testWidgets('refresh failure keeps records and permits retry',
+      (tester) async {
+    final history = DeviceHistoryService(store: MemoryStore());
+    await history.save(reading(DateTime.now()));
+    final monitor = DeviceMonitor(history: history, fetch: () async => null);
+    var calls = 0;
+    Completer<void>? pending;
+    await tester.pumpWidget(MaterialApp(
+        home: DeviceHistoryScreen(
+            monitor: monitor,
+            userId: 31,
+            partner: 'partner',
+            kiosk: 'pet',
+            onRefresh: () async {
+              calls++;
+              pending = Completer<void>();
+              await pending!.future;
+            })));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('지금 기기 조회'));
+    await tester.pump();
+    expect(calls, 1);
+    expect(tester.widget<IconButton>(find.byType(IconButton).last).onPressed,
+        isNull);
+    pending!.completeError(StateError('offline'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('연결을 확인한 뒤'), findsOneWidget);
+    expect(find.byType(DeviceHistoryChart), findsOneWidget);
+    await tester.tap(find.byTooltip('지금 기기 조회'));
+    await tester.pump();
+    expect(calls, 2);
+    pending!.complete();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    monitor.dispose();
+  });
+
   testWidgets('chart fills a metric card column with start alignment',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
