@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
 import '../theme/glass_surface.dart';
 
-enum SkeletonLayout { work, graph, list }
+enum SkeletonLayout { work, graph, list, detail }
 
 /// Content-shaped placeholders. A single soft reveal avoids a perpetual ticker.
 class LoadingSkeleton extends StatelessWidget {
@@ -33,6 +33,19 @@ class LoadingSkeleton extends StatelessWidget {
         padding: const EdgeInsets.all(22),
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (layout == SkeletonLayout.list ||
+              layout == SkeletonLayout.detail) ...[
+            Row(children: [
+              Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: color, borderRadius: BorderRadius.circular(13))),
+              const SizedBox(width: 12),
+              Expanded(child: bar(.5, height: 12)),
+            ]),
+            const SizedBox(height: 20),
+          ],
           bar(.36, height: 18),
           const SizedBox(height: 18),
           bar(.65, height: graph ? 36 : 24),
@@ -40,6 +53,14 @@ class LoadingSkeleton extends StatelessWidget {
           bar(.9),
           const SizedBox(height: 10),
           bar(.55),
+          if (layout == SkeletonLayout.detail) ...[
+            const SizedBox(height: 24),
+            bar(1),
+            const SizedBox(height: 10),
+            bar(.9),
+            const SizedBox(height: 10),
+            bar(.72),
+          ],
           if (graph) ...[
             const SizedBox(height: 24),
             Container(
@@ -71,8 +92,30 @@ class LoadingSkeleton extends StatelessWidget {
         excludeSemantics: true,
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(label,
-              style: TextStyle(color: AppStyle.mutedOf(context), height: 1.6)),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                  color: AppStyle.mintOf(context).withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(18)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                        color: AppStyle.mintOf(context),
+                        shape: BoxShape.circle)),
+                const SizedBox(width: 10),
+                Flexible(
+                    child: Text(label,
+                        style: TextStyle(
+                            color: AppStyle.inkOf(context),
+                            fontSize: 13,
+                            height: 1.6))),
+              ]),
+            ),
+          ),
           const SizedBox(height: 20),
           placeholders,
         ]));

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:suho_angel/theme/app_style.dart';
+import 'package:suho_angel/widgets/loading_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/screens/community_detail_screen.dart';
@@ -30,7 +33,45 @@ class FixtureCommunity extends CommunityService {
   }
 }
 
+class PendingCommunity extends CommunityService {
+  Completer<Map<String, dynamic>> pending = Completer();
+  @override
+  Future<Map<String, dynamic>> request(String action,
+          [Map<String, dynamic> data = const {}]) =>
+      pending.future;
+}
+
 void main() {
+  testWidgets('detail skeleton is initial only and refresh preserves the post',
+      (tester) async {
+    final service = PendingCommunity();
+    addTearDown(service.close);
+    await tester.pumpWidget(MaterialApp(
+        theme: AppStyle.theme(),
+        home: CommunityDetailScreen(service: service, id: 'post')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoadingSkeleton), findsOneWidget);
+    final response = <String, dynamic>{
+      'post': {'title': '동료의 이야기', 'body': '함께하는 하루', 'author': '서버 이름'},
+      'comments': [],
+      'liked': false,
+      'likes': 0,
+      'isAdmin': false,
+    };
+    service.pending.complete(response);
+    await tester.pumpAndSettle();
+    expect(find.byType(LoadingSkeleton), findsNothing);
+    expect(find.text('함께하는 하루'), findsOneWidget);
+    service.pending = Completer();
+    await tester.tap(find.byTooltip('이야기 새로고침'));
+    await tester.pump();
+    expect(find.byType(LoadingSkeleton), findsNothing);
+    expect(find.text('함께하는 하루'), findsOneWidget);
+    service.pending.complete(response);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'detail uses server identity, submits comments and explicit like state without admin controls',
       (tester) async {

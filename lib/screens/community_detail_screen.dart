@@ -1,3 +1,5 @@
+import '../theme/app_style.dart';
+import '../widgets/loading_skeleton.dart';
 import '../widgets/app_icon.dart';
 import '../theme/glass_surface.dart';
 import 'dart:convert';
@@ -237,7 +239,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                       onPressed: loading ? null : load,
                       child: const Text('다시 시도'))
                 ],
-                if (loading) const LinearProgressIndicator(),
+                if (loading)
+                  if (post == null && AppStyle.isBeta(context))
+                    const LoadingSkeleton(
+                        label: '이야기를 불러오고 있어요.',
+                        layout: SkeletonLayout.detail,
+                        scrollable: false)
+                  else
+                    const LinearProgressIndicator(),
                 if (post != null) ...[
                   if (post!['pinned'] == true) const Chip(label: Text('공지')),
                   if (post!['hidden'] == true) const Text('관리자가 숨긴 글입니다.'),
@@ -421,7 +430,11 @@ class _CommunityReportsScreenState extends State<CommunityReportsScreen> {
             icon: const Icon(Icons.refresh))
       ]),
       body: ListView(padding: const EdgeInsets.all(24), children: [
-        if (loading) const LinearProgressIndicator(),
+        if (loading)
+          if (rows.isEmpty && AppStyle.isBeta(context))
+            const LoadingSkeleton(label: '신고 내역을 확인하고 있어요.', scrollable: false)
+          else
+            const LinearProgressIndicator(),
         if (error != null) Text(error!),
         if (rows.isEmpty && !loading && error == null)
           const Text('접수된 신고가 없습니다.'),
