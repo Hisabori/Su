@@ -44,12 +44,28 @@ class WorkHomePanel extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: 840),
         child:
             ListView(padding: EdgeInsets.fromLTRB(20, 12, 20, 32), children: [
+          Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: AppStyle.mintOf(context).withValues(alpha: .09),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Text('수호천사 · 함께하는 하루',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppStyle.mintOf(context))))),
+          const SizedBox(height: 16),
           Semantics(
               container: true,
               header: true,
               child: Text('안녕하세요!',
                   style: TextStyle(
-                      fontSize: 30,
+                      fontSize: 32,
+                      letterSpacing: -.7,
+                      height: 1.3,
                       fontWeight: FontWeight.w800,
                       color: AppStyle.inkOf(context)))),
           SizedBox(height: 8),

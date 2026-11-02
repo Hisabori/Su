@@ -23,7 +23,15 @@ class _FeatureCardState extends State<FeatureCard> {
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final reduced = media.disableAnimations || media.accessibleNavigation;
-    final accent = AppStyle.mintOf(context);
+    final accent = media.highContrast
+        ? AppStyle.inkOf(context)
+        : switch (widget.kind) {
+            AppIconKind.community => AppStyle.isDark(context)
+                ? const Color(0xFFE0B9D4)
+                : const Color(0xFF96587F),
+            AppIconKind.history => AppStyle.blueOf(context),
+            _ => AppStyle.mintOf(context),
+          };
     final highlighted = focused || hovered;
     return Semantics(
       button: true,
@@ -52,31 +60,49 @@ class _FeatureCardState extends State<FeatureCard> {
             onTapCancel: () => setState(() => pressed = false),
             onFocusChange: (value) => setState(() => focused = value),
             onHover: (value) => setState(() => hovered = value),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      AppIcon(widget.kind, size: 38),
-                      const Spacer(),
-                      Icon(Icons.arrow_forward_rounded,
-                          size: 18, color: AppStyle.mutedOf(context)),
+            child: Ink(
+              decoration: BoxDecoration(
+                  gradient: media.highContrast
+                      ? null
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                              Color.alphaBlend(accent.withValues(alpha: .11),
+                                  AppStyle.surfaceOf(context)),
+                              AppStyle.surfaceOf(context),
+                            ])),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        AppIcon(widget.kind, size: 38),
+                        const Spacer(),
+                        Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                                color: accent.withValues(alpha: .09),
+                                shape: BoxShape.circle),
+                            child: Icon(Icons.arrow_forward_rounded,
+                                size: 16, color: accent)),
+                      ]),
+                      const SizedBox(height: 16),
+                      Text(widget.label,
+                          style: TextStyle(
+                              fontSize: 17,
+                              color: AppStyle.inkOf(context),
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 7),
+                      Text(widget.description,
+                          style: TextStyle(
+                              fontSize: 13,
+                              height: 1.6,
+                              color: AppStyle.mutedOf(context))),
                     ]),
-                    const SizedBox(height: 16),
-                    Text(widget.label,
-                        style: TextStyle(
-                            fontSize: 17,
-                            color: AppStyle.inkOf(context),
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 7),
-                    Text(widget.description,
-                        style: TextStyle(
-                            fontSize: 13,
-                            height: 1.6,
-                            color: AppStyle.mutedOf(context))),
-                  ]),
+              ),
             ),
           ),
         ),
