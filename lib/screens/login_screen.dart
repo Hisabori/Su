@@ -179,14 +179,18 @@ class _LoginScreenState extends State<LoginScreen> {
         color: beta ? AppStyle.inkOf(context) : Color(0xFF636363),
         fontWeight: FontWeight.w600);
     final border = OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10 * scale),
+        borderRadius: BorderRadius.circular(beta ? 16 : 10 * scale),
         borderSide: beta
             ? BorderSide(color: AppStyle.lineOf(context))
             : BorderSide.none);
     InputDecoration decoration(String hint) => InputDecoration(
           hintText: hint,
           filled: true,
-          fillColor: beta ? AppStyle.surfaceOf(context) : Color(0xFFE9E9EF),
+          fillColor: beta
+              ? Color.alphaBlend(
+                  AppStyle.mintOf(context).withValues(alpha: .045),
+                  AppStyle.surfaceOf(context))
+              : Color(0xFFE9E9EF),
           hintStyle: TextStyle(
               color: Color(0xFFA0A0A0), fontSize: (13 * scale).clamp(11, 16)),
           contentPadding: EdgeInsets.symmetric(
@@ -298,16 +302,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   key: ValueKey('password-login'),
                   onPressed: busy ? null : login,
                   style: FilledButton.styleFrom(
-                      backgroundColor: beta ? AppStyle.navy : Color(0xFF104B83),
-                      foregroundColor: Colors.white,
+                      backgroundColor: beta
+                          ? (AppStyle.isDark(context)
+                              ? Color(0xFF94D5BE)
+                              : AppStyle.teal)
+                          : Color(0xFF104B83),
+                      foregroundColor: beta && AppStyle.isDark(context)
+                          ? Color(0xFF153C2E)
+                          : Colors.white,
                       disabledBackgroundColor: Color(0xFF7A9BBC),
                       disabledForegroundColor: Colors.white70,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10 * scale)),
+                          borderRadius:
+                              BorderRadius.circular(beta ? 18 : 10 * scale)),
                       textStyle: TextStyle(
                           fontFamily: 'NanumGothic',
                           fontSize: (17 * scale).clamp(15, 19),
-                          fontWeight: FontWeight.w500)),
+                          fontWeight:
+                              beta ? FontWeight.w800 : FontWeight.w500)),
                   child: busy
                       ? SizedBox(
                           width: 20,
@@ -401,7 +413,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text('반가워요',
                         style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
+                            letterSpacing: -.5,
                             fontWeight: FontWeight.w800,
                             color: AppStyle.inkOf(context))),
                     SizedBox(height: 8),
