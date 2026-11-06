@@ -24,19 +24,20 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String? error, cursor, me;
   bool loading = true, deleting = false, onlyMine = false, isAdmin = false;
   String query = '';
+  CommunitySort sort = CommunitySort.newest;
   bool onlyNotices = false, onlyPhotos = false;
   final search = TextEditingController();
   int loadGeneration = 0;
-  List<Map<String, dynamic>> get visiblePosts => posts
-      .where((p) =>
+  List<Map<String, dynamic>> get visiblePosts => sortCommunityPosts(
+      posts.where((p) =>
           (!onlyMine || p['mine'] == true) &&
           (!onlyNotices || p['pinned'] == true) &&
           (!onlyPhotos || p['hasImage'] == true) &&
           [p['title'], p['body'], p['author']]
               .join(' ')
               .toLowerCase()
-              .contains(query.trim().toLowerCase()))
-      .toList();
+              .contains(query.trim().toLowerCase())),
+      sort);
   @override
   void initState() {
     super.initState();
@@ -106,6 +107,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       onlyMine = false;
       onlyNotices = false;
       onlyPhotos = false;
+      sort = CommunitySort.newest;
     });
   }
 
@@ -283,10 +285,32 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             if (query.isNotEmpty ||
                                 onlyMine ||
                                 onlyNotices ||
-                                onlyPhotos)
+                                onlyPhotos ||
+                                sort != CommunitySort.newest)
                               TextButton(
                                   onPressed: resetFilters,
                                   child: Text('필터 초기화'))
+                          ]),
+                          SizedBox(height: 12),
+                          Text('정렬 · 불러온 글 기준',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppStyle.mutedOf(context))),
+                          SizedBox(height: 6),
+                          Wrap(spacing: 8, runSpacing: 4, children: [
+                            for (final option in [
+                              (CommunitySort.newest, '최신순'),
+                              (CommunitySort.oldest, '오래된순'),
+                              (CommunitySort.notices, '공지 먼저'),
+                            ])
+                              ChoiceChip(
+                                  label: Text(option.$2),
+                                  selected: sort == option.$1,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() => sort = option.$1);
+                                    }
+                                  }),
                           ]),
                           SizedBox(height: 12),
                           if (!loading &&

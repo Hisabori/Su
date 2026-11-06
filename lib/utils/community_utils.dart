@@ -14,3 +14,34 @@ String communityStamp(Object? value) {
   final d = DateTime.fromMillisecondsSinceEpoch(value.toInt()).toLocal();
   return '${d.month}.${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
+
+enum CommunitySort { newest, oldest, notices }
+
+/// Sort a copy so changing views never changes pagination's source order.
+List<Map<String, dynamic>> sortCommunityPosts(
+    Iterable<Map<String, dynamic>> posts, CommunitySort order) {
+  final result = posts.toList();
+  num? stamp(Map<String, dynamic> post) {
+    final value = post['createdAt'];
+    return value is num && value.isFinite && value > 0 ? value : null;
+  }
+
+  result.sort((a, b) {
+    if (order == CommunitySort.notices) {
+      final pinned =
+          (b['pinned'] == true ? 1 : 0).compareTo(a['pinned'] == true ? 1 : 0);
+      if (pinned != 0) return pinned;
+    }
+    final left = stamp(a), right = stamp(b);
+    if (left == null && right != null) return 1;
+    if (right == null && left != null) return -1;
+    if (left != null && right != null) {
+      final time = order == CommunitySort.oldest
+          ? left.compareTo(right)
+          : right.compareTo(left);
+      if (time != 0) return time;
+    }
+    return '${a['id'] ?? ''}'.compareTo('${b['id'] ?? ''}');
+  });
+  return result;
+}
