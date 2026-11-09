@@ -1,3 +1,5 @@
+import '../utils/device_summary.dart';
+import '../widgets/device_summary_card.dart';
 import '../widgets/loading_skeleton.dart';
 import '../widgets/app_icon.dart';
 import '../theme/glass_surface.dart';
@@ -88,13 +90,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final visible = records
-        .where((r) =>
-            week ||
-            r.at.toLocal().year == now.year &&
-                r.at.toLocal().month == now.month &&
-                r.at.toLocal().day == now.day)
-        .toList();
+    final visible = devicePeriodReadings(records, now: now, week: week);
     final latest = records.isEmpty ? null : records.last;
     return Scaffold(
         appBar: AppBar(title: Text('수거기 적재율 기록'), actions: [
@@ -196,6 +192,12 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                                 records: visible),
                                           ]))),
                               SizedBox(height: 16),
+                              if (AppStyle.isBeta(context)) ...[
+                                DeviceSummaryCard(
+                                    summary: DevicePeriodSummary(visible),
+                                    week: week),
+                                const SizedBox(height: 16),
+                              ],
                               if (latest != null)
                                 GlassCard(
                                     semanticContainer: false,
