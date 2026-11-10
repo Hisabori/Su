@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'local_store.dart';
+import 'record_recovery.dart';
+import 'diagnostic_log.dart';
 
 class DeviceReading {
   const DeviceReading(
@@ -48,13 +50,13 @@ class DeviceReading {
         'error': error
       };
   factory DeviceReading.fromJson(Map<String, dynamic> data) => DeviceReading(
-      userId: data['user_id'] as int,
+      userId: int.parse('${data['user_id']}'),
       partner: data['partner'] as String,
       kiosk: data['kiosk'] as String,
       name: data['name'] as String,
       at: DateTime.parse(data['at'] as String),
-      current: data['current'] is num ? data['current'] as num : null,
-      capacity: data['capacity'] is num ? data['capacity'] as num : null,
+      current: num.tryParse('${data['current']}'),
+      capacity: num.tryParse('${data['capacity']}'),
       available: data['available'] is bool ? data['available'] as bool : null,
       error: data['error'] as String?);
 }
@@ -63,6 +65,7 @@ class DeviceHistoryService {
   DeviceHistoryService({LocalStore? store})
       : store = store ?? const SecureLocalStore();
   final LocalStore store;
+  bool historyRecovered = false;
   static Future<void> _writes = Future<void>.value();
   String key(int userId, String partner, String kiosk) =>
       'device_history_${userId}_${sha256.convert(utf8.encode(jsonEncode([
@@ -71,11 +74,10 @@ class DeviceHistoryService {
           ])))}';
   Future<List<DeviceReading>> load(
       int userId, String partner, String kiosk) async {
-    final raw = await store.read(key(userId, partner, kiosk));
-    if (raw == null) return [];
-    final values = jsonDecode(raw) as List;
-    final records = values
-        .map((r) => DeviceReading.fromJson(Map<String, dynamic>.from(r as Map)))
+    final recovered = await readRecoverableRecords<DeviceReading>(
+        store, key(userId, partner, kiosk), DeviceReading.fromJson);
+    historyRecovered = recovered.recovered;
+    final records = recovered.records
         .where((r) =>
             r.userId == userId && r.partner == partner && r.kiosk == kiosk)
         .toList();
@@ -135,6 +137,7 @@ class DeviceMonitor extends ChangeNotifier {
         await history.save(reading);
       } catch (_) {
         storageFailed = true;
+        DiagnosticLog.record('device_history', 'save_failed');
       }
       return reading;
     } finally {

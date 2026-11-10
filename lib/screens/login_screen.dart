@@ -1,3 +1,4 @@
+import '../services/diagnostic_log.dart';
 import '../theme/appearance_mode_picker.dart';
 import '../widgets/app_icon.dart';
 import 'dart:math' as math;
@@ -100,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => WorkScreen()));
     } catch (_) {
+      DiagnosticLog.record('session', 'restore_failed');
       if (mounted) {
         setState(() {
           error = '자동 로그인을 확인하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하거나 비밀번호로 로그인해 주세요.';

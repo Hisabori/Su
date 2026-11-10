@@ -1,3 +1,4 @@
+import '../services/diagnostic_log.dart';
 import '../widgets/loading_skeleton.dart';
 import '../theme/glass_surface.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class ResultLogScreen extends StatefulWidget {
 class _ResultLogScreenState extends State<ResultLogScreen> {
   late Future<List<Map<String, dynamic>>> records;
   final api = ApiService();
+  final logs = WorkLogService();
   bool sending = false, showAll = false;
   @override
   void initState() {
@@ -35,7 +37,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
     if (widget.readOnlyRecords != null) return widget.readOnlyRecords!;
     final id = await TokenStorageService().userId();
     if (id == null) throw StateError('No session');
-    return WorkLogService().load(id);
+    return logs.load(id);
   }
 
   Future<void> retry(Map<String, dynamic> record) async {
@@ -263,6 +265,8 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
               return Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text('기록을 불러오지 못했습니다.'),
+                SelectableText('확인 번호: ${DiagnosticLog.traceId}',
+                    style: TextStyle(fontSize: 12)),
                 TextButton(
                     onPressed: () => setState(() => records = load()),
                     child: Text('다시 시도')),
@@ -281,6 +285,11 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                 child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: 800),
                     child: ListView(padding: EdgeInsets.all(24), children: [
+                      if (logs.historyRecovered)
+                        Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Text(
+                                '일부 손상된 기록을 제외하고 표시했습니다. 원본은 복구용으로 보존했습니다.')),
                       Row(children: [
                         ChoiceChip(
                             label: Text('오늘'),

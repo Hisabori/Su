@@ -1,4 +1,5 @@
 import 'api_service.dart';
+import 'diagnostic_log.dart';
 import 'app_preferences.dart';
 
 enum SessionRestoreResult { disabled, missing, restored, expired }
@@ -27,6 +28,7 @@ class SessionRestoreService {
           await api.tokens.userId() != userId) {
         return SessionRestoreResult.missing;
       }
+      DiagnosticLog.record('session', 'restore_ok');
       return SessionRestoreResult.restored;
     } on ApiFailure catch (e) {
       if (e.code != 401 && e.code != 403) rethrow;

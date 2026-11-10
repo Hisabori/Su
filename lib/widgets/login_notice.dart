@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
+import '../services/diagnostic_log.dart';
 
 /// Keeps the server's diagnostic available without making it the main guidance.
 class LoginNotice extends StatelessWidget {
@@ -66,6 +67,14 @@ class LoginNotice extends StatelessWidget {
                         style:
                             TextStyle(fontSize: 13, height: 1.5, color: muted)),
                   ],
+                  ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('오류 확인 번호',
+                          style: TextStyle(fontSize: 12)),
+                      children: [
+                        SelectableText(DiagnosticLog.traceId,
+                            style: const TextStyle(fontSize: 12))
+                      ]),
                   if (summary != message)
                     ExpansionTile(
                         tilePadding: EdgeInsets.zero,

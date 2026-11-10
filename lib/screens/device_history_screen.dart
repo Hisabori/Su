@@ -227,6 +227,9 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                               if (latest.error != null)
                                                 Text(latest.error!),
                                             ]))),
+                              if (widget.monitor.history.historyRecovered)
+                                Text(
+                                    '일부 손상된 기록을 제외하고 표시했습니다. 원본은 복구용으로 보존했습니다.'),
                               if (widget.monitor.storageFailed)
                                 Text(
                                     '현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),

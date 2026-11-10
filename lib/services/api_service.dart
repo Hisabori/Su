@@ -6,6 +6,7 @@ import '../config/community_config.dart';
 import '../models/work_info.dart';
 import '../utils/password_utils.dart';
 import 'token_storage_service.dart';
+import 'diagnostic_log.dart';
 
 class ApiFailure implements Exception {
   final String message;
@@ -134,6 +135,7 @@ class ApiService {
     final data = await loginData(username, password);
     final ret = integer(data['ret']);
     if (ret != 1) {
+      DiagnosticLog.record('session', 'login_rejected');
       // Recovered AuthProvider.login branches at 0x428c5c–0x428d24.
       final message = switch (ret) {
         2 => '비밀번호가 올바르지 않습니다.',
@@ -158,14 +160,21 @@ class ApiService {
         (refresh != null && refresh is! String)) {
       throw ApiFailure('로그인 응답을 확인할 수 없습니다.');
     }
-    await tokens.clear();
     try {
+      await tokens.clear();
       await tokens.saveUserId(userId);
       await tokens.saveDevice(data);
       await tokens.save(token, refresh as String?);
+      DiagnosticLog.record('session', 'login_ok');
     } catch (_) {
-      await tokens.clear();
-      rethrow;
+      DiagnosticLog.record('session', 'save_failed');
+      try {
+        await tokens.clear();
+      } catch (_) {
+        // Storage may be entirely unavailable; never treat this as a valid login.
+      }
+      throw ApiFailure(
+          '이 기기에 로그인 정보를 저장하지 못했습니다. 브라우저의 사이트 저장 허용 여부와 기기 저장 공간을 확인해 주세요.');
     }
   }
 

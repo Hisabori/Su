@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'local_store.dart';
+import 'record_recovery.dart';
+import 'diagnostic_log.dart';
 
 class SavedReceipt {
   final int? resultId;
@@ -11,6 +13,7 @@ class WorkLogService {
   static Future<void> _writes = Future<void>.value();
   static final Map<String, SavedReceipt> _receipts = {};
   final LocalStore store;
+  bool historyRecovered = false;
   WorkLogService({LocalStore? store}) : store = store ?? _defaultStore;
   String get scope => '${identityHashCode(store)}';
   String _cacheKey(int user, String record) => '$scope/$user/$record';
@@ -18,19 +21,21 @@ class WorkLogService {
       'recovery_receipt_${user}_$record';
 
   Future<T> _write<T>(Future<T> Function() operation) {
-    final result = _writes.then((_) => operation());
+    final result = _writes
+        .then((_) => operation())
+        .catchError((Object error, StackTrace stack) {
+      DiagnosticLog.record('work_history', 'save_failed');
+      Error.throwWithStackTrace(error, stack);
+    });
     _writes = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return result;
   }
 
   Future<List<Map<String, dynamic>>> _read(int userId) async {
-    final raw = await store.read('recovery_work_logs_$userId');
-    if (raw == null) return [];
-    final data = jsonDecode(raw);
-    if (data is! List || data.any((r) => r is! Map<String, dynamic>)) {
-      throw const FormatException('Invalid local work history');
-    }
-    return data.cast<Map<String, dynamic>>();
+    final recovered = await readRecoverableRecords<Map<String, dynamic>>(
+        store, 'recovery_work_logs_$userId', (row) => row);
+    historyRecovered = recovered.recovered;
+    return recovered.records;
   }
 
   Future<SavedReceipt?> receipt(int userId, String recordId) async {
