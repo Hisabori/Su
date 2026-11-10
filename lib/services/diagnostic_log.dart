@@ -6,9 +6,19 @@ import 'package:http/http.dart' as http;
 
 /// Only fixed codes are accepted: never pass server messages or record contents.
 abstract final class DiagnosticLog {
-  static final traceId = List.generate(16, (_) => Random.secure().nextInt(256))
-      .map((n) => n.toRadixString(16).padLeft(2, '0'))
-      .join();
+  static final traceId = _newTrace();
+  static String _newTrace() {
+    Random random;
+    try {
+      random = Random.secure();
+    } catch (_) {
+      random = Random();
+    }
+    return List.generate(16, (_) => random.nextInt(256))
+        .map((n) => n.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
   static const areas = {'session', 'work_history', 'device_history'};
   static const codes = {
     'read_failed',
@@ -23,6 +33,14 @@ abstract final class DiagnosticLog {
   static final recent = <Map<String, String>>[];
   static final _sent = <String, DateTime>{};
   static void record(String area, String code) {
+    try {
+      _record(area, code);
+    } catch (_) {
+      // Even a broken diagnostic sink must not turn a saved session into failure.
+    }
+  }
+
+  static void _record(String area, String code) {
     if (!areas.contains(area) || !codes.contains(code)) return;
     final now = DateTime.now();
     final key = '$area/$code';

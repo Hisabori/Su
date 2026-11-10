@@ -41,52 +41,57 @@ class LoginNotice extends StatelessWidget {
                         ? const Color(0xFF6E5940)
                         : const Color(0xFFE8D4AF)),
                 borderRadius: BorderRadius.circular(20)),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(Icons.info_outline,
-                        color: dark
-                            ? const Color(0xFFFFDCA8)
-                            : const Color(0xFF76521C),
-                        size: 22),
-                    SizedBox(width: 9),
-                    Expanded(
-                        child: Text('로그인을 확인해 주세요',
+            child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline,
+                                color: dark
+                                    ? const Color(0xFFFFDCA8)
+                                    : const Color(0xFF76521C),
+                                size: 22),
+                            SizedBox(width: 9),
+                            Expanded(
+                                child: Text('로그인을 확인해 주세요',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: ink))),
+                          ]),
+                      const SizedBox(height: 10),
+                      Text(summary,
+                          style:
+                              TextStyle(fontSize: 14, height: 1.5, color: ink)),
+                      if (nextStep != null) ...[
+                        const SizedBox(height: 6),
+                        Text(nextStep!,
                             style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: ink))),
-                  ]),
-                  const SizedBox(height: 10),
-                  Text(summary,
-                      style: TextStyle(fontSize: 14, height: 1.5, color: ink)),
-                  if (nextStep != null) ...[
-                    const SizedBox(height: 6),
-                    Text(nextStep!,
-                        style:
-                            TextStyle(fontSize: 13, height: 1.5, color: muted)),
-                  ],
-                  ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      title: const Text('오류 확인 번호',
-                          style: TextStyle(fontSize: 12)),
-                      children: [
-                        SelectableText(DiagnosticLog.traceId,
-                            style: const TextStyle(fontSize: 12))
-                      ]),
-                  if (summary != message)
-                    ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: const EdgeInsets.only(bottom: 8),
-                        title: const Text('자세한 오류',
-                            style: TextStyle(fontSize: 12)),
-                        children: [
-                          Align(
-                              alignment: Alignment.centerLeft,
-                              child:
-                                  Text(message, style: TextStyle(fontSize: 12)))
-                        ]),
-                ])));
+                                fontSize: 13, height: 1.5, color: muted)),
+                      ],
+                      ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          title: const Text('오류 확인 번호',
+                              style: TextStyle(fontSize: 12)),
+                          children: [
+                            SelectableText(DiagnosticLog.traceId,
+                                style: const TextStyle(fontSize: 12))
+                          ]),
+                      if (summary != message)
+                        ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            childrenPadding: const EdgeInsets.only(bottom: 8),
+                            title: const Text('자세한 오류',
+                                style: TextStyle(fontSize: 12)),
+                            children: [
+                              Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(message,
+                                      style: TextStyle(fontSize: 12)))
+                            ]),
+                    ]))));
   }
 }
