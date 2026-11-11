@@ -43,7 +43,8 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
   Future<void> retry(Map<String, dynamic> record) async {
     if (widget.readOnlyRecords != null ||
         sending ||
-        record['server_submitted'] == true) {
+        record['server_submitted'] == true ||
+        record['receipt_unverified'] == true) {
       return;
     }
     final confirm = await showDialog<bool>(
@@ -187,6 +188,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
 
   Widget recordCard(Map<String, dynamic> record) {
     final sent = record['server_submitted'] == true;
+    final receiptFailed = record['receipt_unverified'] == true;
     final request = record['request'] is Map ? record['request'] as Map : {};
     final answers = answersOf(record);
     return GlassCard(
@@ -212,6 +214,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                                         fontWeight: FontWeight.w800))),
                             if (widget.readOnlyRecords == null &&
                                 !sent &&
+                                !receiptFailed &&
                                 record['request'] is Map)
                               IconButton(
                                   tooltip: '결과 재전송',
@@ -220,11 +223,23 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                                   icon: Icon(Icons.cloud_upload)),
                           ]),
                       SizedBox(height: 10),
-                      Text(sent ? '서버 저장 완료' : '서버 저장 미확인',
+                      Text(
+                          sent
+                              ? '서버 저장 완료'
+                              : receiptFailed
+                                  ? '저장 확인표 오류 · 재전송 잠금'
+                                  : '서버 저장 미확인',
                           style: TextStyle(
                               color: sent
                                   ? AppStyle.mintOf(context)
                                   : AppStyle.coralOf(context))),
+                      if (receiptFailed) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                            '다른 기록은 계속 사용할 수 있습니다. 이 항목은 서버 저장 여부를 먼저 확인해 주세요.'),
+                        SelectableText('확인 번호: ${DiagnosticLog.traceId}',
+                            style: const TextStyle(fontSize: 12)),
+                      ],
                       Divider(height: 28),
                       stat('근무 시작', stamp(record['started_at'])),
                       stat('근무 종료', stamp(record['ended_at'])),

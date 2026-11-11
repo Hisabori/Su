@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:suho_angel/services/api_service.dart';
+import 'package:suho_angel/services/result_submission_service.dart';
 import 'api_contract_test.dart' show MemorySession;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:suho_angel/services/device_history_service.dart';
@@ -24,6 +25,57 @@ class FailedSession extends MemorySession {
 }
 
 void main() {
+  test(
+      'damaged receipt isolates one record, preserves evidence and blocks resend',
+      () async {
+    final store = MemoryStore();
+    final broken = <String, dynamic>{
+      'record_id': 'broken',
+      'server_submitted': false,
+      'request': {'packetid': 'broken', 'user_id': 31, 'process_version_id': 1},
+    };
+    store.data['recovery_work_logs_31'] = jsonEncode([
+      broken,
+      {'record_id': 'other', 'server_submitted': false},
+    ]);
+    store.data['recovery_receipt_31_broken'] = '{damaged';
+    final logs = WorkLogService(store: store);
+    final rows = await logs.load(31);
+    expect(rows.length, 2);
+    expect(rows.first['receipt_unverified'], isTrue);
+    expect(rows.last.containsKey('receipt_unverified'), isFalse);
+    await logs.save(31, {'record_id': 'new', 'server_submitted': false});
+    expect((await logs.load(31)).length, 3);
+    expect(store.data['recovery_receipt_31_broken'], '{damaged');
+    var requests = 0;
+    final session = MemorySession()
+      ..id = 31
+      ..token = 'fixture';
+    final api = ApiService(
+        tokens: session,
+        client: MockClient((_) async {
+          requests++;
+          return http.Response('{"ret":1}', 200);
+        }));
+    addTearDown(api.close);
+    final sender = ResultSubmissionService(api, logs);
+    await expectLater(sender.send(31, broken), throwsA(isA<ApiFailure>()));
+    expect(requests, 0);
+    store.data['recovery_receipt_31_broken'] = '{"result_id":"77"}';
+    final repaired =
+        (await logs.load(31)).firstWhere((r) => r['record_id'] == 'broken');
+    expect(repaired['server_submitted'], isTrue);
+    expect(repaired.containsKey('receipt_unverified'), isFalse);
+    expect((await sender.send(31, broken)).resultId, 77);
+    expect(requests, 0);
+  });
+  test('malformed receipt objects never count as confirmation', () async {
+    final store = MemoryStore();
+    store.data['recovery_receipt_42_unknown'] = '{}';
+    await expectLater(WorkLogService(store: store).receipt(42, 'unknown'),
+        throwsA(isA<ReceiptReadFailure>()));
+  });
+
   test('login storage failure is explicit and never leaves a partial session',
       () async {
     final session = FailedSession();

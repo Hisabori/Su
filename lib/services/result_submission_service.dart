@@ -40,7 +40,12 @@ class ResultSubmissionService {
 
   Future<SubmissionOutcome> _send(
       int userId, Map<String, dynamic> record) async {
-    final confirmed = await logs.receipt(userId, record['record_id'] as String);
+    SavedReceipt? confirmed;
+    try {
+      confirmed = await logs.receipt(userId, record['record_id'] as String);
+    } on ReceiptReadFailure {
+      throw ApiFailure('이 기록의 서버 저장 여부를 확인하지 못했습니다. 중복 전송을 막기 위해 전송을 중단했습니다.');
+    }
     if (confirmed != null) return SubmissionOutcome(confirmed.resultId, true);
     // Persist before the request; never automatically retry a write after a timeout.
     await logs.save(userId, record);
