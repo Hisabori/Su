@@ -41,7 +41,7 @@ SDK는 개인 PC에 설치하고 PATH에 추가합니다. 로컬 SDK 절대 경�
 flutter run -d chrome --web-port=8765 --web-hostname=127.0.0.1
 flutter analyze
 flutter test
-node --test test-js/community.test.cjs test-js/diagnostics.test.cjs
+node --test test-js/community.test.cjs test-js/diagnostics.test.cjs test-js/collector.test.cjs
 ```
 
 macOS/Linux/Git Bash에서는 기존 배포 빌드 스크립트를 사용할 수 있습니다.

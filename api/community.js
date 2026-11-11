@@ -9,7 +9,7 @@ module.exports=async(req,res)=>{
  if(origin&&!allowed.includes(origin))return res.status(403).json({message:'이 주소에서는 요청할 수 없습니다.'});
  if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
- res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, X-Community-Session');
+ res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, X-Community-Session, X-Diagnostic-Trace');
  if(req.method==='OPTIONS')return res.status(204).end();
  if(req.method!=='POST'){res.setHeader('Allow','POST, OPTIONS');return res.status(405).json({message:'지원하지 않는 요청입니다.'});}
  try {
@@ -17,7 +17,8 @@ module.exports=async(req,res)=>{
   const reply=await handler(body,req.headers);
   return res.status(reply.status).json(reply.data);
  }catch(error){
+  if(error instanceof CommunityError&&/^DVC-\d{3}$/.test(error.errorCode||''))console.warn(JSON.stringify({event:'collector_error',source:'server',trace:/^[a-f0-9]{32}$/.test(req.headers['x-diagnostic-trace']||'')?req.headers['x-diagnostic-trace']:null,error_id:error.errorCode,stage:error.errorCode==='DVC-201'?'history_read':error.errorCode==='DVC-202'?'storage_write':error.errorCode==='DVC-001'?'authentication':'assignment_or_request'}));
   const status=error instanceof CommunityError?error.status:error instanceof SyntaxError?400:503;
-  return res.status(status).json({message:error instanceof CommunityError?error.message:status===400?'요청 내용을 확인해 주세요.':'커뮤니티에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.'});
+  return res.status(status).json({message:error instanceof CommunityError?error.message:status===400?'요청 내용을 확인해 주세요.':'커뮤니티에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',...(error instanceof CommunityError&&error.errorCode?{error_code:error.errorCode}:{})});
  }
 };

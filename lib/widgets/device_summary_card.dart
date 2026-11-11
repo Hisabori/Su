@@ -65,7 +65,7 @@ class DeviceSummaryCard extends StatelessWidget {
                 style:
                     TextStyle(color: AppStyle.mutedOf(context), height: 1.6)),
             const SizedBox(height: 6),
-            Text('확인된 측정값의 평균입니다. 앱이 닫힌 동안의 상태와 미확인 값은 포함하지 않습니다.',
+            Text('현재 불러온 측정값의 평균입니다. 앱이 닫힌 동안의 상태와 미확인 값은 포함하지 않습니다.',
                 style: TextStyle(
                     fontSize: 12,
                     color: AppStyle.mutedOf(context),

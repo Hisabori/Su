@@ -49,7 +49,12 @@ abstract final class DiagnosticLog {
       return;
     }
     _sent[key] = now;
-    final event = {'trace': traceId, 'area': area, 'code': code};
+    final event = {
+      'trace': traceId,
+      'area': area,
+      'code': code,
+      'error_id': errorId(area, code)
+    };
     recent.add({...event, 'at': now.toUtc().toIso8601String()});
     if (recent.length > 50) recent.removeAt(0);
     debugPrint(jsonEncode({'event': 'suho_diagnostic', ...event}));
@@ -58,6 +63,27 @@ abstract final class DiagnosticLog {
         Uri.base.host == 'suho-angel.vercel.app') {
       unawaited(_send(event));
     }
+  }
+
+  static String errorId(String area, String code) {
+    final prefix = {
+          'session': 'AUTH',
+          'work_history': 'WORK',
+          'device_history': 'DEVICE'
+        }[area] ??
+        'APP';
+    final number = {
+          'read_failed': '101',
+          'save_failed': '102',
+          'backup_failed': '103',
+          'restore_failed': '104',
+          'login_rejected': '105',
+          'rows_recovered': '010',
+          'login_ok': '000',
+          'restore_ok': '001'
+        }[code] ??
+        '999';
+    return '$prefix-$number';
   }
 
   static Future<void> _send(Map<String, String> event) async {

@@ -1,9 +1,10 @@
 const {createHash, randomBytes}=require('node:crypto');
+const {createCollector}=require('./collector.cjs');
 const {createFeatures,validateImage}=require('./community_features.cjs');
 const UPSTREAM='https://api-suho1004.innaim.com';
 const sha=value=>createHash('sha256').update(value).digest('hex');
-class CommunityError extends Error {constructor(status,message){super(message);this.status=status;}}
-const fail=(status,message)=>{throw new CommunityError(status,message);};
+class CommunityError extends Error {constructor(status,message,errorCode){super(message);this.status=status;this.errorCode=errorCode;}}
+const fail=(status,message,errorCode)=>{throw new CommunityError(status,message,errorCode);};
 const authorFor=data=>{
  const userId=Number(data.user_id);
  if(!Number.isSafeInteger(userId)||userId<=0)fail(502,'로그인 사용자 정보를 확인하지 못했습니다.');
@@ -20,9 +21,9 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   return JSON.parse(await new Response(result.stream).text());
  }
  async function write(path,data){return blob.put(path,JSON.stringify(data),{access:'private',contentType:'application/json',addRandomSuffix:false,allowOverwrite:false});}
- async function upstream(path,body,token){
+ async function upstream(path,body,token,packet=true){
   let response;
-  try {response=await fetcher(UPSTREAM+path,{method:'PUT',headers:{'Content-Type':'application/json; charset=utf-8','Accept':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({packetid:`${path.split('/').pop()}_${now()}`, ...body}),signal:AbortSignal.timeout(20000)});}
+  try {response=await fetcher(UPSTREAM+path,{method:'PUT',headers:{'Content-Type':'application/json; charset=utf-8','Accept':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({... (packet?{packetid:`${path.split('/').pop()}_${now()}`} : {}), ...body}),signal:AbortSignal.timeout(20000)});}
   catch {fail(502,'로그인 서버에 연결하지 못했습니다. 다시 시도해 주세요.');}
   let data;
   try{data=await response.json();if(typeof data==='string')data=JSON.parse(data);}catch{fail(502,'로그인 서버 응답을 확인하지 못했습니다.');}
@@ -38,8 +39,9 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   // Community provisioning cannot turn a successful work login into a failed login.
   try {
    const secret=randomBytes(32).toString('hex');
-   await write(`community/sessions/${sha(secret)}.json`,{userId,name,tokenHash:sha(token),expiresAt:now()+12*60*60*1000});
-   return {status:result.status,data:{...result.data,community_session:secret}};
+   const partner=result.data.company_device_name==null?'':String(result.data.company_device_name).trim(),kiosk=result.data.kiosk_id==null?'':String(result.data.kiosk_id).trim();
+   await write(`community/sessions/${sha(secret)}.json`,{userId,name,partner,kiosk,tokenHash:sha(token),expiresAt:now()+12*60*60*1000});
+   return {status:result.status,data:{...result.data,community_session:secret,device_history_enabled:!!(partner&&kiosk)}};
   }catch{return {status:result.status,data:result.data};}
  }
  async function authenticate(headers){
@@ -56,11 +58,21 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   if(typeof id!=='string'||!/^\d{13}-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))fail(400,'글 번호를 확인해 주세요.');
   return `community/posts/${String(9999999999999-Number(id.slice(0,13))).padStart(13,'0')}-${id.slice(14)}.json`;
  }
+ const collector=createCollector({blob,read,write,upstream,fail,now});
  const features=createFeatures({blob,read,write,postPath,publicPost,fail,now,adminIds});
  return async function handle(body,headers={}){
   if(!body||typeof body!=='object'||Array.isArray(body)||Buffer.byteLength(JSON.stringify(body))>(body.action==='create'?750000:16384))fail(400,'요청 내용을 확인해 주세요.');
   if(body.action==='login')return login(body);
-  const session=await authenticate(headers);
+  let session;
+  try {session=await authenticate(headers);}catch(error){
+   if(['device_history','device_sample'].includes(body.action)){
+    if(error instanceof CommunityError)error.errorCode='DVC-001';
+    else throw new CommunityError(503,'서버 기기 세션을 확인하지 못했습니다.','DVC-001');
+   }
+   throw error;
+  }
+  const trace=/^[a-f0-9]{32}$/.test(headers['x-diagnostic-trace']||'')?headers['x-diagnostic-trace']:null;
+  const deviceReply=await collector(body,{...session,trace},(headers.authorization||'').slice(7));if(deviceReply)return deviceReply;
   const feature=await features.handle(body,session);if(feature)return feature;
   if(body.action==='list'){
    if(body.cursor!=null&&(typeof body.cursor!=='string'||body.cursor.length>2048))fail(400,'목록 위치를 확인해 주세요.');

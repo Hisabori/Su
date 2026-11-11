@@ -15,7 +15,7 @@ void main() {
       DiagnosticLog.record('password', 'secret');
       expect(DiagnosticLog.recent.length, count);
       expect(DiagnosticLog.recent.last.keys,
-          unorderedEquals(['trace', 'area', 'code', 'at']));
+          unorderedEquals(['trace', 'area', 'code', 'at', 'error_id']));
     } finally {
       debugPrint = previous;
     }

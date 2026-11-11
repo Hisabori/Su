@@ -9,7 +9,7 @@ const event={trace:'a'.repeat(32),area:'session',code:'save_failed'};
 test('only fixed diagnostics are logged; no extra content can enter logs',()=>{
  const logs=[],handler=createDiagnostics({log:e=>logs.push(e),now:()=>100000});
  assert.equal(call(handler,event).statusCode,204);
- assert.deepEqual(logs,[{event:'suho_diagnostic',source:'client',at:new Date(100000).toISOString(),...event}]);
+ assert.deepEqual(logs,[{event:'suho_diagnostic',source:'client',at:new Date(100000).toISOString(),...event,error_id:'AUTH-102',stage:'storage_write',severity:'error'}]);
  for(const body of [{...event,password:'secret'},{...event,code:'secret'}, {...event,trace:'username'},null,'broken']) {
   assert.equal(call(handler,body).statusCode,400);
  }

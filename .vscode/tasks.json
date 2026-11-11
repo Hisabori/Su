@@ -1,12 +1,87 @@
 {
   "version": "2.0.0",
   "tasks": [
-    {"label": "Flutter: 의존성", "type": "shell", "command": "flutter", "args": ["pub", "get", "--enforce-lockfile"], "problemMatcher": []},
-    {"label": "Flutter: 코드 검사", "type": "shell", "command": "flutter", "args": ["analyze"], "problemMatcher": []},
-    {"label": "Flutter: 전체 테스트", "type": "shell", "command": "flutter", "args": ["test"], "group": "test", "problemMatcher": []},
-    {"label": "Node: 서버 테스트", "type": "process", "command": "node", "args": ["--test", "test-js/community.test.cjs", "test-js/diagnostics.test.cjs"], "group": "test", "problemMatcher": []},
-    {"label": "Flutter: 웹 컴파일", "type": "shell", "command": "flutter", "args": ["build", "web", "--release", "--no-web-resources-cdn", "--base-href=/"], "problemMatcher": []},
-    {"label": "PWA: 마무리", "type": "process", "command": "python3", "args": ["scripts/prepare-pwa.py"], "windows": {"command": "python"}, "problemMatcher": []},
-    {"label": "PWA: 배포용 빌드", "dependsOrder": "sequence", "dependsOn": ["Flutter: 의존성", "Flutter: 웹 컴파일", "PWA: 마무리"], "group": {"kind": "build", "isDefault": true}, "problemMatcher": []}
+    {
+      "label": "Flutter: 의존성",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "pub",
+        "get",
+        "--enforce-lockfile"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: 코드 검사",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "analyze"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: 전체 테스트",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "test"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Node: 서버 테스트",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "--test",
+        "test-js/community.test.cjs",
+        "test-js/diagnostics.test.cjs",
+        "test-js/collector.test.cjs"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: 웹 컴파일",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "build",
+        "web",
+        "--release",
+        "--no-web-resources-cdn",
+        "--base-href=/"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PWA: 마무리",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "scripts/prepare-pwa.py"
+      ],
+      "windows": {
+        "command": "python"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "PWA: 배포용 빌드",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Flutter: 의존성",
+        "Flutter: 웹 컴파일",
+        "PWA: 마무리"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
   ]
 }

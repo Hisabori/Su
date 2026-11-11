@@ -1,3 +1,4 @@
+import '../services/api_service.dart';
 import '../utils/device_summary.dart';
 import '../widgets/device_summary_card.dart';
 import '../widgets/loading_skeleton.dart';
@@ -26,7 +27,7 @@ class DeviceHistoryScreen extends StatefulWidget {
 
 class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
   List<DeviceReading> records = [];
-  bool loading = true, week = false, refreshing = false;
+  bool loading = true, week = false, refreshing = false, loadingMore = false;
   String? error;
   int generation = 0;
   @override
@@ -82,6 +83,30 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
     }
   }
 
+  Future<void> loadOlder() async {
+    if (loading || loadingMore) return;
+    setState(() => loadingMore = true);
+    try {
+      final rows = await widget.monitor.history.loadMore();
+      if (mounted) {
+        setState(() => records = rows
+            .where((r) =>
+                r.userId == widget.userId &&
+                r.partner == widget.partner &&
+                r.kiosk == widget.kiosk)
+            .toList());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                e is ApiFailure ? e.message : '이전 기록을 불러오지 못했습니다. [DVC-201]')));
+      }
+    } finally {
+      if (mounted) setState(() => loadingMore = false);
+    }
+  }
+
   String time(DateTime value) {
     final t = value.toLocal();
     return '${t.month}월 ${t.day}일 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -124,6 +149,20 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               SizedBox(height: 10),
                               Text('페트병 수거기 · 10분마다 적재율 조회',
                                   style: TextStyle(height: 1.6)),
+                              SizedBox(height: 12),
+                              Text(
+                                  widget.monitor.history.cloudConnected
+                                      ? '서버 공유 기록 · 같은 기기에 배정된 다른 클라이언트에서도 볼 수 있어요.'
+                                      : '이 기기의 기록 · 서버 연결은 근무를 마친 뒤 다시 로그인하면 활성화됩니다.',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      height: 1.6,
+                                      color: AppStyle.mutedOf(context))),
+                              if (widget.monitor.history.cloudError != null)
+                                Text(
+                                    '서버 동기화 지연 · ${widget.monitor.history.cloudError}',
+                                    style:
+                                        TextStyle(fontSize: 12, height: 1.6)),
                               SizedBox(height: 16),
                               Row(children: [
                                 ChoiceChip(
@@ -225,7 +264,8 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                               if (latest.available == false)
                                                 Text('기기 사용 불가'),
                                               if (latest.error != null)
-                                                Text(latest.error!),
+                                                Text(
+                                                    '${latest.error}${latest.errorCode == null ? '' : ' [${latest.errorCode}]'}'),
                                             ]))),
                               if (widget.monitor.history.historyRecovered)
                                 Text(
@@ -235,9 +275,18 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                     '현재 조회 결과를 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.'),
                               SizedBox(height: 20),
                               Text(
-                                  '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
+                                  widget.monitor.history.cloudConnected
+                                      ? '앱이 열려 있을 때 10분마다 서버가 조회합니다. 최근 7일 서버 기록을 페이지별로 불러오며, 중단된 구간과 미확인 값은 연결하지 않습니다.'
+                                      : '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
                                   style: TextStyle(fontSize: 12, height: 1.6)),
                               SizedBox(height: 16),
+                              if (widget.monitor.history.hasMore)
+                                OutlinedButton.icon(
+                                    onPressed: loadingMore ? null : loadOlder,
+                                    icon: const Icon(Icons.history),
+                                    label: Text(loadingMore
+                                        ? '이전 서버 기록을 불러오는 중…'
+                                        : '이전 서버 기록 불러오기')),
                               Text('조회 기록 ${visible.length}회',
                                   style: TextStyle(
                                       fontSize: 20,
@@ -257,7 +306,9 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                                   children: [
                                                 Text(time(reading.at)),
                                                 Text(
-                                                    reading.error ??
+                                                    (reading.error == null
+                                                            ? null
+                                                            : '${reading.error}${reading.errorCode == null ? '' : ' [${reading.errorCode}]'}') ??
                                                         (reading.current ==
                                                                     null ||
                                                                 reading.capacity ==

@@ -1,3 +1,4 @@
+import '../services/device_cloud_service.dart';
 import '../widgets/loading_skeleton.dart';
 import '../theme/appearance_mode_picker.dart';
 import '../widgets/work_home_panel.dart';
@@ -78,6 +79,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   final preferences = AppPreferences();
   late final DeviceMonitor deviceMonitor;
+  final deviceCloud = DeviceCloudService();
   int promptReadGeneration = 0, speechRequestGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
@@ -101,7 +103,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     deviceMonitor = DeviceMonitor(
-        fetch: fetchDeviceReading, history: DeviceHistoryService());
+        fetch: fetchDeviceReading,
+        history: DeviceHistoryService(
+            remoteLoad: deviceCloud.load,
+            remoteSample: deviceCloud.sample,
+            remoteLoadMore: deviceCloud.loadMore,
+            remoteHasMore: () => deviceCloud.hasMore));
     speech.onListeningChanged = (value) {
       if (mounted) setState(() => listening = value);
     };
@@ -124,6 +131,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     deviceMonitor.dispose();
+    deviceCloud.close();
     tts.onSpeakingChanged = null;
     speech.onListeningChanged = null;
     speech.onErrorMessage = null;
@@ -1396,7 +1404,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           SizedBox(height: 8),
-                          Text('수호천사 v1.22.0',
+                          Text('수호천사 v1.23.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

@@ -80,6 +80,7 @@ class TokenStorageService {
       jsonEncode({
         'company_device_name': login['company_device_name'],
         'kiosk_id': login['kiosk_id'],
+        'device_history_enabled': login['device_history_enabled'] == true,
         'name': login['name'] is String ? login['name'] : null,
         'community_session': login['community_session'] is String &&
                 RegExp(r'^[a-f0-9]{64}$').hasMatch(login['community_session'])
