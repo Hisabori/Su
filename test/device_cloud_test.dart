@@ -58,10 +58,12 @@ void main() {
               expect(body.keys, ['action']);
               final row = reading(DateTime.now()).toJson()..remove('user_id');
               rows.add(row);
-              return http.Response(jsonEncode({'reading': row}), 200);
+              return http.Response(jsonEncode({'reading': row}), 200,
+                  headers: {'content-type': 'application/json; charset=utf-8'});
             }
             return http.Response(
-                jsonEncode({'records': rows, 'cursor': null}), 200);
+                jsonEncode({'records': rows, 'cursor': null}), 200,
+                headers: {'content-type': 'application/json; charset=utf-8'});
           }));
       final cloud = DeviceCloudService(service: service, tokens: tokens);
       addTearDown(cloud.close);
