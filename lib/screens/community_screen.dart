@@ -1,3 +1,4 @@
+import 'access_log_screen.dart';
 import '../widgets/loading_skeleton.dart';
 import '../widgets/app_icon.dart';
 import '../theme/app_style.dart';
@@ -159,6 +160,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text('커뮤니티'), actions: [
+          if (isAdmin)
+            IconButton(
+                tooltip: '접속 기록',
+                icon: const Icon(Icons.history),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                        builder: (_) => const AccessLogScreen()))),
           if (isAdmin)
             IconButton(
                 tooltip: '신고 관리',

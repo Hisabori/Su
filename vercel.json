@@ -35,6 +35,9 @@
   "functions": {
     "api/community.js": {
       "maxDuration": 60
+    },
+    "api/access.js": {
+      "maxDuration": 60
     }
   }
 }

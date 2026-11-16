@@ -19,7 +19,8 @@ class WorkSchedule {
     final m = int.parse(match[2]!);
     final s = int.parse(match[3] ?? '0');
     if (h > 23 || m > 59 || s > 59) return null;
-    return DateTime(day.year, day.month, day.day, h, m, s);
+    final localDay = day.toLocal();
+    return DateTime(localDay.year, localDay.month, localDay.day, h, m, s);
   }
 
   // Recovered from _currentScheduledRestWindow: repeat work+rest cycles.

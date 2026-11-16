@@ -39,7 +39,8 @@
         "--test",
         "test-js/community.test.cjs",
         "test-js/diagnostics.test.cjs",
-        "test-js/collector.test.cjs"
+        "test-js/collector.test.cjs",
+        "test-js/access.test.cjs"
       ],
       "group": "test",
       "problemMatcher": []

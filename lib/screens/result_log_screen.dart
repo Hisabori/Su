@@ -1,3 +1,4 @@
+import '../models/work_hours.dart';
 import '../services/diagnostic_log.dart';
 import '../widgets/loading_skeleton.dart';
 import '../theme/glass_surface.dart';
@@ -133,8 +134,10 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                        stat('근무 시작', stamp(record['started_at'])),
-                        stat('근무 종료', stamp(record['ended_at'])),
+                        stat('근무 시작', stamp(record['scheduled_start_at'])),
+                        stat('근무 종료', stamp(record['scheduled_end_at'])),
+                        stat('앱 응답 시작', stamp(record['started_at'])),
+                        stat('앱 응답 완료', stamp(record['ended_at'])),
                         Divider(),
                         if (answers.isEmpty) Text('상세 답변 기록이 없습니다.'),
                         for (final answer in answers)
@@ -241,13 +244,9 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
                             style: const TextStyle(fontSize: 12)),
                       ],
                       Divider(height: 28),
-                      stat('근무 시작', stamp(record['started_at'])),
-                      stat('근무 종료', stamp(record['ended_at'])),
-                      stat(
-                          '근무 시간',
-                          request['work_minutes'] == null
-                              ? '미확인'
-                              : '${request['work_minutes']}분'),
+                      stat('근무 시작', stamp(record['scheduled_start_at'])),
+                      stat('근무 종료', stamp(record['scheduled_end_at'])),
+                      stat('근무 시간', WorkHours.fromRecord(record).durationLabel),
                       stat(
                           '휴식',
                           request['rest_minutes'] == null

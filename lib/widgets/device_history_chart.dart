@@ -13,7 +13,7 @@ class DeviceHistoryChart extends StatelessWidget {
         container: true,
         image: true,
         label:
-            '페트병 수거기 적재율 추이 그래프. 유효한 측정 $valid회. 자세한 수치는 아래 기록에서 확인할 수 있습니다.',
+            '페트병 수거기 적재율 추이 그래프. 유효한 측정 $valid회. 실선은 측정값 연결, 점선은 조회 공백입니다. 자세한 수치는 아래 기록에서 확인할 수 있습니다.',
         child: SizedBox(
             width: double.infinity,
             height: 240,
@@ -28,7 +28,8 @@ class DeviceHistoryChart extends StatelessWidget {
 }
 
 class _Chart extends CustomPainter {
-  _Chart(this.records, this.color, this.ink);
+  _Chart(List<DeviceReading> records, this.color, this.ink)
+      : records = List.of(records)..sort((a, b) => a.at.compareTo(b.at));
   final List<DeviceReading> records;
   final Color color, ink;
   void label(Canvas canvas, String text, Offset point, {bool right = false}) {
@@ -75,25 +76,39 @@ class _Chart extends CustomPainter {
             : area.left +
                 area.width * r.at.difference(first).inMilliseconds / span,
         area.bottom - area.height * (r.percent! / maximum));
+    label(canvas, '실선: 측정 연결 · 점선: 조회 공백', Offset(area.left, 0));
     DeviceReading? prior;
+    var unknown = false;
     for (final r in records) {
       if (r.percent == null) {
-        prior = null;
+        unknown = true;
         continue;
       }
       final point = position(r);
-      if (prior != null &&
-          r.at.difference(prior.at) <= const Duration(minutes: 15)) {
-        canvas.drawLine(
-            position(prior),
-            point,
-            Paint()
-              ..color = color
-              ..strokeWidth = 2.5
-              ..strokeCap = StrokeCap.round);
+      if (prior != null) {
+        final from = position(prior);
+        final gap =
+            unknown || r.at.difference(prior.at) > const Duration(minutes: 15);
+        final paint = Paint()
+          ..color = color.withValues(alpha: gap ? .7 : 1)
+          ..strokeWidth = gap ? 2 : 3
+          ..strokeCap = StrokeCap.round;
+        if (gap) {
+          final distance = (point - from).distance;
+          if (distance > 0) {
+            final direction = (point - from) / distance;
+            for (var offset = 0.0; offset < distance; offset += 9) {
+              canvas.drawLine(from + direction * offset,
+                  from + direction * math.min(offset + 5, distance), paint);
+            }
+          }
+        } else {
+          canvas.drawLine(from, point, paint);
+        }
       }
       canvas.drawCircle(point, 3.5, Paint()..color = color);
       prior = r;
+      unknown = false;
     }
     label(canvas, time(first), Offset(area.left, area.bottom + 12));
     if (span > 0) {

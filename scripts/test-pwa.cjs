@@ -4,7 +4,8 @@ const assert=require('node:assert/strict');
 let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
- const context=await browser.newContext({viewport:{width:390,height:844}});
+ const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Asia/Seoul'});
+ await require('./access-fixture.cjs')(context);
  // CI has no installed Korean voice/audio device. Exercise the real JS bridge
  // with a deterministic platform speech engine; voice selection is tested separately.
  await context.addInitScript(() => {
@@ -33,13 +34,13 @@ let debugPage;
   else if(path.endsWith('/login')) reply={ret:1,user_id:42,name:'테스트 사용자',access_token:'browser-test-only',company_device_name:'test-partner',kiosk_id:'test-kiosk'};
   else if(path.endsWith('/kiosk_info')) { assert.deepEqual(body,{partnerId:'test-partner'}); reply={ret:1,kiosks:[{kioskId:'test-kiosk',name:'수호천사05',currentCapacity:0,maxCapacity:1000,isAvailable:true}]}; }
   else if(path.endsWith('/validate_token')) reply={ret:1};
-  else if(path.endsWith('/work_info')) reply={ret:1,work:{work_id:8,work_name:'검증 업무'},process:{current_version_id:1},steps:[{step_id:1,step_name:'첫 단계',start_ment:'첫 번째 확인',work_seconds:0,display_order:1},{step_id:2,step_name:'두 번째 단계',start_ment:'두 번째 확인',work_seconds:0,display_order:2}]};
+  else if(path.endsWith('/work_info')) reply={ret:1,work:{work_id:8,work_name:'검증 업무',auto_start_time:'09:00:00',end_time:'12:00:00'},process:{current_version_id:1},steps:[{step_id:1,step_name:'첫 단계',start_ment:'첫 번째 확인',work_seconds:0,display_order:1},{step_id:2,step_name:'두 번째 단계',start_ment:'두 번째 확인',work_seconds:0,display_order:2}]};
   else if(path.endsWith('/work_result')) {saves++;reply={ret:1,result_id:99};}
   else if(path.endsWith('/logout')) {checkedOut=true;reply={ret:1};}
   else throw Error(`Unexpected API: ${path}`);
   await route.fulfill({status:200,headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'},body:JSON.stringify(reply)});
  });
- const page=await context.newPage();debugPage=page;page.on('pageerror',e=>errors.push(e.message));
+ const page=await context.newPage();await page.clock.setFixedTime(new Date('2026-11-15T00:15:00Z'));debugPage=page;page.on('pageerror',e=>errors.push(e.message));
  async function ready(){await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());}
  await page.goto(process.env.PWA_TEST_URL || 'http://127.0.0.1:8765/');await ready();
  await page.getByRole('button',{name:'레거시 모드 켜기',exact:true}).waitFor();
@@ -110,12 +111,14 @@ let debugPage;
  if(process.env.PWA_SCREENSHOT_DIR) {await page.waitForTimeout(1000);await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-complete.png')});}
  assert.equal(saves,1);
  const result=calls.find(c=>c.path.endsWith('/work_result'));
+ assert.equal(result.body.start_time,'2026-11-15 09:15:00');assert.equal(result.body.end_time,'2026-11-15 09:15:00');
  assert.equal(result.method,'PUT');assert.equal(JSON.parse(result.body.result_json).length,3);
  assert.equal(JSON.parse(result.body.result_json).filter(row=>row.type==='device_check').length,1);
  assert.equal(JSON.parse(result.body.result_json).find(row=>row.type==='device_check')['기기상태체크'],'비어있음');
  assert.equal(JSON.parse(result.body.result_json)[0]['비고'],1);
  await page.getByRole('button',{name:'근무기록 자세히 보기',exact:true}).click();
  await page.getByRole('group',{name:/서버 저장 완료/}).waitFor();
+ await page.getByRole('group',{name:/근무 시작[\s\S]*오전 9:00[\s\S]*근무 종료[\s\S]*오후 12:00/}).waitFor();
  assert.equal(await page.getByRole('button',{name:'결과 재전송'}).count(),0);
  await page.getByRole('button',{name:'답변 기록 보기',exact:true}).click();
  await page.getByText('일일 근무 성과',{exact:true}).waitFor();
@@ -124,6 +127,7 @@ let debugPage;
 
  await page.reload();await ready();
  await page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
+ await page.getByText('오전 9:00',{exact:false}).first().waitFor();
  assert.equal(await page.getByRole('button',{name:'작업 시작',exact:true}).count(),0);
  assert.equal(saves,1);
  assert.equal(calls.filter(c=>c.path.endsWith('/logout')).length,0);

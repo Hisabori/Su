@@ -9,6 +9,7 @@ let debugPage;
  let latest;
  async function open(user){
   const context=await browser.newContext({viewport:{width:430,height:932}});
+  await require('./access-fixture.cjs')(context);
   const headers={'access-control-allow-origin':'*','access-control-allow-methods':'POST, PUT, OPTIONS','access-control-allow-headers':'content-type,authorization,x-community-session,x-diagnostic-trace','content-type':'application/json; charset=utf-8'};
   await context.route('https://suho-angel.vercel.app/api/community',async route=>{
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers});
@@ -38,6 +39,7 @@ let debugPage;
   await page.getByText('안녕하세요!',{exact:true}).waitFor();await page.waitForTimeout(1600);
   await page.getByRole('button',{name:'기기 상태',exact:true}).click();
   await page.getByText(/^서버 공유 기록/).waitFor();
+  await page.getByRole('checkbox',{name:'7일',exact:true}).click();
   await page.getByRole('img',{name:/유효한 측정 2회/}).waitFor();
   return {context,page};
  }

@@ -19,7 +19,7 @@ abstract final class DiagnosticLog {
         .join();
   }
 
-  static const areas = {'session', 'work_history', 'device_history'};
+  static const areas = {'session', 'work_history', 'device_history', 'access'};
   static const codes = {
     'read_failed',
     'save_failed',
@@ -68,6 +68,7 @@ abstract final class DiagnosticLog {
   static String errorId(String area, String code) {
     final prefix = {
           'session': 'AUTH',
+          'access': 'ACCESS',
           'work_history': 'WORK',
           'device_history': 'DEVICE'
         }[area] ??

@@ -1,5 +1,6 @@
 const {createHash, randomBytes}=require('node:crypto');
 const {createCollector}=require('./collector.cjs');
+const {createAccess}=require('./access.cjs');
 const {createFeatures,validateImage}=require('./community_features.cjs');
 const UPSTREAM='https://api-suho1004.innaim.com';
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -30,19 +31,20 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   if(!data||typeof data!=='object'||Array.isArray(data))fail(502,'로그인 서버 응답을 확인하지 못했습니다.');
   return {status:response.status,data};
  }
- async function login(body){
+ async function login(body,headers){
   if(typeof body.username!=='string'||body.username.length>100||!body.username.trim()||!/^([a-f0-9]{64})$/.test(body.password||''))fail(400,'로그인 정보를 확인해 주세요.');
   const result=await upstream('/api/user/login',{username:body.username.trim(),password:body.password});
   if(result.status<200||result.status>=300||Number(result.data.ret)!==1)return result;
   const {userId,name}=authorFor(result.data), token=result.data.access_token??result.data.jwt_access_token;
   if(typeof token!=='string'||!token)fail(502,'로그인 응답을 확인하지 못했습니다.');
+  const accessResult=await access.recordLogin({userId,name},{platform:body.client,agent:headers['user-agent'],trace:/^[a-f0-9]{32}$/.test(body.trace||'')?body.trace:null});
   // Community provisioning cannot turn a successful work login into a failed login.
   try {
    const secret=randomBytes(32).toString('hex');
    const partner=result.data.company_device_name==null?'':String(result.data.company_device_name).trim(),kiosk=result.data.kiosk_id==null?'':String(result.data.kiosk_id).trim();
    await write(`community/sessions/${sha(secret)}.json`,{userId,name,partner,kiosk,tokenHash:sha(token),expiresAt:now()+12*60*60*1000});
-   return {status:result.status,data:{...result.data,community_session:secret,device_history_enabled:!!(partner&&kiosk)}};
-  }catch{return {status:result.status,data:result.data};}
+   return {status:result.status,data:{...result.data,community_session:secret,device_history_enabled:!!(partner&&kiosk),access_recorded:accessResult.access_recorded,access_error_code:accessResult.error_code}};
+  }catch{return {status:result.status,data:{...result.data,access_recorded:accessResult.access_recorded,access_error_code:accessResult.error_code}};}
  }
  async function authenticate(headers){
   const match=/^Bearer (\S+)$/.exec(headers.authorization||'');
@@ -58,11 +60,12 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   if(typeof id!=='string'||!/^\d{13}-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))fail(400,'글 번호를 확인해 주세요.');
   return `community/posts/${String(9999999999999-Number(id.slice(0,13))).padStart(13,'0')}-${id.slice(14)}.json`;
  }
+ const access=createAccess({blob,fetcher,now,adminIds});
  const collector=createCollector({blob,read,write,upstream,fail,now});
  const features=createFeatures({blob,read,write,postPath,publicPost,fail,now,adminIds});
  return async function handle(body,headers={}){
   if(!body||typeof body!=='object'||Array.isArray(body)||Buffer.byteLength(JSON.stringify(body))>(body.action==='create'?750000:16384))fail(400,'요청 내용을 확인해 주세요.');
-  if(body.action==='login')return login(body);
+  if(body.action==='login')return login(body,headers);
   let session;
   try {session=await authenticate(headers);}catch(error){
    if(['device_history','device_sample'].includes(body.action)){

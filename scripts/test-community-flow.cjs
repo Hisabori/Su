@@ -4,6 +4,7 @@ let debugPage;const requests=[];
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
+ await require('./access-fixture.cjs')(context,{records:[{event_id:'one',user_id:31,name:'정훈',at:new Date().toISOString(),kind:'password_login',client:'web'},{event_id:'two',user_id:42,name:'다른 사용자',at:new Date().toISOString(),kind:'session_open',client:'ios'}]});
  let posts=[],comments=[],liked=false,pinned=false,hidden=false,reports=[],creates=0,deletes=0;const errors=[];
  await context.route('https://suho-angel.vercel.app/api/community',async route=>{
   const req=route.request();const headers={'access-control-allow-origin':'*','access-control-allow-methods':'POST','access-control-allow-headers':'content-type,authorization,x-community-session','content-type':'application/json; charset=utf-8'};
@@ -52,6 +53,11 @@ let debugPage;const requests=[];
  await page.getByRole('button',{name:'동료 이야기',exact:true}).click();
  await page.getByText('정훈 님, 오늘의 이야기를 들려주세요.',{exact:true}).waitFor();
  await page.getByText('아직 이야기가 없어요.',{exact:false}).waitFor();
+ await page.getByRole('button',{name:'접속 기록',exact:true}).click();
+ await page.getByText('정훈 · ID 31',{exact:true}).waitFor();
+ await page.getByText('다른 사용자 · ID 42',{exact:true}).waitFor();
+ if(process.env.PWA_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'access-log-glass.png')});
+ await page.getByRole('button',{name:'Back',exact:true}).click();
  await page.getByRole('button',{name:'글쓰기',exact:true}).click();
  await page.getByText('작성자 · 정훈',{exact:true}).waitFor();await page.waitForTimeout(400);
  await page.locator('input').click();await page.waitForTimeout(250);await page.keyboard.insertText('오늘의 이야기');await page.keyboard.press('Tab');await page.waitForTimeout(200);assert.equal(await page.locator('input').inputValue(),'오늘의 이야기');

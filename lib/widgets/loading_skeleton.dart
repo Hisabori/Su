@@ -10,10 +10,11 @@ class LoadingSkeleton extends StatelessWidget {
       {super.key,
       required this.label,
       this.layout = SkeletonLayout.list,
-      this.scrollable = true});
+      this.scrollable = true,
+      this.compact = false});
   final String label;
   final SkeletonLayout layout;
-  final bool scrollable;
+  final bool scrollable, compact;
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +83,10 @@ class LoadingSkeleton extends StatelessWidget {
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           card(graph: layout == SkeletonLayout.graph),
-          const SizedBox(height: 16),
-          card(),
+          if (!compact) ...[
+            const SizedBox(height: 16),
+            card(),
+          ],
         ]));
     final content = Semantics(
         container: true,

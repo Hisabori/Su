@@ -6,6 +6,7 @@ let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
+ await require('./access-fixture.cjs')(context);
  await context.addInitScript(()=>{
   window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
   let active;

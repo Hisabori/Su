@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_style.dart';
 
-String completionTime(DateTime value) =>
-    '${value.hour < 12 ? '오전' : '오후'} ${value.hour % 12 == 0 ? 12 : value.hour % 12}:${value.minute.toString().padLeft(2, '0')}';
+String completionTime(DateTime value) {
+  final time = value.toLocal();
+  return '${time.hour < 12 ? '오전' : '오후'} ${time.hour % 12 == 0 ? 12 : time.hour % 12}:${time.minute.toString().padLeft(2, '0')}';
+}
 
 class CompletionPanel extends StatelessWidget {
   const CompletionPanel(
@@ -17,16 +19,19 @@ class CompletionPanel extends StatelessWidget {
       required this.onDevice,
       this.onCommunity,
       this.scheduled = false,
+      this.serverHours = false,
+      this.activityStart,
+      this.activityEnd,
       this.checkoutLabel = '퇴근하기'});
   final String? name;
-  final DateTime? start, end;
+  final DateTime? start, end, activityStart, activityEnd;
   final VoidCallback onHistory;
   final VoidCallback? onDevice, onCommunity;
   final String checkoutLabel;
   final VoidCallback? onCheckout;
 
   /// A server status response alone does not prove a successful result save.
-  final bool scheduled;
+  final bool scheduled, serverHours;
 
   @override
   Widget build(BuildContext context) =>
@@ -34,12 +39,13 @@ class CompletionPanel extends StatelessWidget {
         final width = math.min(bounds.maxWidth, 600.0);
         final scale = (width / 524).clamp(.7, 1.1);
         final today = DateTime.now();
+        final start = this.start?.toLocal(), end = this.end?.toLocal();
         final prefix = start == null ||
-                (start!.year == today.year &&
-                    start!.month == today.month &&
-                    start!.day == today.day)
+                (start.year == today.year &&
+                    start.month == today.month &&
+                    start.day == today.day)
             ? '오늘은 '
-            : '${start!.month}월 ${start!.day}일은 ';
+            : '${start.month}월 ${start.day}일은 ';
         final style = TextStyle(
             fontFamily: 'NanumGothic',
             fontSize: 29 * scale,
@@ -124,12 +130,23 @@ class CompletionPanel extends StatelessWidget {
                                                   ? 32
                                                   : 52) *
                                               scale),
+                                      if (serverHours) ...[
+                                        Text('서버 기준 근무시간',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                color:
+                                                    AppStyle.mutedOf(context))),
+                                        const SizedBox(height: 8),
+                                      ],
                                       Text.rich(
                                           TextSpan(children: [
-                                            TextSpan(text: prefix),
+                                            TextSpan(
+                                                text: serverHours
+                                                    ? '정해진 근무시간은\n'
+                                                    : prefix),
                                             if (start != null)
                                               TextSpan(
-                                                  text: completionTime(start!),
+                                                  text: completionTime(start),
                                                   style: TextStyle(
                                                       color: highlight))
                                             else
@@ -138,12 +155,14 @@ class CompletionPanel extends StatelessWidget {
                                                   style: TextStyle(
                                                       color: highlight)),
                                             TextSpan(
-                                                text: scheduled
-                                                    ? ' 근무 시작,\n'
-                                                    : '에\n일을 시작 하셨고,\n'),
+                                                text: serverHours
+                                                    ? '부터\n'
+                                                    : scheduled
+                                                        ? ' 근무 시작,\n'
+                                                        : '에\n일을 시작 하셨고,\n'),
                                             if (end != null)
                                               TextSpan(
-                                                  text: completionTime(end!),
+                                                  text: completionTime(end),
                                                   style: TextStyle(
                                                       color: highlight))
                                             else
@@ -152,11 +171,31 @@ class CompletionPanel extends StatelessWidget {
                                                   style: TextStyle(
                                                       color: highlight)),
                                             TextSpan(
-                                                text: scheduled
-                                                    ? '에 일을\n마무리할 예정입니다.'
-                                                    : '에 일을\n마무리 하셨습니다.'),
+                                                text: serverHours
+                                                    ? '까지입니다.'
+                                                    : scheduled
+                                                        ? '에 일을\n마무리할 예정입니다.'
+                                                        : '에 일을\n마무리 하셨습니다.'),
                                           ]),
                                           style: style),
+                                      if (serverHours &&
+                                          (activityStart != null ||
+                                              activityEnd != null))
+                                        Material(
+                                            type: MaterialType.transparency,
+                                            child: ExpansionTile(
+                                                tilePadding: EdgeInsets.zero,
+                                                title: Text('앱 작업 시각',
+                                                    style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: AppStyle.mutedOf(
+                                                            context))),
+                                                children: [
+                                                  Text(
+                                                      '응답 시작: ${activityStart == null ? '시각 미확인' : completionTime(activityStart!)}'),
+                                                  Text(
+                                                      '응답 완료: ${activityEnd == null ? '시각 미확인' : completionTime(activityEnd!)}'),
+                                                ])),
                                       Spacer(),
                                       Semantics(
                                           liveRegion: true,

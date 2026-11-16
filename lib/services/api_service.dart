@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import '../utils/client_platform.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../config/community_config.dart';
@@ -115,7 +116,12 @@ class ApiService {
         response = await client
             .post(Uri.parse(CommunityConfig.endpoint),
                 headers: {'Content-Type': 'application/json; charset=utf-8'},
-                body: jsonEncode({'action': 'login', ...body}))
+                body: jsonEncode({
+                  'action': 'login',
+                  ...body,
+                  'client': clientPlatform,
+                  'trace': DiagnosticLog.traceId
+                }))
             .timeout(const Duration(seconds: 25));
       } on http.ClientException {
         /* Work login remains available if the community service is unreachable. */

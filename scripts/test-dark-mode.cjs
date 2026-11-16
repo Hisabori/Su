@@ -6,6 +6,7 @@ let debugPage;
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  try {
   const context=await browser.newContext({viewport:{width:430,height:932},colorScheme:'dark'});
+  await require('./access-fixture.cjs')(context);
   await context.route('https://suho-angel.vercel.app/api/community',r=>r.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'fixture offline'}));
   await context.route('https://api-suho1004.innaim.com/**',async route=>{
    const path=new URL(route.request().url()).pathname;

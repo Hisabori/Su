@@ -1,7 +1,7 @@
-const areas=new Set(['session','work_history','device_history']);
+const areas=new Set(['session','work_history','device_history','access']);
 const codes=new Set(['read_failed','save_failed','backup_failed','rows_recovered','restore_failed','login_ok','restore_ok','login_rejected']);
 function details(area,code){
- const prefix={session:'AUTH',work_history:'WORK',device_history:'DEVICE'}[area];
+ const prefix={session:'AUTH',access:'ACCESS',work_history:'WORK',device_history:'DEVICE'}[area];
  const number={read_failed:'101',save_failed:'102',backup_failed:'103',restore_failed:'104',login_rejected:'105',rows_recovered:'010',login_ok:'000',restore_ok:'001'}[code];
  const stage={read_failed:'history_read',save_failed:'storage_write',backup_failed:'recovery_backup',restore_failed:'session_restore',login_rejected:'login',rows_recovered:'recovery',login_ok:'login',restore_ok:'session_restore'}[code];
  return {error_id:`${prefix}-${number}`,stage,severity:code.endsWith('failed')?'error':code==='login_rejected'?'warning':'info'};

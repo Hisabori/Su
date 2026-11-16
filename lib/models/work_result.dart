@@ -1,10 +1,15 @@
 import 'dart:convert';
 import 'work_info.dart';
 
-String formatDate(DateTime date) =>
-    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-String formatDateTime(DateTime date) =>
-    '${formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
+String formatDate(DateTime value) {
+  final date = value.toLocal();
+  return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+}
+
+String formatDateTime(DateTime value) {
+  final date = value.toLocal();
+  return '${formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
+}
 
 class WorkResultPayload {
   final Map<String, dynamic> request;

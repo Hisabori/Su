@@ -1,3 +1,6 @@
+import '../models/work_hours.dart';
+import '../services/diagnostic_log.dart';
+import '../services/access_service.dart';
 import '../services/device_cloud_service.dart';
 import '../widgets/loading_skeleton.dart';
 import '../theme/appearance_mode_picker.dart';
@@ -80,6 +83,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final preferences = AppPreferences();
   late final DeviceMonitor deviceMonitor;
   final deviceCloud = DeviceCloudService();
+  final access = AccessService();
+  bool accessStarted = false, accessRecording = false, accessRecorded = false;
+  String? accessError;
+  final accessBackground = Stopwatch();
   int promptReadGeneration = 0, speechRequestGeneration = 0;
   bool checkedOut = false, checkingOut = false, checkoutConfirmed = false;
   List<Map<String, dynamic>> completedHistory = [];
@@ -132,6 +139,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     timer?.cancel();
     deviceMonitor.dispose();
     deviceCloud.close();
+    access.close();
     tts.onSpeakingChanged = null;
     speech.onListeningChanged = null;
     speech.onErrorMessage = null;
@@ -142,13 +150,57 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (!accessBackground.isRunning) accessBackground.start();
+    }
     foreground = state == AppLifecycleState.resumed;
     if (!foreground) {
       unawaited(stopAudio());
       unawaited(checkpoint());
       if (mounted) setState(() => listening = false);
     } else if (mounted) {
+      if (accessBackground.elapsed >= const Duration(seconds: 30)) {
+        unawaited(recordAccess(newEvent: true));
+      }
+      accessBackground.stop();
+      accessBackground.reset();
       tick();
+    }
+  }
+
+  Future<void> recordAccess({bool newEvent = false}) async {
+    if (accessRecording) return;
+    if (newEvent) access.startEvent();
+    if (mounted) setState(() => accessRecording = true);
+    String? failure;
+    for (var attempt = 0; attempt < 3 && mounted; attempt++) {
+      try {
+        await access.recordOpen();
+        if (mounted) {
+          setState(() {
+            accessRecorded = true;
+            accessError = null;
+            accessRecording = false;
+          });
+        }
+        return;
+      } catch (e) {
+        failure = e is ApiFailure ? e.message : '접속 기록 연결을 확인해 주세요. [ACC-203]';
+        if (attempt < 2) {
+          await Future<void>.delayed(Duration(seconds: attempt + 1));
+        }
+      }
+    }
+    DiagnosticLog.record('access', 'save_failed');
+    if (mounted) {
+      setState(() {
+        accessRecorded = false;
+        accessError = failure;
+        accessRecording = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(failure ?? '접속 기록 저장을 확인하지 못했습니다. [ACC-202]')));
     }
   }
 
@@ -163,6 +215,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       tts.speed = await preferences.speechSpeed();
       autoLoginEnabled = await preferences.autoLoginEnabled();
       sessionUser = await api.tokens.userId();
+      if (!accessStarted) {
+        accessStarted = true;
+        unawaited(recordAccess());
+      }
       final profile = await api.tokens.device();
       displayName =
           profile['name'] is String ? profile['name'] as String : null;
@@ -223,11 +279,11 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       await drafts.save(sessionUser!, work!, {
         'index': index,
         'question_index': questionIndex,
-        'started_at': startedAt!.toIso8601String(),
-        'step_started_at': stepStartedAt!.toIso8601String(),
-        'schedule_anchor': scheduleAnchor!.toIso8601String(),
-        'rest_started_at': restStartedAt?.toIso8601String(),
-        'rest_until': restUntil?.toIso8601String(),
+        'started_at': startedAt!.toUtc().toIso8601String(),
+        'step_started_at': stepStartedAt!.toUtc().toIso8601String(),
+        'schedule_anchor': scheduleAnchor!.toUtc().toIso8601String(),
+        'rest_started_at': restStartedAt?.toUtc().toIso8601String(),
+        'rest_until': restUntil?.toUtc().toIso8601String(),
         'rest_seconds': restSeconds,
         'step_rest_seconds': stepRestSeconds,
         'answers': answers,
@@ -245,15 +301,31 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
+  void attachServerHours(Map<String, dynamic> record) {
+    if (record['schedule_source'] == 'server' || work == null) return;
+    final day = DateTime.tryParse('${record['started_at'] ?? ''}')?.toLocal() ??
+        startedAt ??
+        DateTime.now();
+    record.addAll(WorkHours.forWork(work!, day).snapshot);
+  }
+
   Future<bool> restoreCompletion() async {
     if (sessionUser == null) return false;
     try {
       final record = await logs.completedAssignment(
           sessionUser!, drafts.signature(work!), DateTime.now());
       if (record == null || !mounted) return false;
+      if (record['schedule_source'] != 'server') {
+        attachServerHours(record);
+        try {
+          await logs.save(sessionUser!, record);
+        } catch (_) {
+          DiagnosticLog.record('work_history', 'save_failed');
+        }
+      }
       setState(() {
         pendingRecord = record;
-        startedAt = DateTime.parse(record['started_at'] as String);
+        startedAt = DateTime.parse(record['started_at'] as String).toLocal();
         complete = true;
         started = false;
         awaitingSave = false;
@@ -278,12 +350,16 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     setState(() {
       index = restored['index'] as int;
       questionIndex = restored['question_index'] as int;
-      startedAt = DateTime.parse(restored['started_at'] as String);
-      stepStartedAt = DateTime.parse(restored['step_started_at'] as String);
-      scheduleAnchor = DateTime.parse(restored['schedule_anchor'] as String);
+      startedAt = DateTime.parse(restored['started_at'] as String).toLocal();
+      stepStartedAt =
+          DateTime.parse(restored['step_started_at'] as String).toLocal();
+      scheduleAnchor =
+          DateTime.parse(restored['schedule_anchor'] as String).toLocal();
       restStartedAt =
-          DateTime.tryParse(restored['rest_started_at']?.toString() ?? '');
-      restUntil = DateTime.tryParse(restored['rest_until']?.toString() ?? '');
+          DateTime.tryParse(restored['rest_started_at']?.toString() ?? '')
+              ?.toLocal();
+      restUntil = DateTime.tryParse(restored['rest_until']?.toString() ?? '')
+          ?.toLocal();
       restSeconds = restored['rest_seconds'] as int;
       stepRestSeconds = restored['step_rest_seconds'] as int;
       answers
@@ -703,8 +779,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         'answer': 'auto_completed',
         'answer_label': '자동 종료',
         'work_seconds': item.workSeconds,
-        'started_at': start.toIso8601String(),
-        'ended_at': end.toIso8601String()
+        'started_at': start.toUtc().toIso8601String(),
+        'ended_at': end.toUtc().toIso8601String()
       });
     }
     await finish();
@@ -745,10 +821,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         'display_order': step.order,
         'work_seconds': step.workSeconds,
         'video_path': step.videoPath,
-        'ended_at': DateTime.now().toIso8601String(),
+        'ended_at': DateTime.now().toUtc().toIso8601String(),
         'answer_label': yes ? '예' : '아니요',
-        'answered_at': DateTime.now().toIso8601String(),
-        'started_at': stepStartedAt?.toIso8601String()
+        'answered_at': DateTime.now().toUtc().toIso8601String(),
+        'started_at': stepStartedAt?.toUtc().toIso8601String()
       });
       if (questionIndex + 1 < step.questions.length) {
         setState(() {
@@ -803,13 +879,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           'assignment_signature': drafts.signature(work!),
           'work_id': work!.id,
           'work_name': work!.name,
-          'started_at': startedAt!.toIso8601String(),
-          'ended_at': now.toIso8601String(),
+          'started_at': startedAt!.toUtc().toIso8601String(),
+          'ended_at': now.toUtc().toIso8601String(),
           'answers': List.of(answers),
           'request': payload.request,
           'server_submitted': false
         };
       }
+      attachServerHours(pendingRecord!);
       await checkpoint();
       final outcome =
           await ResultSubmissionService(api, logs).send(id, pendingRecord!);
@@ -861,8 +938,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       'step_name': '휴식',
       'answer': 'rest',
       'answer_label': '휴식',
-      'started_at': began.toIso8601String(),
-      'ended_at': end.toIso8601String(),
+      'started_at': began.toUtc().toIso8601String(),
+      'ended_at': end.toUtc().toIso8601String(),
       'work_seconds': seconds
     });
     stepRestSeconds += seconds;
@@ -985,13 +1062,17 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       ]);
     }
     if (complete || workStatus != null) {
+      final hours = WorkHours.fromRecord(pendingRecord ?? {});
       return CompletionPanel(
         name: displayName,
         scheduled: !complete,
-        start: complete ? startedAt : reentryStart,
-        end: complete
-            ? DateTime.tryParse(pendingRecord?['ended_at']?.toString() ?? '')
-            : reentryEnd,
+        serverHours: complete,
+        start: complete ? hours.start : reentryStart,
+        end: complete ? hours.end : reentryEnd,
+        activityStart: complete ? startedAt : null,
+        activityEnd: complete
+            ? DateTime.tryParse('${pendingRecord?['ended_at'] ?? ''}')
+            : null,
         onDevice: checkedOut || checkingOut ? null : showDevice,
         onCommunity: checkedOut || checkingOut ? null : showCommunity,
         onHistory: () => Navigator.push(
@@ -1404,7 +1485,25 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                 logout();
                               }),
                           SizedBox(height: 8),
-                          Text('수호천사 v1.23.0',
+                          ListTile(
+                              title: const Text('접속 기록'),
+                              subtitle: Text(accessRecording
+                                  ? '서버 기록 확인 중…'
+                                  : accessRecorded
+                                      ? '서버에 접속 기록 저장됨'
+                                      : accessError ?? '접속 기록 확인 필요'),
+                              trailing: IconButton(
+                                  tooltip: '접속 기록 다시 저장',
+                                  onPressed: accessRecording
+                                      ? null
+                                      : () async {
+                                          final saving = recordAccess();
+                                          updateSheet(() {});
+                                          await saving;
+                                          if (sheet.mounted) updateSheet(() {});
+                                        },
+                                  icon: const Icon(Icons.refresh))),
+                          Text('수호천사 v1.24.0',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

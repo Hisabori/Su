@@ -4,6 +4,7 @@ let debugPage;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:390,height:844}});
+ const accessEvents=await require('./access-fixture.cjs')(context);
  let logins=0,validations=0,workLoads=0,expired=false,offline=false,logouts=0;
  const errors=[];
  await context.route('https://suho-angel.vercel.app/api/community',route=>route.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'fixture unavailable'}));
@@ -47,6 +48,7 @@ let debugPage;
  await checkbox().click();await page.waitForTimeout(250);await login();
  await page.getByRole('button',{name:'로그아웃',exact:true}).click();await page.getByRole('button',{name:'로그인',exact:true}).waitFor();
  const afterLogout=validations;await reload();await checkbox().waitFor();assert.equal(validations,afterLogout);assert.equal(logouts,1);assert.equal(logins,3);
+ assert.ok(accessEvents.length>=2);assert.ok(accessEvents.every(e=>!('user_id' in e)&&!('name' in e)));
  assert.deepEqual(errors,[]);
  console.log('PASS automatic login validates saved sessions without passwords, retries transient failures, clears expired sessions, honors opt-out and logout');
  await browser.close();

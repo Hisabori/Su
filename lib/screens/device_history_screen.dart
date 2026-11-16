@@ -149,20 +149,6 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               SizedBox(height: 10),
                               Text('페트병 수거기 · 10분마다 적재율 조회',
                                   style: TextStyle(height: 1.6)),
-                              SizedBox(height: 12),
-                              Text(
-                                  widget.monitor.history.cloudConnected
-                                      ? '서버 공유 기록 · 같은 기기에 배정된 다른 클라이언트에서도 볼 수 있어요.'
-                                      : '이 기기의 기록 · 서버 연결은 근무를 마친 뒤 다시 로그인하면 활성화됩니다.',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      height: 1.6,
-                                      color: AppStyle.mutedOf(context))),
-                              if (widget.monitor.history.cloudError != null)
-                                Text(
-                                    '서버 동기화 지연 · ${widget.monitor.history.cloudError}',
-                                    style:
-                                        TextStyle(fontSize: 12, height: 1.6)),
                               SizedBox(height: 16),
                               Row(children: [
                                 ChoiceChip(
@@ -230,6 +216,20 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                                             DeviceHistoryChart(
                                                 records: visible),
                                           ]))),
+                              SizedBox(height: 12),
+                              Text(
+                                  widget.monitor.history.cloudConnected
+                                      ? '서버 공유 기록 · 같은 기기에 배정된 다른 클라이언트에서도 볼 수 있어요.'
+                                      : '이 기기의 기록 · 서버 연결은 근무를 마친 뒤 다시 로그인하면 활성화됩니다.',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      height: 1.6,
+                                      color: AppStyle.mutedOf(context))),
+                              if (widget.monitor.history.cloudError != null)
+                                Text(
+                                    '서버 동기화 지연 · ${widget.monitor.history.cloudError}',
+                                    style:
+                                        TextStyle(fontSize: 12, height: 1.6)),
                               SizedBox(height: 16),
                               if (AppStyle.isBeta(context)) ...[
                                 DeviceSummaryCard(
@@ -276,8 +276,8 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               SizedBox(height: 20),
                               Text(
                                   widget.monitor.history.cloudConnected
-                                      ? '앱이 열려 있을 때 10분마다 서버가 조회합니다. 최근 7일 서버 기록을 페이지별로 불러오며, 중단된 구간과 미확인 값은 연결하지 않습니다.'
-                                      : '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 중단된 구간과 미확인 값은 연결하지 않습니다.',
+                                      ? '앱이 열려 있을 때 10분마다 서버가 조회합니다. 최근 7일 서버 기록을 페이지별로 불러오며, 조회 공백과 미확인 구간은 점선으로 구분합니다.'
+                                      : '앱이 열려 있을 때 10분마다 조회합니다. 최근 7일 기록을 이 기기에 저장하며, 조회 공백과 미확인 구간은 점선으로 구분합니다.',
                                   style: TextStyle(fontSize: 12, height: 1.6)),
                               SizedBox(height: 16),
                               if (widget.monitor.history.hasMore)
