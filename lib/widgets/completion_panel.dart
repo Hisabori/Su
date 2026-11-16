@@ -20,12 +20,14 @@ class CompletionPanel extends StatelessWidget {
       this.onCommunity,
       this.scheduled = false,
       this.serverHours = false,
+      this.onRefreshHours,
       this.activityStart,
       this.activityEnd,
       this.checkoutLabel = '퇴근하기'});
   final String? name;
   final DateTime? start, end, activityStart, activityEnd;
   final VoidCallback onHistory;
+  final VoidCallback? onRefreshHours;
   final VoidCallback? onDevice, onCommunity;
   final String checkoutLabel;
   final VoidCallback? onCheckout;
@@ -138,46 +140,70 @@ class CompletionPanel extends StatelessWidget {
                                                     AppStyle.mutedOf(context))),
                                         const SizedBox(height: 8),
                                       ],
-                                      Text.rich(
-                                          TextSpan(children: [
-                                            TextSpan(
-                                                text: serverHours
-                                                    ? '정해진 근무시간은\n'
-                                                    : prefix),
-                                            if (start != null)
+                                      if (serverHours &&
+                                          (start == null || end == null)) ...[
+                                        Text(
+                                            start != null
+                                                ? '근무 시작 ${completionTime(start)}'
+                                                : end != null
+                                                    ? '근무 종료 ${completionTime(end)}'
+                                                    : '근무시간 확인이 필요해요',
+                                            style: style),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                            '서버에서 ${start == null && end == null ? '근무시간을' : start == null ? '시작 시간을' : '종료 시간을'} 받지 못했습니다. 작업 결과는 저장되어 있습니다.',
+                                            style: TextStyle(
+                                                color:
+                                                    AppStyle.mutedOf(context),
+                                                height: 1.5)),
+                                        if (onRefreshHours != null)
+                                          Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: TextButton(
+                                                  onPressed: onRefreshHours,
+                                                  child: const Text(
+                                                      '근무시간 다시 확인'))),
+                                      ] else
+                                        Text.rich(
+                                            TextSpan(children: [
                                               TextSpan(
-                                                  text: completionTime(start),
-                                                  style: TextStyle(
-                                                      color: highlight))
-                                            else
+                                                  text: serverHours
+                                                      ? '정해진 근무시간은\n'
+                                                      : prefix),
+                                              if (start != null)
+                                                TextSpan(
+                                                    text: completionTime(start),
+                                                    style: TextStyle(
+                                                        color: highlight))
+                                              else
+                                                TextSpan(
+                                                    text: '시각 미확인',
+                                                    style: TextStyle(
+                                                        color: highlight)),
                                               TextSpan(
-                                                  text: '시각 미확인',
-                                                  style: TextStyle(
-                                                      color: highlight)),
-                                            TextSpan(
-                                                text: serverHours
-                                                    ? '부터\n'
-                                                    : scheduled
-                                                        ? ' 근무 시작,\n'
-                                                        : '에\n일을 시작 하셨고,\n'),
-                                            if (end != null)
+                                                  text: serverHours
+                                                      ? '부터\n'
+                                                      : scheduled
+                                                          ? ' 근무 시작,\n'
+                                                          : '에\n일을 시작 하셨고,\n'),
+                                              if (end != null)
+                                                TextSpan(
+                                                    text: completionTime(end),
+                                                    style: TextStyle(
+                                                        color: highlight))
+                                              else
+                                                TextSpan(
+                                                    text: '시각 미확인',
+                                                    style: TextStyle(
+                                                        color: highlight)),
                                               TextSpan(
-                                                  text: completionTime(end),
-                                                  style: TextStyle(
-                                                      color: highlight))
-                                            else
-                                              TextSpan(
-                                                  text: '시각 미확인',
-                                                  style: TextStyle(
-                                                      color: highlight)),
-                                            TextSpan(
-                                                text: serverHours
-                                                    ? '까지입니다.'
-                                                    : scheduled
-                                                        ? '에 일을\n마무리할 예정입니다.'
-                                                        : '에 일을\n마무리 하셨습니다.'),
-                                          ]),
-                                          style: style),
+                                                  text: serverHours
+                                                      ? '까지입니다.'
+                                                      : scheduled
+                                                          ? '에 일을\n마무리할 예정입니다.'
+                                                          : '에 일을\n마무리 하셨습니다.'),
+                                            ]),
+                                            style: style),
                                       if (serverHours &&
                                           (activityStart != null ||
                                               activityEnd != null))

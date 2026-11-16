@@ -302,11 +302,13 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   void attachServerHours(Map<String, dynamic> record) {
-    if (record['schedule_source'] == 'server' || work == null) return;
+    if (work == null || WorkHours.fromRecord(record).isComplete) return;
     final day = DateTime.tryParse('${record['started_at'] ?? ''}')?.toLocal() ??
         startedAt ??
         DateTime.now();
-    record.addAll(WorkHours.forWork(work!, day).snapshot);
+    record.addAll(WorkHours.fromRecord(record)
+        .fillMissing(WorkHours.forWork(work!, day))
+        .snapshot);
   }
 
   Future<bool> restoreCompletion() async {
@@ -315,7 +317,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       final record = await logs.completedAssignment(
           sessionUser!, drafts.signature(work!), DateTime.now());
       if (record == null || !mounted) return false;
-      if (record['schedule_source'] != 'server') {
+      if (!WorkHours.fromRecord(record).isComplete) {
         attachServerHours(record);
         try {
           await logs.save(sessionUser!, record);
@@ -1067,6 +1069,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         name: displayName,
         scheduled: !complete,
         serverHours: complete,
+        onRefreshHours: loading || checkedOut ? null : load,
         start: complete ? hours.start : reentryStart,
         end: complete ? hours.end : reentryEnd,
         activityStart: complete ? startedAt : null,

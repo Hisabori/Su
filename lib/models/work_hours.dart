@@ -22,6 +22,12 @@ class WorkHours {
   factory WorkHours.fromRecord(Map<String, dynamic> record) => WorkHours(
       DateTime.tryParse('${record['scheduled_start_at'] ?? ''}')?.toLocal(),
       DateTime.tryParse('${record['scheduled_end_at'] ?? ''}')?.toLocal());
+  bool get isComplete => start != null && end != null;
+
+  /// Fill missing bounds only; preserve the schedule captured for a receipt.
+  WorkHours fillMissing(WorkHours fresh) =>
+      WorkHours(start ?? fresh.start, end ?? fresh.end);
+
   Map<String, dynamic> get snapshot => {
         'schedule_source': 'server',
         'scheduled_start_at': start?.toUtc().toIso8601String(),

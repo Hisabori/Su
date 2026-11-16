@@ -50,6 +50,45 @@ void main() {
     expect(find.text('응답 완료: 오전 9:16'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  test('missing cached server hours are filled when the server supplies them',
+      () {
+    final cached = WorkHours.fromRecord({
+      'schedule_source': 'server',
+      'scheduled_start_at': null,
+      'scheduled_end_at': null
+    });
+    final fresh =
+        WorkHours(DateTime(2026, 11, 15, 9), DateTime(2026, 11, 15, 12));
+    expect(cached.isComplete, isFalse);
+    expect(cached.fillMissing(fresh).durationLabel, '3시간');
+    final partial = WorkHours(DateTime(2026, 11, 15, 8), null);
+    expect(partial.fillMissing(fresh).start!.hour, 8);
+    expect(partial.fillMissing(fresh).end!.hour, 12);
+  });
+  testWidgets(
+      'missing schedule shows an explanation and refresh instead of an unknown range',
+      (tester) async {
+    var refreshed = false;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: CompletionPanel(
+      name: '검증',
+      serverHours: true,
+      start: null,
+      end: null,
+      onRefreshHours: () => refreshed = true,
+      onHistory: () {},
+      onCheckout: () {},
+      onDevice: () {},
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.text('근무시간 확인이 필요해요'), findsOneWidget);
+    expect(find.textContaining('시각 미확인', findRichText: true), findsNothing);
+    await tester.ensureVisible(find.text('근무시간 다시 확인'));
+    await tester.tap(find.text('근무시간 다시 확인'));
+    expect(refreshed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
   test('UTC and local representations produce the same work API clock', () {
     final utc = DateTime.parse('2026-11-15T00:15:00Z');
     expect(formatDateTime(utc), formatDateTime(utc.toLocal()));
