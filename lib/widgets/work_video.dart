@@ -1,3 +1,4 @@
+import 'app_activity_indicator.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -191,7 +192,7 @@ class _WorkVideoState extends State<WorkVideo> with WidgetsBindingObserver {
     final controller = video;
     if (controller == null || !controller.value.isInitialized) {
       return const Padding(
-          padding: EdgeInsets.all(24), child: CircularProgressIndicator());
+          padding: EdgeInsets.all(24), child: AppActivityIndicator());
     }
     return Column(children: [
       AspectRatio(

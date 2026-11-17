@@ -1,3 +1,4 @@
+import '../widgets/app_activity_indicator.dart';
 import '../widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -99,7 +100,7 @@ class _PasskeyScreenState extends State<PasskeyScreen> {
                         '이 브라우저의 데이터와 패스키가 모두 있어야 합니다. 패스키만 다른 기기로 동기화해도 로그인 세션은 옮겨지지 않습니다.'),
                     const SizedBox(height: 24),
                     if (state == null && message == null)
-                      const Center(child: CircularProgressIndicator()),
+                      const Center(child: AppActivityIndicator()),
                     if (state?['supported'] == false) ...[
                       Text(kIsWeb
                           ? '이 브라우저에서는 패스키를 사용할 수 없습니다. iPhone Safari 또는 지원되는 브라우저에서 열어 주세요.'
@@ -135,7 +136,7 @@ class _PasskeyScreenState extends State<PasskeyScreen> {
                     if (busy)
                       const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Center(child: CircularProgressIndicator())),
+                          child: Center(child: AppActivityIndicator())),
                     if (message != null)
                       Padding(
                           padding: const EdgeInsets.only(top: 16),

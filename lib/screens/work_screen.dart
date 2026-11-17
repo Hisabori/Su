@@ -1,3 +1,5 @@
+import '../services/app_shortcut.dart';
+import '../widgets/app_activity_indicator.dart';
 import '../models/work_hours.dart';
 import '../services/diagnostic_log.dart';
 import '../services/access_service.dart';
@@ -266,9 +268,29 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     } finally {
       if (mounted) {
         setState(() => loading = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) => openShortcut());
         timer?.cancel();
         timer = Timer.periodic(Duration(seconds: 1), (_) => tick());
       }
+    }
+  }
+
+  Future<void> openShortcut() async {
+    if (!mounted || checkedOut || sessionUser == null) return;
+    final target = AppShortcut.take();
+    if (target == null) return;
+    try {
+      switch (target) {
+        case 'collector':
+          await showDeviceHistory();
+        case 'community':
+          await showCommunity();
+        case 'history':
+          await Navigator.push<void>(context,
+              MaterialPageRoute<void>(builder: (_) => ResultLogScreen()));
+      }
+    } catch (_) {
+      if (mounted) notice('바로가기를 열지 못했습니다. 홈 화면에서 다시 선택해 주세요.');
     }
   }
 
@@ -1050,7 +1072,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       }
       return Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-        CircularProgressIndicator(),
+        AppActivityIndicator(),
         SizedBox(height: 20),
         Text('오늘의 근무 정보를 확인하고 있어요.', textAlign: TextAlign.center),
       ]));

@@ -23,5 +23,46 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "수거기 현황",
+      "short_name": "수거기 현황",
+      "description": "수거기 적재율과 측정 기록 보기",
+      "url": "./?shortcut=collector",
+      "icons": [
+        {
+          "src": "icons/app-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "근무기록",
+      "short_name": "근무기록",
+      "description": "내 근무기록 확인",
+      "url": "./?shortcut=history",
+      "icons": [
+        {
+          "src": "icons/app-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "커뮤니티",
+      "short_name": "커뮤니티",
+      "description": "동료 이야기 열기",
+      "url": "./?shortcut=community",
+      "icons": [
+        {
+          "src": "icons/app-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
   ]
 }

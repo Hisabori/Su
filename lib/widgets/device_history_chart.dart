@@ -32,6 +32,7 @@ class _DeviceHistoryChartState extends State<DeviceHistoryChart> {
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           LayoutBuilder(
               builder: (context, constraints) => GestureDetector(
+                    excludeFromSemantics: true,
                     behavior: HitTestBehavior.opaque,
                     onTapUp: records.isEmpty
                         ? null
@@ -66,7 +67,9 @@ class _DeviceHistoryChartState extends State<DeviceHistoryChart> {
                                 AppStyle.isBeta(context)
                                     ? AppStyle.coralOf(context)
                                     : Theme.of(context).colorScheme.primary,
-                                Theme.of(context).colorScheme.onSurface))),
+                                Theme.of(context).colorScheme.onSurface,
+                                selected: selected,
+                                surface: AppStyle.surfaceOf(context)))),
                   )),
           if (records.isNotEmpty)
             Padding(
@@ -86,10 +89,12 @@ class _DeviceHistoryChartState extends State<DeviceHistoryChart> {
 }
 
 class _Chart extends CustomPainter {
-  _Chart(List<DeviceReading> records, this.color, this.ink)
+  _Chart(List<DeviceReading> records, this.color, this.ink,
+      {this.selected, required this.surface})
       : records = List.of(records)..sort((a, b) => a.at.compareTo(b.at));
   final List<DeviceReading> records;
-  final Color color, ink;
+  final Color color, ink, surface;
+  final DeviceReading? selected;
   double canvasWidth = 240;
   void label(Canvas canvas, String text, Offset point, {bool right = false}) {
     final painter = TextPainter(
@@ -177,6 +182,61 @@ class _Chart extends CustomPainter {
       prior = r;
       unknown = false;
     }
+    final chosen = selected;
+    if (chosen != null && records.contains(chosen)) {
+      final x = span <= 0
+          ? area.center.dx
+          : area.left +
+              area.width * chosen.at.difference(first).inMilliseconds / span;
+      final anchor =
+          chosen.percent == null ? Offset(x, area.bottom) : position(chosen);
+      canvas.drawLine(
+          Offset(x, area.top + 20),
+          Offset(x, area.bottom),
+          Paint()
+            ..color = color.withValues(alpha: .25)
+            ..strokeWidth = 1);
+      if (chosen.percent != null) {
+        canvas.drawCircle(
+            anchor,
+            6,
+            Paint()
+              ..color = color
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2);
+      }
+      final text = TextPainter(
+          text: TextSpan(
+              text: chosen.percentLabel,
+              style: TextStyle(
+                  fontFamily: 'NanumGothic',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: ink)),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '…')
+        ..layout(maxWidth: math.max(1.0, size.width - 32));
+      final width = text.width + 20, height = text.height + 14;
+      final left =
+          (x - width / 2).clamp(4.0, math.max(4.0, size.width - width - 4));
+      final top = (anchor.dy - height - 12)
+          .clamp(22.0, math.max(22.0, area.bottom - height));
+      final bubble = RRect.fromRectAndRadius(
+          Rect.fromLTWH(left.toDouble(), top.toDouble(), width, height),
+          const Radius.circular(10));
+      canvas.drawShadow(Path()..addRRect(bubble),
+          Colors.black.withValues(alpha: .18), 4, true);
+      canvas.drawRRect(bubble, Paint()..color = surface);
+      canvas.drawRRect(
+          bubble,
+          Paint()
+            ..color = color.withValues(alpha: .45)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
+      text.paint(canvas, Offset(left.toDouble() + 10, top.toDouble() + 7));
+      text.dispose();
+    }
     label(canvas, time(first), Offset(area.left, area.bottom + 12));
     if (span > 0 && area.width >= 190) {
       label(canvas, time(last), Offset(area.right, area.bottom + 12),
@@ -186,5 +246,9 @@ class _Chart extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _Chart old) =>
-      !listEquals(old.records, records) || old.color != color || old.ink != ink;
+      !listEquals(old.records, records) ||
+      old.color != color ||
+      old.ink != ink ||
+      old.selected != selected ||
+      old.surface != surface;
 }

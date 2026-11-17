@@ -1,3 +1,4 @@
+import '../widgets/app_activity_indicator.dart';
 import '../services/diagnostic_log.dart';
 import '../theme/appearance_mode_picker.dart';
 import '../widgets/app_icon.dart';
@@ -326,8 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                          child: AppActivityIndicator(color: Colors.white))
                       : Text('로그인'),
                 )),
             if (kIsWeb) ...[

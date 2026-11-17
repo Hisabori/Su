@@ -1,3 +1,4 @@
+import '../widgets/app_activity_indicator.dart';
 import '../models/work_hours.dart';
 import '../services/diagnostic_log.dart';
 import '../widgets/loading_skeleton.dart';
@@ -289,7 +290,7 @@ class _ResultLogScreenState extends State<ResultLogScreen> {
             if (!snapshot.hasData) {
               return AppStyle.isBeta(context)
                   ? const LoadingSkeleton(label: '근무기록을 불러오고 있어요.')
-                  : Center(child: CircularProgressIndicator());
+                  : Center(child: AppActivityIndicator());
             }
             final visible = snapshot.data!
                 .where((r) =>

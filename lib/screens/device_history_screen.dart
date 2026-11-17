@@ -1,3 +1,4 @@
+import '../widgets/app_activity_indicator.dart';
 import '../services/api_service.dart';
 import '../utils/device_summary.dart';
 import '../widgets/device_summary_card.dart';
@@ -126,8 +127,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, semanticsLabel: '기기 조회 중'))
+                      child: AppActivityIndicator(semanticsLabel: '기기 조회 중'))
                   : const Icon(Icons.refresh))
         ]),
         body: loading && AppStyle.isBeta(context)
@@ -165,7 +165,7 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               ]),
                               SizedBox(height: 18),
                               if (loading)
-                                Center(child: CircularProgressIndicator()),
+                                Center(child: AppActivityIndicator()),
                               if (error != null)
                                 Padding(
                                     padding: const EdgeInsets.only(bottom: 12),

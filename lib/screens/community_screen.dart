@@ -1,3 +1,4 @@
+import '../widgets/app_activity_indicator.dart';
 import 'access_log_screen.dart';
 import '../widgets/loading_skeleton.dart';
 import '../widgets/app_icon.dart';
@@ -375,7 +376,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                               scrollable: false)
                                           : Center(
                                               child:
-                                                  CircularProgressIndicator())),
+                                                  AppActivityIndicator())),
                                 if (!loading && error == null && posts.isEmpty)
                                   Padding(
                                       padding:
