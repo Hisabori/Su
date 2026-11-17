@@ -11,12 +11,14 @@ class DeviceCloudService {
   final CommunityService service;
   final TokenStorageService tokens;
   final _rows = <String, DeviceReading>{};
-  String? _scope, _cursor;
+  String? _scope, _cursor, _pendingScope;
+  bool _closed = false;
   DateTime? _loadedAt;
   Future<List<DeviceReading>?>? _pending;
   bool get hasMore => _cursor != null;
 
   Future<(int, String, String)?> _context() async {
+    if (_closed) throw ApiFailure('기록 조회가 종료되었습니다. [DVC-203]');
     final profile = await tokens.device();
     if (profile['device_history_enabled'] != true) {
       _rows.clear();
@@ -55,12 +57,19 @@ class DeviceCloudService {
   Future<List<DeviceReading>?> load() async {
     final context = await _context();
     if (context == null) return null;
-    if (_pending != null) return _pending;
+    if (_pending != null) {
+      if (_pendingScope == _scope) return _pending;
+      try {
+        await _pending;
+      } catch (_) {/* Previous account request is isolated. */}
+      return load();
+    }
     if (_loadedAt != null &&
         DateTime.now().difference(_loadedAt!) < const Duration(seconds: 15)) {
       return _snapshot();
     }
     final request = _page(context);
+    _pendingScope = _scope;
     _pending = request;
     try {
       return await request;
@@ -74,16 +83,24 @@ class DeviceCloudService {
     final scope = _scope;
     final reply = await service.request(
         'device_history', {if (more && _cursor != null) 'cursor': _cursor});
-    if (scope != _scope) throw ApiFailure('로그인 사용자가 변경되었습니다. [DVC-001]');
+    if (_closed || scope != _scope) {
+      throw ApiFailure('로그인 사용자가 변경되었습니다. [DVC-001]');
+    }
     if (reply['records'] is! List) {
       throw ApiFailure('서버 기록 응답을 확인하지 못했습니다. [DVC-204]');
     }
-    for (final raw in reply['records'] as List) {
-      final row = _decode(raw, context);
+    // Decode the whole page before modifying the cache.
+    final decoded =
+        (reply['records'] as List).map((raw) => _decode(raw, context)).toList();
+    final nextCursor = reply['cursor'];
+    if (nextCursor != null && nextCursor is! String) {
+      throw ApiFailure('서버 기록 페이지를 확인하지 못했습니다. [DVC-204]');
+    }
+    for (final row in decoded) {
       _rows[row.at.toUtc().toIso8601String()] = row;
     }
     if (more || _loadedAt == null || _cursor == null) {
-      _cursor = reply['cursor'] as String?;
+      _cursor = nextCursor as String?;
     }
     final cutoff = DateTime.now().subtract(const Duration(days: 7));
     _rows.removeWhere((_, row) => row.at.isBefore(cutoff));
@@ -94,9 +111,16 @@ class DeviceCloudService {
   Future<List<DeviceReading>?> loadMore() async {
     final context = await _context();
     if (context == null) return null;
-    if (_pending != null) await _pending;
+    if (_pending != null) {
+      if (_pendingScope == _scope) return _pending;
+      try {
+        await _pending;
+      } catch (_) {/* Previous account request is isolated. */}
+      return loadMore();
+    }
     if (_cursor == null) return _snapshot();
     final request = _page(context, more: true);
+    _pendingScope = _scope;
     _pending = request;
     try {
       return await request;
@@ -110,11 +134,18 @@ class DeviceCloudService {
     if (context == null) return false;
     final scope = _scope;
     final reply = await service.request('device_sample');
-    if (scope != _scope) throw ApiFailure('로그인 사용자가 변경되었습니다. [DVC-001]');
+    if (_closed || scope != _scope) {
+      throw ApiFailure('로그인 사용자가 변경되었습니다. [DVC-001]');
+    }
     final row = _decode(reply['reading'], context);
     _rows[row.at.toUtc().toIso8601String()] = row;
     return true;
   }
 
-  void close() => service.close();
+  void close() {
+    _closed = true;
+    _rows.clear();
+    _cursor = null;
+    service.close();
+  }
 }

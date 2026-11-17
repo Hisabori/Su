@@ -220,7 +220,10 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               Text(
                                   widget.monitor.history.cloudConnected
                                       ? '서버 공유 기록 · 같은 기기에 배정된 다른 클라이언트에서도 볼 수 있어요.'
-                                      : '이 기기의 기록 · 서버 연결은 근무를 마친 뒤 다시 로그인하면 활성화됩니다.',
+                                      : widget.monitor.history.cloudError !=
+                                              null
+                                          ? '서버 연결을 확인하는 동안 이 기기에 저장된 기록을 표시합니다.'
+                                          : '이 기기의 기록 · 서버 연결은 근무를 마친 뒤 다시 로그인하면 활성화됩니다.',
                                   style: TextStyle(
                                       fontSize: 12,
                                       height: 1.6,

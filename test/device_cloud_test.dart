@@ -21,6 +21,36 @@ class CloudSession extends MemorySession {
 }
 
 void main() {
+  test('concurrent cloud loads share a request; closed service cannot load',
+      () async {
+    final gate = Completer<http.Response>();
+    var calls = 0;
+    final tokens = CloudSession()
+      ..id = 31
+      ..token = 'fixture';
+    final service = CommunityService(
+        tokens: tokens,
+        client: MockClient((_) {
+          calls++;
+          return gate.future;
+        }));
+    final cloud = DeviceCloudService(service: service, tokens: tokens);
+    final first = cloud.load(), second = cloud.load();
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, 1);
+    gate.complete(http.Response(
+        jsonEncode({
+          'records': [reading(DateTime.now()).toJson()],
+          'cursor': null
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'}));
+    expect((await first)!.length, 1);
+    expect((await second)!.length, 1);
+    cloud.close();
+    await expectLater(cloud.load(), throwsA(isA<Exception>()));
+  });
+
   test('local observation is saved before a slow cloud request finishes',
       () async {
     final store = MemoryStore(),

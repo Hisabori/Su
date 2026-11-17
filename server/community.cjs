@@ -46,12 +46,12 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
    return {status:result.status,data:{...result.data,community_session:secret,device_history_enabled:!!(partner&&kiosk),access_recorded:accessResult.access_recorded,access_error_code:accessResult.error_code}};
   }catch{return {status:result.status,data:{...result.data,access_recorded:accessResult.access_recorded,access_error_code:accessResult.error_code}};}
  }
- async function authenticate(headers){
+ async function authenticate(headers,{collectorOnly=false}={}){
   const match=/^Bearer (\S+)$/.exec(headers.authorization||'');
   const secret=headers['x-community-session'];
   if(!match||typeof secret!=='string'||!/^[a-f0-9]{64}$/.test(secret))fail(401,'커뮤니티를 이용하려면 다시 로그인해 주세요.');
   const path=`community/sessions/${sha(secret)}.json`,session=await read(path);
-  if(!session||session.expiresAt<=now()||session.tokenHash!==sha(match[1]))fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
+  if(!session||(!collectorOnly&&session.expiresAt<=now())||session.tokenHash!==sha(match[1]))fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
   const verified=await upstream('/api/user/validate_token',{token:match[1]},match[1]);
   if(verified.status!==200||Number(verified.data.ret)!==1)fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
   return {...session,path};
@@ -67,7 +67,7 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   if(!body||typeof body!=='object'||Array.isArray(body)||Buffer.byteLength(JSON.stringify(body))>(body.action==='create'?750000:16384))fail(400,'요청 내용을 확인해 주세요.');
   if(body.action==='login')return login(body,headers);
   let session;
-  try {session=await authenticate(headers);}catch(error){
+  try {session=await authenticate(headers,{collectorOnly:['device_history','device_sample'].includes(body.action)});}catch(error){
    if(['device_history','device_sample'].includes(body.action)){
     if(error instanceof CommunityError)error.errorCode='DVC-001';
     else throw new CommunityError(503,'서버 기기 세션을 확인하지 못했습니다.','DVC-001');

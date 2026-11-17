@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
 const {createCommunity}=require('../server/community.cjs');
 function setup(){
- let time=Date.now(),down=false,storageDown=false,calls=0;
+ let time=Date.now(),down=false,storageDown=false,revoked=false,calls=0;
  const objects=new Map();
  const blob={get:async key=>objects.has(key)?{statusCode:200,stream:new Response(JSON.stringify(objects.get(key))).body}:null,
   put:async(key,value)=>{if(storageDown&&key.startsWith('collectors/'))throw Error('full');if(objects.has(key))throw Error('exists');objects.set(key,JSON.parse(value));},
@@ -12,13 +12,13 @@ function setup(){
  const handle=createCommunity({blob,now:()=>time,fetcher:async(url,options)=>{
   const body=JSON.parse(options.body);
   if(url.endsWith('/login'))return Response.json({ret:1,user_id:body.username==='b'?42:31,name:'서버 사용자',access_token:'token-'+body.username,company_device_name:body.username==='other'?'elsewhere':'partner',kiosk_id:body.username==='unassigned'?null:7});
-  if(url.endsWith('/validate_token'))return Response.json({ret:1});
+  if(url.endsWith('/validate_token'))return Response.json({ret:revoked?0:1});
   assert.ok(url.endsWith('/kiosk_info'));assert.equal(body.packetid,undefined);assert.equal(body.partnerId,'partner');calls++;
   if(down)throw Error('offline');
   return Response.json({kiosks:[{kioskId:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true}]});
  }});
  const connect=async name=>{const reply=await handle({action:'login',username:name,password:'a'.repeat(64)});return {reply,headers:{authorization:'Bearer token-'+name,'x-community-session':reply.data.community_session}};};
- return {handle,objects,connect,get calls(){return calls;},get time(){return time;},tick:()=>{time+=600000;},down:()=>{down=true;},storageDown:()=>{storageDown=true;}};
+ return {handle,objects,connect,get calls(){return calls;},get time(){return time;},tick:()=>{time+=600000;},revoke:()=>{revoked=true;},down:()=>{down=true;},storageDown:()=>{storageDown=true;}};
 }
 test('different authenticated clients share server observations for their assigned collector',async()=>{
  const s=setup(),a=await s.connect('a'),b=await s.connect('b'),other=await s.connect('other');
@@ -58,3 +58,17 @@ test('history is paginated and excludes samples older than seven days',async()=>
  const last=(await s.handle({action:'device_history',cursor:first.cursor},a.headers)).data;
  assert.equal(last.records.length,2);assert.equal(last.cursor,null);
 });
+
+test('collector survives expired community ticket only with the original valid token binding',async()=>{
+ const s=setup(),a=await s.connect('a');
+ for(let i=0;i<73;i++)s.tick();
+ await s.handle({action:'device_sample'},a.headers);
+ assert.equal((await s.handle({action:'device_history'},a.headers)).data.records.length,1);
+ await assert.rejects(s.handle({action:'list'},a.headers),e=>e.status===401||e.statusCode===401);
+ await assert.rejects(s.handle({action:'device_history'},{...a.headers,authorization:'Bearer token-b'}),e=>e.errorCode==='DVC-001');
+ const path=[...s.objects.keys()].find(k=>k.startsWith('community/sessions/'));
+ s.objects.delete(path);
+ await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-001');
+});
+
+test('expired collector ticket cannot bypass upstream token revocation',async()=>{const s=setup(),a=await s.connect('a');for(let i=0;i<73;i++)s.tick();s.revoke();await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-001');assert.equal(s.calls,0);});

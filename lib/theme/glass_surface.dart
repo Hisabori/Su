@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'app_style.dart';
 
@@ -28,29 +29,105 @@ class GlassSurface extends StatelessWidget {
                 colors: opaque
                     ? [AppStyle.surfaceOf(context), AppStyle.surfaceOf(context)]
                     : dark
-                        ? const [Color(0xED283B32), Color(0xD01B2924)]
-                        : const [Color(0xEDFFFFFF), Color(0xCFFFFFFF)]),
+                        ? const [
+                            Color(0xE635493F),
+                            Color(0xD21B2924),
+                            Color(0xDB23352F)
+                          ]
+                        : const [
+                            Color(0xEFFFFFFF),
+                            Color(0xCFFFFFFF),
+                            Color(0xDBF4FAF8)
+                          ]),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
                 color: opaque
                     ? AppStyle.mutedOf(context)
                     : dark
-                        ? const Color(0x665E7C6E)
+                        ? const Color(0x4D9CBFAF)
                         : const Color(0xE6FFFFFF),
-                width: 1.2)),
+                width: opaque ? 1.2 : .6)),
         child: child);
     return Container(
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
-            boxShadow: AppStyle.shadow),
+            boxShadow: opaque
+                ? const []
+                : [
+                    BoxShadow(
+                        color:
+                            Colors.black.withValues(alpha: dark ? .18 : .045),
+                        blurRadius: 26,
+                        offset: const Offset(0, 10)),
+                    BoxShadow(
+                        color: (dark ? const Color(0xFF9DDCC6) : Colors.white)
+                            .withValues(alpha: dark ? .025 : .6),
+                        blurRadius: 1,
+                        offset: const Offset(0, -1)),
+                  ]),
         child: ClipRRect(
             borderRadius: BorderRadius.circular(radius),
             child: opaque
                 ? panel
                 : BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: panel)));
+                    filter: ImageFilter.blur(
+                        sigmaX: 22, sigmaY: 22, tileMode: TileMode.clamp),
+                    child: CustomPaint(
+                        foregroundPainter:
+                            _GlassReflection(radius: radius, dark: dark),
+                        child: panel))));
   }
+}
+
+/// Static highlights move naturally with the surface as the page scrolls.
+/// Painted above the fill without adding a hit target or semantic element.
+class _GlassReflection extends CustomPainter {
+  const _GlassReflection({required this.radius, required this.dark});
+  final double radius;
+  final bool dark;
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = (Offset.zero & size).deflate(.75);
+    final curve = math.max(0.0, radius - .75);
+    final rim = RRect.fromRectAndRadius(rect, Radius.circular(curve));
+    canvas.drawRRect(
+        rim,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: const [0, .32, .55, .78, 1],
+            colors: [
+              Colors.white.withValues(alpha: dark ? .42 : .95),
+              Colors.white.withValues(alpha: dark ? .06 : .18),
+              Colors.white.withValues(alpha: 0),
+              const Color(0xFFBCE5DB).withValues(alpha: dark ? .15 : .3),
+              Colors.white.withValues(alpha: dark ? .24 : .75),
+            ],
+          ).createShader(rect));
+    canvas.save();
+    canvas.clipRRect(rim);
+    final sheen = Rect.fromLTWH(0, 0, size.width, math.min(size.height, 56));
+    canvas.drawRect(
+        sheen,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: dark ? .05 : .13),
+              Colors.white.withValues(alpha: 0)
+            ],
+          ).createShader(sheen));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_GlassReflection oldDelegate) =>
+      radius != oldDelegate.radius || dark != oldDelegate.dark;
 }
 
 class BetaGlass extends StatelessWidget {
