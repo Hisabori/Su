@@ -65,10 +65,10 @@ test('collector survives expired community ticket only with the original valid t
  await s.handle({action:'device_sample'},a.headers);
  assert.equal((await s.handle({action:'device_history'},a.headers)).data.records.length,1);
  await assert.rejects(s.handle({action:'list'},a.headers),e=>e.status===401||e.statusCode===401);
- await assert.rejects(s.handle({action:'device_history'},{...a.headers,authorization:'Bearer token-b'}),e=>e.errorCode==='DVC-001');
+ await assert.rejects(s.handle({action:'device_history'},{...a.headers,authorization:'Bearer token-b'}),e=>e.errorCode==='DVC-004');
  const path=[...s.objects.keys()].find(k=>k.startsWith('community/sessions/'));
  s.objects.delete(path);
  await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-001');
 });
 
-test('expired collector ticket cannot bypass upstream token revocation',async()=>{const s=setup(),a=await s.connect('a');for(let i=0;i<73;i++)s.tick();s.revoke();await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-001');assert.equal(s.calls,0);});
+test('expired collector ticket cannot bypass upstream token revocation',async()=>{const s=setup(),a=await s.connect('a');for(let i=0;i<73;i++)s.tick();s.revoke();await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-005');assert.equal(s.calls,0);});

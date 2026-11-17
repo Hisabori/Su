@@ -51,9 +51,11 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   const secret=headers['x-community-session'];
   if(!match||typeof secret!=='string'||!/^[a-f0-9]{64}$/.test(secret))fail(401,'커뮤니티를 이용하려면 다시 로그인해 주세요.');
   const path=`community/sessions/${sha(secret)}.json`,session=await read(path);
-  if(!session||(!collectorOnly&&session.expiresAt<=now())||session.tokenHash!==sha(match[1]))fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
+  if(!session)fail(401,'서버 기기 연결 정보가 없습니다. 근무를 마친 뒤 다시 로그인해 주세요.',collectorOnly?'DVC-001':undefined);
+  if(session.tokenHash!==sha(match[1]))fail(401,'로그인 계정의 연결 정보가 일치하지 않습니다. 근무를 마친 뒤 다시 로그인해 주세요.',collectorOnly?'DVC-004':undefined);
+  if(!collectorOnly&&session.expiresAt<=now())fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
   const verified=await upstream('/api/user/validate_token',{token:match[1]},match[1]);
-  if(verified.status!==200||Number(verified.data.ret)!==1)fail(401,'커뮤니티 로그인이 만료되었습니다. 다시 로그인해 주세요.');
+  if(verified.status!==200||Number(verified.data.ret)!==1)fail(401,'서버 로그인이 만료되었거나 해제되었습니다. 근무를 마친 뒤 다시 로그인해 주세요.',collectorOnly?'DVC-005':undefined);
   return {...session,path};
  }
  function postPath(id){
@@ -69,7 +71,7 @@ function createCommunity({blob,fetcher=fetch,now=Date.now,adminIds=[]}){
   let session;
   try {session=await authenticate(headers,{collectorOnly:['device_history','device_sample'].includes(body.action)});}catch(error){
    if(['device_history','device_sample'].includes(body.action)){
-    if(error instanceof CommunityError)error.errorCode='DVC-001';
+    if(error instanceof CommunityError)error.errorCode=error.errorCode||(error.status>=500?'DVC-104':'DVC-001');
     else throw new CommunityError(503,'서버 기기 세션을 확인하지 못했습니다.','DVC-001');
    }
    throw error;

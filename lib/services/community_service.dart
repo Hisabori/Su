@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../config/community_config.dart';
 import 'api_service.dart';
@@ -33,6 +34,10 @@ class CommunityService {
               },
               body: jsonEncode({'action': action, ...data}))
           .timeout(const Duration(seconds: 45));
+    } on TimeoutException {
+      throw ApiFailure(collector
+          ? '수거기 서버 응답이 지연되었습니다. 잠시 후 다시 시도해 주세요. [DVC-205]'
+          : '서버 응답이 지연되었습니다. 잠시 후 다시 시도해 주세요. [COM-205]');
     } catch (_) {
       throw ApiFailure(collector
           ? '서버 수거기 기록에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요. [DVC-203]'
