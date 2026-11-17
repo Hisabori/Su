@@ -84,7 +84,14 @@ void main() {
                         ]))))));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(DeviceHistoryChart)).width, 350);
-    expect(tester.getSize(find.byType(DeviceHistoryChart)).height, 240);
+    expect(
+        tester
+            .getSize(find.descendant(
+                of: find.byType(DeviceHistoryChart),
+                matching: find.byType(CustomPaint)))
+            .height,
+        240);
+    expect(find.textContaining('그래프를 누르면'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
