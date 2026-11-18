@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="수호천사 작업 안내와 결과 기록">
-  <meta name="theme-color" content="#357b77">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme:light)">
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme:dark)">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,16 +16,16 @@
   <link rel="manifest" href="manifest.json">
   <title>수호천사</title>
   <style>
-    html,body {margin:0;height:100%;background:#f7fbfa;font-family:system-ui,sans-serif;color:#235852}
+    html,body {margin:0;height:100%;background:#f2f2f7;font-family:system-ui,sans-serif;color:#1c1c1e}
     #loading {height:100%;display:flex;align-items:center;justify-content:center;text-align:center}
     #loading img {width:100px;height:100px;object-fit:contain}
-    #pwa-update {position:fixed;bottom:12px;left:12px;right:12px;z-index:2147483647;padding:14px;background:#fff;color:#111;box-shadow:0 2px 12px #0003;border-radius:12px;display:flex;gap:12px;align-items:center;font-size:14px}
-    #pwa-update button {background:#104b83;color:white;border:0;border-radius:8px;padding:12px;flex-shrink:0}
-    #reload {color:#235852;padding:12px;margin:16px;display:none}
+    #pwa-update {position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:2147483647;padding:14px;background:#fffffff0;color:#1c1c1e;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 8px 32px #0002;border:1px solid #ffffff80;border-radius:22px;display:flex;gap:12px;align-items:center;font-size:14px}
+    #pwa-update button {background:#0867c5;color:white;border:0;border-radius:999px;padding:12px;flex-shrink:0}
+    #reload {color:#1c1c1e;padding:12px;margin:16px;display:none}
     @media (prefers-color-scheme:dark) {
-      html,body {background:#101b16;color:#e8f0ed}
-      #pwa-update {background:#1b2924;color:#e8f0ed}
-      #reload {color:#9ad7c2;background:#1b2924}
+      html,body {background:#101012;color:#f2f2f7}
+      #pwa-update {background:#1c1c1e;color:#f2f2f7}
+      #reload {color:#9ad7c2;background:#1c1c1e}
     }
   </style>
 </head>

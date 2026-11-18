@@ -6,8 +6,8 @@
   "scope": "./",
   "lang": "ko",
   "display": "standalone",
-  "background_color": "#f7fbfa",
-  "theme_color": "#357b77",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
   "description": "수호천사 작업 안내와 결과 기록",
   "prefer_related_applications": false,
   "icons": [
