@@ -1,4 +1,4 @@
-// Real service-worker lifecycle: an available update must wait for consent.
+// Required updates invalidate open tabs after their checkpoint finishes.
 const {chromium} = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
@@ -32,24 +32,29 @@ const assert = require('node:assert/strict');
     page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations++; });
     // Let the initial registration/update request finish before changing the fixture.
     await page.waitForTimeout(1000);
+    await page.evaluate(() => {
+      window.suhoBeforeUpdate = () => new Promise(resolve => {
+        window.checkpointStarted = true;
+        window.releaseCheckpoint = resolve;
+      });
+    });
     revision = 2;
     await page.evaluate(async () => (await navigator.serviceWorker.ready).update());
-    await page.getByRole('button', {name: '새 버전 적용'}).waitFor();
+    await page.waitForFunction(() => window.checkpointStarted === true);
     assert.equal(navigations, 0);
-    assert.equal(await page.evaluate(async () => !!(await navigator.serviceWorker.ready).waiting), true);
-    page.once('dialog', dialog => dialog.dismiss());
-    await page.getByRole('button', {name: '새 버전 적용'}).click();
-    assert.equal(navigations, 0);
-    assert.equal(await page.evaluate(async () => !!(await navigator.serviceWorker.ready).waiting), true);
-    page.once('dialog', dialog => dialog.accept());
-    await Promise.all([
-      page.waitForEvent('load'),
-      page.getByRole('button', {name: '새 버전 적용'}).click(),
-    ]);
+    await Promise.all([page.waitForEvent('load'), page.evaluate(() => window.releaseCheckpoint())]);
     assert.equal(navigations, 1);
     assert.equal(await page.locator('#pwa-update').count(), 0);
     assert.equal(await page.evaluate(async () => !!(await navigator.serviceWorker.ready).waiting), false);
-    console.log('PASS PWA update waits; cancellation preserves app; consent activates and reloads once');
+    await page.evaluate(() => { window.suhoBeforeUpdate = async () => { throw Error('storage unavailable'); }; });
+    revision = 3;
+    await page.evaluate(async () => (await navigator.serviceWorker.ready).update());
+    await page.getByRole('button', {name:'저장 후 새로고침'}).waitFor();
+    assert.equal(navigations, 1);
+    await page.evaluate(() => { window.suhoBeforeUpdate = async () => {}; });
+    await Promise.all([page.waitForEvent('load'), page.getByRole('button', {name:'저장 후 새로고침'}).click()]);
+    assert.equal(navigations, 2);
+    console.log('PASS mandatory PWA update checkpoints before reload; failed storage blocks reload and permits retry');
   } finally {
     await browser.close();
     server.closeAllConnections();

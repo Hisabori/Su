@@ -1,47 +1,45 @@
-// Only an explicit update action activates a waiting worker and reloads this tab.
+// Required shell updates; server results and user storage are never cleared.
 if ('serviceWorker' in navigator && window.isSecureContext) {
-  let updateRequested = false;
-  let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (updateRequested && !reloading) {
-      reloading = true;
-      window.location.reload();
+  let refreshing = false;
+  async function prepareRefresh() {
+    let banner = document.getElementById('pwa-update');
+    if (!banner) {
+      banner = document.createElement('aside');
+      banner.id = 'pwa-update';
+      banner.setAttribute('role', 'alert');
+      banner.textContent = '필수 업데이트를 준비하고 있어요. 진행 중인 작업을 저장합니다.';
+      document.body.append(banner);
+    }
+    document.querySelector('flutter-view')?.setAttribute('inert', '');
+    if (typeof window.suhoBeforeUpdate === 'function') await window.suhoBeforeUpdate();
+    banner.textContent = '최신 버전으로 새로고침합니다.';
+  }
+  navigator.serviceWorker.addEventListener('message', async event => {
+    if (event.data?.type !== 'PREPARE_REFRESH' || refreshing) return;
+    refreshing = true;
+    try {
+      await prepareRefresh();
+      event.ports[0]?.postMessage({ready:true});
+    } catch (_) {
+      event.ports[0]?.postMessage({ready:false});
+      const banner = document.getElementById('pwa-update');
+      banner.textContent = '작업 임시저장을 확인하지 못했습니다. 저장 공간을 확인하고 다시 시도해 주세요.';
+      const retry = document.createElement('button');
+      retry.textContent = '저장 후 새로고침';
+      retry.onclick = async () => { try { await prepareRefresh(); window.location.reload(); } catch (_) { banner.textContent = '임시저장을 확인하지 못했습니다. 저장 공간을 확인해 주세요.'; banner.append(retry); retry.disabled = false; } };
+      banner.append(retry);
+      refreshing = false;
     }
   });
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register(
-        'service-worker.js', {updateViaCache: 'none'});
-      function offerUpdate() {
-        if (!registration.waiting || !navigator.serviceWorker.controller ||
-            document.getElementById('pwa-update')) return;
-        const banner = document.createElement('aside');
-        banner.id = 'pwa-update';
-        banner.setAttribute('aria-label', '앱 업데이트');
-        const message = document.createElement('span');
-        message.textContent = '새 버전이 준비됐습니다. 작업을 마친 뒤 적용해 주세요.';
-        const button = document.createElement('button');
-        button.textContent = '새 버전 적용';
-        button.onclick = () => {
-          if (!window.confirm('열려 있는 다른 수호천사 창에도 새 버전이 적용됩니다. 진행 중인 작업을 마친 뒤 업데이트할까요?')) return;
-          if (!registration.waiting) return;
-          updateRequested = true;
-          button.disabled = true;
-          button.textContent = '업데이트 중…';
-          registration.waiting.postMessage({type: 'ACTIVATE_UPDATE'});
-        };
-        banner.append(message, button);
-        document.body.append(banner);
-      }
-      offerUpdate();
-      registration.addEventListener('updatefound', () => {
-        const worker = registration.installing;
-        if (worker) worker.addEventListener('statechange', () => {
-          if (worker.state === 'installed') offerUpdate();
-        });
-      });
+      const registration = await navigator.serviceWorker.register('service-worker.js', {updateViaCache:'none'});
+      // Migrate a worker installed by an older app as well.
+      registration.waiting?.postMessage({type:'ACTIVATE_UPDATE'});
       await registration.update();
-    } catch (_) { /* Keep the app usable when offline or storage is unavailable. */ }
+      window.setInterval(() => { if (!document.hidden) registration.update().catch(() => {}); }, 60000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) registration.update().catch(() => {}); });
+    } catch (_) { /* An offline launch retains the last complete shell. */ }
   });
 }
 window.setTimeout(() => {

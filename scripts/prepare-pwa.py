@@ -14,7 +14,7 @@ worker = '''const CACHE = 'suho-shell-VERSION';
 const ASSETS = ASSET_LIST;
 const urls = ASSETS.map(path => new URL(path, self.registration.scope).href);
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(urls)));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(urls)).then(() => self.skipWaiting()));
 });
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'ACTIVATE_UPDATE') {
@@ -22,9 +22,23 @@ self.addEventListener('message', event => {
   }
 });
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(key => key.startsWith('suho-shell-') && key !== CACHE).map(key => caches.delete(key))
-  )).then(() => self.clients.claim()));
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const replacing = keys.some(key => key.startsWith('suho-shell-') && key !== CACHE);
+    const windows = replacing ? await self.clients.matchAll({type:'window', includeUncontrolled:true}) : [];
+    await Promise.all(keys.filter(key => key.startsWith('suho-shell-') && key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+    await Promise.all(windows.map(async client => {
+      const ready = await new Promise(resolve => {
+        const channel = new MessageChannel();
+        // Legacy pages have no handshake listener; invalidate those as requested.
+        const timeout = setTimeout(() => { channel.port1.close(); resolve(true); }, 60000);
+        channel.port1.onmessage = event => { clearTimeout(timeout); channel.port1.close(); resolve(event.data?.ready === true); };
+        client.postMessage({type:'PREPARE_REFRESH'}, [channel.port2]);
+      });
+      if (ready) client.navigate(client.url).catch(() => {}); // Do not await navigation inside activate: fetch waits for activation.
+    }));
+  })());
 });
 self.addEventListener('fetch', event => {
   const request = event.request;

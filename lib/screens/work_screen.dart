@@ -1,3 +1,4 @@
+import '../services/update_checkpoint.dart';
 import '../services/app_shortcut.dart';
 import '../widgets/app_activity_indicator.dart';
 import '../models/work_hours.dart';
@@ -111,6 +112,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    registerUpdateCheckpoint(() async {
+      while (mounted && (saving || checkingOut)) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }
+      if (!mounted) return;
+      await checkpoint();
+      if (draftWarning) throw StateError('Checkpoint unavailable');
+    });
     deviceMonitor = DeviceMonitor(
         fetch: fetchDeviceReading,
         history: DeviceHistoryService(
@@ -137,6 +146,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    registerUpdateCheckpoint(null);
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     deviceMonitor.dispose();
