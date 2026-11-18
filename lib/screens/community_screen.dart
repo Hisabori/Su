@@ -196,279 +196,255 @@ class _CommunityScreenState extends State<CommunityScreen> {
               constraints: BoxConstraints(maxWidth: 760),
               child: RefreshIndicator(
                   onRefresh: load,
-                  child: ListView.builder(
+                  child: ListView(
                       physics: AlwaysScrollableScrollPhysics(),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
-                      itemCount: visible.length + 2,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (AppStyle.isBeta(context))
-                                  Semantics(
-                                      container: true,
-                                      explicitChildNodes: true,
-                                      child: GlassSurface(
-                                          padding: EdgeInsets.all(24),
-                                          child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(children: [
-                                                  Icon(Icons.spa_outlined,
-                                                      color: AppStyle.mintOf(
-                                                          context),
-                                                      size: 18),
-                                                  SizedBox(width: 8),
-                                                  Text('우리의 작은 쉼터',
-                                                      style: TextStyle(
-                                                          color:
-                                                              AppStyle.mintOf(
-                                                                  context),
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w700))
-                                                ]),
-                                                SizedBox(height: 14),
-                                                Text('함께 나누는 이야기',
+                      children: [
+                        if (AppStyle.isBeta(context))
+                          Semantics(
+                              container: true,
+                              explicitChildNodes: true,
+                              child: GlassSurface(
+                                  padding: EdgeInsets.all(24),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          Icon(Icons.spa_outlined,
+                                              color: AppStyle.mintOf(context),
+                                              size: 18),
+                                          SizedBox(width: 8),
+                                          Text('우리의 작은 쉼터',
+                                              style: TextStyle(
+                                                  color:
+                                                      AppStyle.mintOf(context),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700))
+                                        ]),
+                                        SizedBox(height: 14),
+                                        Text('함께 나누는 이야기',
+                                            style: TextStyle(
+                                                fontSize: 26,
+                                                fontWeight: FontWeight.w800,
+                                                color:
+                                                    AppStyle.inkOf(context))),
+                                        SizedBox(height: 10),
+                                        Text(
+                                            me == null
+                                                ? '동료들과 일상의 이야기를 나눠보세요.'
+                                                : '$me 님, 오늘의 이야기를 들려주세요.',
+                                            style: TextStyle(
+                                                height: 1.7,
+                                                color:
+                                                    AppStyle.mutedOf(context))),
+                                      ])))
+                        else ...[
+                          Text('함께 나누는 이야기',
+                              style: TextStyle(
+                                  fontSize: 26, fontWeight: FontWeight.w800)),
+                          SizedBox(height: 10),
+                          Text(
+                              me == null
+                                  ? '동료들과 일상의 이야기를 나눠보세요.'
+                                  : '$me 님, 오늘의 이야기를 들려주세요.',
+                              style: TextStyle(height: 1.6)),
+                          SizedBox(height: 24),
+                        ],
+                        if (AppStyle.isBeta(context)) SizedBox(height: 24),
+                        TextField(
+                            controller: search,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) =>
+                                FocusScope.of(context).unfocus(),
+                            onTapOutside: (_) =>
+                                FocusScope.of(context).unfocus(),
+                            onChanged: (v) => setState(() => query = v),
+                            decoration: InputDecoration(
+                                suffixIcon: query.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        tooltip: '검색 지우기',
+                                        onPressed: () {
+                                          search.clear();
+                                          setState(() => query = '');
+                                        },
+                                        icon: Icon(Icons.close)),
+                                labelText: '불러온 글 검색',
+                                hintText: '제목 · 내용 · 작성자',
+                                prefixIcon: Icon(Icons.search))),
+                        SizedBox(height: 12),
+                        Wrap(spacing: 8, children: [
+                          FilterChip(
+                              label: Text('내 글만'),
+                              selected: onlyMine,
+                              onSelected: (v) => setState(() => onlyMine = v)),
+                          FilterChip(
+                              label: Text('공지'),
+                              selected: onlyNotices,
+                              onSelected: (v) =>
+                                  setState(() => onlyNotices = v)),
+                          FilterChip(
+                              label: Text('사진 있는 글'),
+                              selected: onlyPhotos,
+                              onSelected: (v) =>
+                                  setState(() => onlyPhotos = v)),
+                          Chip(label: Text('불러온 글 ${posts.length}개')),
+                          if (query.isNotEmpty ||
+                              onlyMine ||
+                              onlyNotices ||
+                              onlyPhotos ||
+                              sort != CommunitySort.newest)
+                            TextButton(
+                                onPressed: resetFilters, child: Text('필터 초기화'))
+                        ]),
+                        SizedBox(height: 12),
+                        Text('정렬 · 불러온 글 기준',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppStyle.mutedOf(context))),
+                        SizedBox(height: 6),
+                        Wrap(spacing: 8, runSpacing: 4, children: [
+                          for (final option in [
+                            (CommunitySort.newest, '최신순'),
+                            (CommunitySort.oldest, '오래된순'),
+                            (CommunitySort.notices, '공지 먼저'),
+                          ])
+                            ChoiceChip(
+                                label: Text(option.$2),
+                                selected: sort == option.$1,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() => sort = option.$1);
+                                  }
+                                }),
+                        ]),
+                        SizedBox(height: 12),
+                        if (!loading &&
+                            (query.isNotEmpty ||
+                                onlyMine ||
+                                onlyNotices ||
+                                onlyPhotos))
+                          Padding(
+                              padding: EdgeInsets.only(bottom: 12),
+                              child: Semantics(
+                                  container: true,
+                                  child: Text(
+                                      '검색 결과 ${visible.length}개 · 불러온 글 기준',
+                                      style: TextStyle(
+                                          color: AppStyle.mutedOf(context))))),
+                        if (!loading && posts.isNotEmpty && visible.isEmpty)
+                          Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
+                        if (error != null)
+                          GlassCard(
+                              child: Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Column(children: [
+                                    Text(error!),
+                                    SizedBox(height: 12),
+                                    OutlinedButton(
+                                        onPressed: loading ? null : load,
+                                        child: Text('다시 시도'))
+                                  ]))),
+                        if (loading && posts.isNotEmpty)
+                          LinearProgressIndicator(),
+                        if (loading && posts.isEmpty)
+                          Padding(
+                              padding: EdgeInsets.all(24),
+                              child: AppStyle.isBeta(context)
+                                  ? const LoadingSkeleton(
+                                      label: '동료들의 이야기를 불러오고 있어요.',
+                                      scrollable: false)
+                                  : Center(child: AppActivityIndicator())),
+                        if (!loading && error == null && posts.isEmpty)
+                          Padding(
+                              padding: EdgeInsets.symmetric(vertical: 64),
+                              child: Column(children: [
+                                AppIcon(AppIconKind.community, size: 48),
+                                SizedBox(height: 16),
+                                Text('아직 이야기가 없어요.',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800)),
+                                SizedBox(height: 8),
+                                Text('첫 번째 이야기를 남겨보세요.')
+                              ])),
+                        for (final post in visible)
+                          GlassCard(
+                              semanticContainer: false,
+                              margin: EdgeInsets.only(bottom: 16),
+                              child: Padding(
+                                  padding: EdgeInsets.all(22),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          CircleAvatar(
+                                              radius: 18,
+                                              child: Icon(Icons.person_outline,
+                                                  size: 20)),
+                                          SizedBox(width: 10),
+                                          Expanded(
+                                              child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                Text('${post['author']}',
                                                     style: TextStyle(
-                                                        fontSize: 26,
+                                                        fontWeight:
+                                                            FontWeight.w800)),
+                                                Text(stamp(post['createdAt']),
+                                                    style:
+                                                        TextStyle(fontSize: 12))
+                                              ])),
+                                          if (post['mine'] == true)
+                                            IconButton(
+                                                tooltip: '내 글 삭제',
+                                                onPressed: deleting
+                                                    ? null
+                                                    : () => remove(post),
+                                                icon:
+                                                    Icon(Icons.delete_outline))
+                                        ]),
+                                        SizedBox(height: 18),
+                                        if (post['pinned'] == true)
+                                          Chip(label: Text('공지')),
+                                        if (post['hasImage'] == true)
+                                          Text('사진 첨부'),
+                                        InkWell(
+                                            onTap: () => openPost(post),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 6),
+                                                child: Text('${post['title']}',
+                                                    style: TextStyle(
+                                                        fontSize: 20,
                                                         fontWeight:
                                                             FontWeight.w800,
-                                                        color: AppStyle.inkOf(
-                                                            context))),
-                                                SizedBox(height: 10),
-                                                Text(
-                                                    me == null
-                                                        ? '동료들과 일상의 이야기를 나눠보세요.'
-                                                        : '$me 님, 오늘의 이야기를 들려주세요.',
-                                                    style: TextStyle(
-                                                        height: 1.7,
-                                                        color: AppStyle.mutedOf(
-                                                            context))),
-                                              ])))
-                                else ...[
-                                  Text('함께 나누는 이야기',
-                                      style: TextStyle(
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w800)),
-                                  SizedBox(height: 10),
-                                  Text(
-                                      me == null
-                                          ? '동료들과 일상의 이야기를 나눠보세요.'
-                                          : '$me 님, 오늘의 이야기를 들려주세요.',
-                                      style: TextStyle(height: 1.6)),
-                                  SizedBox(height: 24),
-                                ],
-                                if (AppStyle.isBeta(context))
-                                  SizedBox(height: 24),
-                                TextField(
-                                    controller: search,
-                                    textInputAction: TextInputAction.search,
-                                    onSubmitted: (_) =>
-                                        FocusScope.of(context).unfocus(),
-                                    onTapOutside: (_) =>
-                                        FocusScope.of(context).unfocus(),
-                                    onChanged: (v) => setState(() => query = v),
-                                    decoration: InputDecoration(
-                                        suffixIcon: query.isEmpty
-                                            ? null
-                                            : IconButton(
-                                                tooltip: '검색 지우기',
-                                                onPressed: () {
-                                                  search.clear();
-                                                  setState(() => query = '');
-                                                },
-                                                icon: Icon(Icons.close)),
-                                        labelText: '불러온 글 검색',
-                                        hintText: '제목 · 내용 · 작성자',
-                                        prefixIcon: Icon(Icons.search))),
-                                SizedBox(height: 12),
-                                Wrap(spacing: 8, children: [
-                                  FilterChip(
-                                      label: Text('내 글만'),
-                                      selected: onlyMine,
-                                      onSelected: (v) =>
-                                          setState(() => onlyMine = v)),
-                                  FilterChip(
-                                      label: Text('공지'),
-                                      selected: onlyNotices,
-                                      onSelected: (v) =>
-                                          setState(() => onlyNotices = v)),
-                                  FilterChip(
-                                      label: Text('사진 있는 글'),
-                                      selected: onlyPhotos,
-                                      onSelected: (v) =>
-                                          setState(() => onlyPhotos = v)),
-                                  Chip(label: Text('불러온 글 ${posts.length}개')),
-                                  if (query.isNotEmpty ||
-                                      onlyMine ||
-                                      onlyNotices ||
-                                      onlyPhotos ||
-                                      sort != CommunitySort.newest)
-                                    TextButton(
-                                        onPressed: resetFilters,
-                                        child: Text('필터 초기화'))
-                                ]),
-                                SizedBox(height: 12),
-                                Text('정렬 · 불러온 글 기준',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppStyle.mutedOf(context))),
-                                SizedBox(height: 6),
-                                Wrap(spacing: 8, runSpacing: 4, children: [
-                                  for (final option in [
-                                    (CommunitySort.newest, '최신순'),
-                                    (CommunitySort.oldest, '오래된순'),
-                                    (CommunitySort.notices, '공지 먼저'),
-                                  ])
-                                    ChoiceChip(
-                                        label: Text(option.$2),
-                                        selected: sort == option.$1,
-                                        onSelected: (selected) {
-                                          if (selected) {
-                                            setState(() => sort = option.$1);
-                                          }
-                                        }),
-                                ]),
-                                SizedBox(height: 12),
-                                if (!loading &&
-                                    (query.isNotEmpty ||
-                                        onlyMine ||
-                                        onlyNotices ||
-                                        onlyPhotos))
-                                  Padding(
-                                      padding: EdgeInsets.only(bottom: 12),
-                                      child: Semantics(
-                                          container: true,
-                                          child: Text(
-                                              '검색 결과 ${visible.length}개 · 불러온 글 기준',
-                                              style: TextStyle(
-                                                  color: AppStyle.mutedOf(
-                                                      context))))),
-                                if (!loading &&
-                                    posts.isNotEmpty &&
-                                    visible.isEmpty)
-                                  Text('검색 조건에 맞는 글이 없어요. 이전 글도 불러와 보세요.'),
-                                if (error != null)
-                                  GlassCard(
-                                      child: Padding(
-                                          padding: EdgeInsets.all(20),
-                                          child: Column(children: [
-                                            Text(error!),
-                                            SizedBox(height: 12),
-                                            OutlinedButton(
-                                                onPressed:
-                                                    loading ? null : load,
-                                                child: Text('다시 시도'))
-                                          ]))),
-                                if (loading && posts.isNotEmpty)
-                                  LinearProgressIndicator(),
-                                if (loading && posts.isEmpty)
-                                  Padding(
-                                      padding: EdgeInsets.all(24),
-                                      child: AppStyle.isBeta(context)
-                                          ? const LoadingSkeleton(
-                                              label: '동료들의 이야기를 불러오고 있어요.',
-                                              scrollable: false)
-                                          : Center(
-                                              child:
-                                                  AppActivityIndicator())),
-                                if (!loading && error == null && posts.isEmpty)
-                                  Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 64),
-                                      child: Column(children: [
-                                        AppIcon(AppIconKind.community,
-                                            size: 48),
-                                        SizedBox(height: 16),
-                                        Text('아직 이야기가 없어요.',
+                                                        height: 1.4)))),
+                                        SizedBox(height: 10),
+                                        Text('${post['body']}',
+                                            maxLines: 4,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w800)),
-                                        SizedBox(height: 8),
-                                        Text('첫 번째 이야기를 남겨보세요.')
-                                      ])),
-                              ]);
-                        }
-                        if (index == visible.length + 1) {
-                          return cursor != null && !loading
-                              ? OutlinedButton(
-                                  onPressed: () => load(more: true),
-                                  child: Text('이전 글 더 보기'))
-                              : const SizedBox.shrink();
-                        }
-                        final post = visible[index - 1];
-                        return GlassCard(
-                            semanticContainer: false,
-                            margin: EdgeInsets.only(bottom: 16),
-                            child: Padding(
-                                padding: EdgeInsets.all(22),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(children: [
-                                        CircleAvatar(
-                                            radius: 18,
-                                            child: Icon(Icons.person_outline,
-                                                size: 20)),
-                                        SizedBox(width: 10),
-                                        Expanded(
-                                            child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                              Text('${post['author']}',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w800)),
-                                              Text(stamp(post['createdAt']),
-                                                  style:
-                                                      TextStyle(fontSize: 12))
-                                            ])),
-                                        if (post['mine'] == true)
-                                          IconButton(
-                                              tooltip: '내 글 삭제',
-                                              onPressed: deleting
-                                                  ? null
-                                                  : () => remove(post),
-                                              icon: Icon(Icons.delete_outline))
-                                      ]),
-                                      SizedBox(height: 18),
-                                      if (post['pinned'] == true)
-                                        Chip(label: Text('공지')),
-                                      if (post['hasImage'] == true)
-                                        Text('사진 첨부'),
-                                      InkWell(
-                                          onTap: () => openPost(post),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          child: Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 6),
-                                              child: Text('${post['title']}',
-                                                  style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      height: 1.4)))),
-                                      SizedBox(height: 10),
-                                      Text('${post['body']}',
-                                          maxLines: 4,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              fontSize: 16, height: 1.7)),
-                                      SizedBox(height: 12),
-                                      OutlinedButton.icon(
-                                          onPressed: () => openPost(post),
-                                          icon: Icon(Icons.chat_bubble_outline),
-                                          label: Text('댓글 · 좋아요')),
-                                    ])));
-                      })))),
+                                                fontSize: 16, height: 1.7)),
+                                        SizedBox(height: 12),
+                                        OutlinedButton.icon(
+                                            onPressed: () => openPost(post),
+                                            icon:
+                                                Icon(Icons.chat_bubble_outline),
+                                            label: Text('댓글 · 좋아요')),
+                                      ]))),
+                        if (cursor != null && !loading)
+                          OutlinedButton(
+                              onPressed: () => load(more: true),
+                              child: Text('이전 글 더 보기')),
+                      ])))),
     );
   }
 }

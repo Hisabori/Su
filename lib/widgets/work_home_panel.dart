@@ -25,8 +25,8 @@ class WorkHomePanel extends StatelessWidget {
         padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
             color: AppStyle.isDark(context)
-                ? Color(0xFF26382F)
-                : Color(0xFFF2F7F5),
+                ? Color(0xFF2C2C2E)
+                : Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(16)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label,

@@ -1,3 +1,4 @@
+import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
 import '../services/app_shortcut.dart';
 import '../widgets/app_activity_indicator.dart';
@@ -1370,7 +1371,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                           Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: AppearanceModePicker()),
-                          SwitchListTile(
+                          AppSwitchTile(
                               title: Text('자동 로그인'),
                               subtitle: Text('앱을 다시 열 때 저장된 세션을 서버에서 확인합니다.'),
                               value: autoLoginEnabled,
@@ -1397,7 +1398,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                         }
                                       }
                                     }),
-                          SwitchListTile(
+                          AppSwitchTile(
                               title: Text('질문 자동 읽기'),
                               subtitle: Text(speechEnabled
                                   ? '질문을 자동으로 읽습니다.'

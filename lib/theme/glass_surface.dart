@@ -30,9 +30,9 @@ class GlassSurface extends StatelessWidget {
                     ? [AppStyle.surfaceOf(context), AppStyle.surfaceOf(context)]
                     : dark
                         ? const [
-                            Color(0xE635493F),
-                            Color(0xD21B2924),
-                            Color(0xDB23352F)
+                            Color(0xE638383C),
+                            Color(0xD21C1C1E),
+                            Color(0xDB242428)
                           ]
                         : const [
                             Color(0xEFFFFFFF),
@@ -215,14 +215,14 @@ class GlassBackdrop extends StatelessWidget {
                                 end: Alignment.bottomRight,
                                 colors: AppStyle.isDark(context)
                                     ? const [
-                                        Color(0xFF101B16),
-                                        Color(0xFF15251E),
-                                        Color(0xFF111D23)
+                                        Color(0xFF101012),
+                                        Color(0xFF19191D),
+                                        Color(0xFF14141A)
                                       ]
                                     : const [
-                                        Color(0xFFF2F7F5),
-                                        Color(0xFFFAFAF7),
-                                        Color(0xFFF2F7F5)
+                                        Color(0xFFF2F2F7),
+                                        Color(0xFFFAFAFC),
+                                        Color(0xFFF2F2F7)
                                       ])
                             : null)))),
         Positioned.fill(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoThemeData;
 import 'package:flutter/material.dart';
 import 'liquid_page_transition.dart';
 import 'appearance_scope.dart';
@@ -8,15 +9,15 @@ abstract final class AppStyle {
   static bool isDark(BuildContext context) =>
       isBeta(context) && Theme.of(context).brightness == Brightness.dark;
   static Color inkOf(BuildContext context) =>
-      isDark(context) ? const Color(0xFFE8F0ED) : ink;
+      isDark(context) ? const Color(0xFFF2F2F7) : ink;
   static Color mutedOf(BuildContext context) =>
-      isDark(context) ? const Color(0xFFADBEB7) : muted;
+      isDark(context) ? const Color(0xFFAEAEB2) : muted;
   static Color lineOf(BuildContext context) =>
-      isDark(context) ? const Color(0xFF3E5149) : line;
+      isDark(context) ? const Color(0xFF38383A) : line;
   static Color surfaceOf(BuildContext context) =>
-      isDark(context) ? const Color(0xFF1B2924) : Colors.white;
+      isDark(context) ? const Color(0xFF1C1C1E) : Colors.white;
   static Color mintOf(BuildContext context) =>
-      isDark(context) ? const Color(0xFF8ED6BA) : teal;
+      isDark(context) ? const Color(0xFF6DD6BD) : teal;
   static Color blueOf(BuildContext context) =>
       isDark(context) ? const Color(0xFFAACFFF) : blue;
   static Color coralOf(BuildContext context) =>
@@ -37,6 +38,51 @@ abstract final class AppStyle {
         useMaterial3: true,
         fontFamily: 'NanumGothic',
         visualDensity: VisualDensity.standard,
+        actionIconTheme: ActionIconThemeData(
+            backButtonIconBuilder: (_) =>
+                const Icon(Icons.chevron_left_rounded, size: 28)),
+        cupertinoOverrideTheme: const CupertinoThemeData(primaryColor: blue),
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.7,
+              height: 1.22),
+          titleLarge: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -.35,
+              height: 1.3),
+          bodyLarge: TextStyle(fontSize: 17, height: 1.5, letterSpacing: -.15),
+          bodyMedium: TextStyle(fontSize: 15, height: 1.5, letterSpacing: -.1),
+          labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        listTileTheme: const ListTileThemeData(
+          minTileHeight: 54,
+          horizontalTitleGap: 14,
+          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          titleTextStyle: TextStyle(
+              fontFamily: 'NanumGothic',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: ink),
+          subtitleTextStyle: TextStyle(
+              fontFamily: 'NanumGothic',
+              fontSize: 13,
+              height: 1.5,
+              color: muted),
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: const Color(0xCCFFFFFF),
+          selectedColor: const Color(0x1F0867C5),
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
+          labelStyle: const TextStyle(
+              fontFamily: 'NanumGothic',
+              fontSize: 13,
+              fontWeight: FontWeight.w600),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+        ),
         iconTheme: const IconThemeData(color: blue, size: 22),
         iconButtonTheme: IconButtonThemeData(
             style: IconButton.styleFrom(
@@ -72,7 +118,9 @@ abstract final class AppStyle {
         bottomSheetTheme: const BottomSheetThemeData(
             backgroundColor: Color(0xF0FFFFFF),
             surfaceTintColor: Colors.transparent,
-            showDragHandle: true),
+            showDragHandle: true,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)))),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
             backgroundColor: Color(0xE6FFFFFF),
             foregroundColor: navy,
@@ -89,17 +137,18 @@ abstract final class AppStyle {
             foregroundColor: ink,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
-            centerTitle: false,
+            centerTitle: true,
+            toolbarHeight: 56,
             titleTextStyle: TextStyle(
                 fontFamily: 'NanumGothic',
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
                 color: ink)),
         filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
                 minimumSize: const Size(48, 54),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18)),
+                    borderRadius: BorderRadius.circular(28)),
                 textStyle: const TextStyle(
                     fontFamily: 'NanumGothic',
                     fontSize: 17,
@@ -133,21 +182,36 @@ abstract final class AppStyle {
                 primary: const Color(0xFF9AD7C2),
                 onPrimary: const Color(0xFF14382D),
                 secondary: const Color(0xFFAFCFFF),
-                surface: const Color(0xFF1B2924),
-                onSurface: const Color(0xFFE8F0ED),
-                onSurfaceVariant: const Color(0xFFADBEB7),
-                outlineVariant: const Color(0xFF3E5149));
+                surface: const Color(0xFF1C1C1E),
+                onSurface: const Color(0xFFF2F2F7),
+                onSurfaceVariant: const Color(0xFFAEAEB2),
+                outlineVariant: const Color(0xFF38383A));
     final light = theme();
     return ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
+        cupertinoOverrideTheme: const CupertinoThemeData(
+            brightness: Brightness.dark, primaryColor: Color(0xFFAACFFF)),
+        textTheme: light.textTheme
+            .apply(bodyColor: colors.onSurface, displayColor: colors.onSurface),
+        listTileTheme: light.listTileTheme.copyWith(
+            titleTextStyle: light.listTileTheme.titleTextStyle
+                ?.copyWith(color: colors.onSurface),
+            subtitleTextStyle: light.listTileTheme.subtitleTextStyle
+                ?.copyWith(color: colors.onSurfaceVariant)),
+        chipTheme: light.chipTheme.copyWith(
+            backgroundColor: const Color(0xFF2C2C2E),
+            selectedColor: const Color(0x443A78AC),
+            labelStyle:
+                light.chipTheme.labelStyle?.copyWith(color: colors.onSurface)),
         fontFamily: 'NanumGothic',
         colorScheme: colors,
         extensions: const [BetaTheme()],
         scaffoldBackgroundColor: Colors.transparent,
         pageTransitionsTheme: light.pageTransitionsTheme,
+        actionIconTheme: light.actionIconTheme,
         appBarTheme: light.appBarTheme.copyWith(
-            backgroundColor: const Color(0xF2111D18),
+            backgroundColor: const Color(0xF21C1C1E),
             foregroundColor: colors.onSurface,
             titleTextStyle: light.appBarTheme.titleTextStyle
                 ?.copyWith(color: colors.onSurface)),
@@ -156,7 +220,7 @@ abstract final class AppStyle {
             style: IconButton.styleFrom(
                 minimumSize: const Size(48, 48),
                 foregroundColor: const Color(0xFFAFCFFF),
-                backgroundColor: const Color(0xD022332B),
+                backgroundColor: const Color(0xD02C2C2E),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)))),
         cardTheme: light.cardTheme.copyWith(color: colors.surface),
@@ -172,20 +236,11 @@ abstract final class AppStyle {
             style: light.outlinedButtonTheme.style?.copyWith(
                 side: WidgetStatePropertyAll(
                     BorderSide(color: colors.outlineVariant)))),
-        inputDecorationTheme: light.inputDecorationTheme.copyWith(
-            fillColor: const Color(0xFF26382F),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: colors.outlineVariant)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: colors.primary, width: 1.5))),
+        inputDecorationTheme:
+            light.inputDecorationTheme.copyWith(fillColor: const Color(0xFF2C2C2E), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: colors.outlineVariant)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: colors.primary, width: 1.5))),
         tooltipTheme: light.tooltipTheme,
-        snackBarTheme: light.snackBarTheme.copyWith(
-            backgroundColor: const Color(0xFFDBE9E2),
-            contentTextStyle: const TextStyle(color: Color(0xFF17291E))),
-        progressIndicatorTheme: ProgressIndicatorThemeData(
-            color: colors.primary, linearTrackColor: colors.outlineVariant),
+        snackBarTheme: light.snackBarTheme.copyWith(backgroundColor: const Color(0xFFDBE9E2), contentTextStyle: const TextStyle(color: Color(0xFF17291E))),
+        progressIndicatorTheme: ProgressIndicatorThemeData(color: colors.primary, linearTrackColor: colors.outlineVariant),
         dividerTheme: DividerThemeData(color: colors.outlineVariant));
   }
 }
