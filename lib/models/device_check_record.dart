@@ -33,5 +33,6 @@ class DeviceCheckRecord {
         '기기상태체크': checkStatus,
         '시간': formatDateTime(at),
         'isAvailable': available,
+        '업무내용': '기기체크',
       };
 }
