@@ -40,7 +40,8 @@ void main() {
         'device_name': '수거기',
         '기기상태체크': item.$2,
         '시간': '2026-11-19 09:12:00',
-        'isAvailable': true
+        'isAvailable': true,
+        '업무내용': '기기체크'
       });
     }
   });

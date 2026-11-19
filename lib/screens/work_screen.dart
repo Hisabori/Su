@@ -1,4 +1,4 @@
-import '../models/device_check_record.dart';
+import '../services/device_check_journal.dart';
 import '../widgets/glass_action_bar.dart';
 import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
@@ -98,6 +98,17 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   List<Map<String, dynamic>> completedHistory = [];
   final answers = <Map<String, dynamic>>[];
   final deviceChecks = <Map<String, dynamic>>[];
+  final deviceCheckKeys = <String>[];
+  final _manualDeviceReads = <Future<DeviceReading?>>{};
+  late final deviceCheckJournal = DeviceCheckJournal(
+      records: deviceChecks,
+      keys: deviceCheckKeys,
+      persist: () async {
+        await checkpoint();
+        if (draftWarning) {
+          throw StateError('Device check checkpoint unavailable');
+        }
+      });
   Map<String, dynamic>? pendingRecord;
   DateTime? scheduleAnchor, plannedStart;
   bool enteringRest = false, promptPending = false, automaticEnd = false;
@@ -323,6 +334,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         'step_rest_seconds': stepRestSeconds,
         'answers': answers,
         'device_checks': deviceChecks,
+        'device_check_keys': deviceCheckKeys,
         'pending_record': pendingRecord,
         'awaiting_save': awaitingSave,
         'prompt_pending': promptPending,
@@ -403,6 +415,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           .addAll((restored['answers'] as List).cast<Map<String, dynamic>>());
       deviceChecks.addAll(
           (restored['device_checks'] as List).cast<Map<String, dynamic>>());
+      deviceCheckKeys.addAll(
+          (restored['device_check_keys'] as List? ?? []).whereType<String>());
       pendingRecord = restored['pending_record'] as Map<String, dynamic>?;
       awaitingSave = restored['awaiting_save'] == true || pendingRecord != null;
       promptPending = restored['prompt_pending'] == true;
@@ -608,36 +622,56 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
-  bool _recordingDeviceCheck = false;
+  bool get canRecordDeviceCheck =>
+      mounted &&
+      started &&
+      !complete &&
+      !awaitingSave &&
+      !saving &&
+      !submitting &&
+      !checkedOut &&
+      !checkingOut &&
+      pendingRecord == null &&
+      sessionUser != null;
 
   Future<void> recordDeviceCheck(DeviceReading reading) async {
-    if (_recordingDeviceCheck || !started || complete || awaitingSave ||
-        saving || checkedOut || checkingOut || reading.error != null ||
-        reading.available == null) return;
-    final current = reading.current;
-    final capacity = reading.capacity;
-    if (reading.available == true &&
-        (current == null || capacity == null || !current.isFinite ||
-         !capacity.isFinite || current < 0 || capacity <= 0)) return;
-    _recordingDeviceCheck = true;
-    try {
-      final record = DeviceCheckRecord(
-        name: reading.name, at: reading.at, available: reading.available!,
-        current: current, capacity: capacity,
-      ).toResultJson();
-      if (deviceChecks.any((item) =>
-          item['type'] == 'device_check' &&
-          item['device_name'] == record['device_name'] &&
-          item['시간'] == record['시간'])) return;
-      deviceChecks.add(record);
-      await checkpoint();
-      if (draftWarning) {
-        deviceChecks.remove(record);
-        notice('수거기 점검 기록을 저장하지 못했습니다.');
-      }
-    } finally {
-      _recordingDeviceCheck = false;
+    if (!canRecordDeviceCheck) return;
+    await deviceCheckJournal.record(reading, userId: sessionUser!);
+    if (deviceCheckJournal.persistenceFailed) {
+      notice('점검 기록은 보관 중입니다. 기기 내 저장을 다시 시도해 주세요.');
     }
+  }
+
+  Future<DeviceReading?> fetchManualDeviceReading() {
+    final recordForWork = canRecordDeviceCheck;
+    final user = sessionUser;
+    late final Future<DeviceReading?> request;
+    request = (() async {
+      try {
+        final reading = await fetchDeviceReading();
+        // Finish drains reads that began during work before freezing its payload.
+        if (recordForWork &&
+            reading != null &&
+            mounted &&
+            !complete &&
+            !checkedOut &&
+            pendingRecord == null &&
+            sessionUser == user) {
+          await deviceCheckJournal.record(reading, userId: user!);
+          if (deviceCheckJournal.persistenceFailed) {
+            notice('점검 기록은 보관 중입니다. 기기 내 저장을 다시 시도해 주세요.');
+          }
+        }
+        return reading;
+      } catch (_) {
+        notice('기기 조회에 실패했습니다. 기존 점검 기록은 유지됩니다.');
+        return null;
+      } finally {
+        _manualDeviceReads.remove(request);
+      }
+    })();
+    if (recordForWork) _manualDeviceReads.add(request);
+    return request;
   }
 
   Future<void> showDeviceHistory({bool recordOnOpen = true}) async {
@@ -655,8 +689,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     try {
       if (recordOnOpen) {
-        final reading = await fetchDeviceReading();
-        if (reading != null) await recordDeviceCheck(reading);
+        await fetchManualDeviceReading();
       }
       await pollDevice(announce: false);
       if (!mounted) return;
@@ -669,8 +702,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   partner: partner,
                   kiosk: kiosk,
                   onRefresh: () async {
-                    final reading = await fetchDeviceReading();
-                    if (reading != null) await recordDeviceCheck(reading);
+                    await fetchManualDeviceReading();
                     await pollDevice(force: true);
                   })));
     } finally {
@@ -679,77 +711,44 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> showDevice() async {
-    final device = await TokenStorageService().device();
-    if (!mounted) return;
-    final partner = (device['company_device_name'] ?? '').toString().trim();
-    final kioskId = (device['kiosk_id'] ?? '').toString().trim();
-    if (partner.isEmpty || kioskId.isEmpty) {
-      notice('배정된 기기가 없습니다.');
-      return;
-    }
-    await stopAudio();
-    if (!mounted) return;
+    if (!mounted || checkedOut || checkingOut) return;
+    holdMedia();
     try {
-      final response = await api.kioskInfo(partner, kioskId: kioskId);
-      final kiosks = response['kiosks'];
-      if (kiosks is! List) throw ApiFailure('기기 현황을 불러오지 못했습니다.');
-      final matches = kiosks
-          .whereType<Map>()
-          .where((k) => (k['kioskId'] ?? k['kioskID']).toString() == kioskId)
-          .toList();
-      if (matches.isEmpty) throw ApiFailure('배정된 기기를 찾을 수 없습니다.');
-      final kiosk = matches.first;
-      final current = num.tryParse('${kiosk['currentCapacity']}');
-      final max = num.tryParse('${kiosk['maxCapacity']}');
-      final rawAvailable = kiosk['isAvailable'];
-      final bool? available = rawAvailable == true || rawAvailable == 1
-          ? true
-          : rawAvailable == false || rawAvailable == 0
-              ? false
-              : null;
-      final status = available == null
-          ? '상태 미확인'
-          : !available
-              ? '사용 불가'
-              : current == null || max == null || current < 0 || max <= 0
-                  ? '상태 미확인'
-                  : current >= max
-                      ? '가득참'
-                      : current == 0
-                          ? '비어있음'
-                          : '사용중';
-      final name = (kiosk['name'] ?? partner).toString();
-      final currentUser = await api.tokens.userId();
-      if (currentUser != null) {
-        await recordDeviceCheck(DeviceReading(
-          userId: currentUser, partner: partner, kiosk: kioskId, name: name,
-          at: DateTime.now(), current: current, capacity: max,
-          available: available,
-        ));
-      }
-      if (!mounted) return;
+      await stopAudio();
+      final reading = await fetchManualDeviceReading();
+      if (!mounted || reading == null) return;
+      if (reading.error != null) throw ApiFailure(reading.error!);
       if (AppStyle.isBeta(context)) {
         await showDeviceHistory(recordOnOpen: false);
         return;
       }
-      holdMedia();
-      try {
-        await showDialog<void>(
-            context: context,
-            builder: (context) => KioskStatusDialog(
-                name: name,
-                status: status,
-                current: current,
-                capacity: max,
-                onHistory: () {
-                  Navigator.pop(context);
-                  showDeviceHistory();
-                }));
-      } finally {
-        if (mounted) releaseMedia();
-      }
+      final current = reading.current, max = reading.capacity;
+      final status = reading.available == null
+          ? '상태 미확인'
+          : reading.available == false
+              ? '사용 불가'
+              : reading.percent == null
+                  ? '상태 미확인'
+                  : current! >= max!
+                      ? '가득참'
+                      : current == 0
+                          ? '비어있음'
+                          : '사용중';
+      await showDialog<void>(
+          context: context,
+          builder: (context) => KioskStatusDialog(
+              name: reading.name,
+              status: status,
+              current: current,
+              capacity: max,
+              onHistory: () {
+                Navigator.pop(context);
+                showDeviceHistory(recordOnOpen: false);
+              }));
     } catch (e) {
       notice(e is ApiFailure ? e.message : '기기 현황을 불러오지 못했습니다.');
+    } finally {
+      if (mounted) releaseMedia();
     }
   }
 
@@ -936,6 +935,9 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     submitting = true;
     setState(() => saving = true);
     try {
+      await Future.wait(_manualDeviceReads.toList());
+      await deviceCheckJournal.flush();
+      if (!mounted) return;
       final id = await TokenStorageService().userId();
       if (id == null) throw ApiFailure('다시 로그인해 주세요.');
       final now = automaticEnd
