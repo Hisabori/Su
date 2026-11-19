@@ -1,3 +1,4 @@
+import '../models/device_check_record.dart';
 import '../widgets/glass_action_bar.dart';
 import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
@@ -658,8 +659,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           .toList();
       if (matches.isEmpty) throw ApiFailure('배정된 기기를 찾을 수 없습니다.');
       final kiosk = matches.first;
-      final current = integer(kiosk['currentCapacity']);
-      final max = integer(kiosk['maxCapacity']);
+      final current = num.tryParse('${kiosk['currentCapacity']}');
+      final max = num.tryParse('${kiosk['maxCapacity']}');
       final rawAvailable = kiosk['isAvailable'];
       final bool? available = rawAvailable == true || rawAvailable == 1
           ? true
@@ -679,13 +680,14 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                           : '사용중';
       final name = (kiosk['name'] ?? partner).toString();
       if (started && !complete && !awaitingSave && available != null) {
-        deviceChecks.add({
-          'type': 'device_check',
-          'device_name': name,
-          '기기상태체크': status,
-          '시간': formatDateTime(DateTime.now()),
-          'isAvailable': available
-        });
+        deviceChecks.add(DeviceCheckRecord(
+                name: name,
+                at: DateTime.now(),
+                current: current,
+                capacity: max,
+                available: available)
+            .toResultJson());
+        await checkpoint();
       }
       if (!mounted) return;
       if (AppStyle.isBeta(context)) {

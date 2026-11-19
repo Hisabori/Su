@@ -12,13 +12,18 @@ class KioskStatusDialog extends StatelessWidget {
       this.onHistory});
   final String name, status;
   final VoidCallback? onHistory;
-  final int? current, capacity;
+  final num? current, capacity;
 
   @override
   Widget build(BuildContext context) {
-    final valid =
-        current != null && current! >= 0 && capacity != null && capacity! > 0;
-    final ratio = valid ? current! / capacity! : null;
+    final valid = current != null &&
+        current!.isFinite &&
+        current! >= 0 &&
+        capacity != null &&
+        capacity!.isFinite &&
+        capacity! > 0;
+    final rawRatio = valid ? current! / capacity! : null;
+    final ratio = rawRatio?.isFinite == true ? rawRatio : null;
     final scale = (MediaQuery.sizeOf(context).width / 524).clamp(.72, 1.0);
     final badgeColor = switch (status) {
       '비어있음' => Color(0xFF32BDE8),

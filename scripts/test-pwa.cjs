@@ -114,7 +114,7 @@ let debugPage;
  assert.equal(result.body.start_time,'2026-11-15 09:15:00');assert.equal(result.body.end_time,'2026-11-15 09:15:00');
  assert.equal(result.method,'PUT');assert.equal(JSON.parse(result.body.result_json).length,3);
  assert.equal(JSON.parse(result.body.result_json).filter(row=>row.type==='device_check').length,1);
- assert.equal(JSON.parse(result.body.result_json).find(row=>row.type==='device_check')['기기상태체크'],'비어있음');
+ assert.equal(JSON.parse(result.body.result_json).find(row=>row.type==='device_check')['기기상태체크'],'0.0%');
  assert.equal(JSON.parse(result.body.result_json)[0]['비고'],1);
  await page.getByRole('button',{name:'근무기록 자세히 보기',exact:true}).click();
  await page.getByRole('group',{name:/서버 저장 완료/}).waitFor();
