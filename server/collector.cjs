@@ -36,7 +36,7 @@ function createCollector({blob,read,write,upstream,fail,now}) {
   let reading={...device,at:new Date(at).toISOString(),name:device.partner,current:null,capacity:null,available:null,error:null,error_code:null};
   try {
    let reply=await upstream('/api/admin/kiosk_info',{partnerId:device.partner},token,false);
-   const matched=reply.status===200&&Array.isArray(reply.data.kiosks)&&reply.data.kiosks.some(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk);
+   const matched=reply.status===200&&Array.isArray(reply.data.kiosks)&&reply.data.kiosks.some(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk&&number(r.currentCapacity)!=null&&number(r.currentCapacity)>=0&&number(r.maxCapacity)>0);
    if(reply.status===400||reply.status===422||(reply.status===200&&!matched)) {
     reply=await upstream('/api/admin/kiosk_info',{partnerIds:[device.partner]},token,false);
    }

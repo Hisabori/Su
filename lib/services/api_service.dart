@@ -218,10 +218,20 @@ class ApiService {
     }
     final rows = reply['kiosks'];
     final found = rows is List &&
-        rows.isNotEmpty &&
-        (kioskId == null ||
-            rows.whereType<Map>().any(
-                (row) => '${row['kioskId'] ?? row['kioskID']}' == kioskId));
+        rows.whereType<Map>().any((row) {
+          if (kioskId != null &&
+              '${row['kioskId'] ?? row['kioskID']}' != kioskId) {
+            return false;
+          }
+          final current = num.tryParse('${row['currentCapacity']}');
+          final capacity = num.tryParse('${row['maxCapacity']}');
+          return current != null &&
+              capacity != null &&
+              current.isFinite &&
+              capacity.isFinite &&
+              current >= 0 &&
+              capacity > 0;
+        });
     if (found) return reply;
     // Verified against the original management portal's public client.
     return _put('/api/admin/kiosk_info', {

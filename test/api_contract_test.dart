@@ -35,42 +35,49 @@ class MemorySession extends TokenStorageService {
 void main() {
   test('collector query retries portal contract and accepts alternate kiosk ID',
       () async {
-    final session = MemorySession()
-      ..token = 'fixture'
-      ..id = 31;
-    final bodies = <Map>[];
-    final api = ApiService(
-        tokens: session,
-        client: MockClient((request) async {
-          final body = jsonDecode(request.body) as Map;
-          bodies.add(body);
-          expect(request.headers['Authorization'], 'Bearer fixture');
-          return http.Response(
-              jsonEncode({
-                'ret': 1,
-                'kiosks': body.containsKey('partnerIds')
-                    ? [
-                        {
-                          'kioskID': 'pet',
-                          'currentCapacity': 250,
-                          'maxCapacity': 1000,
-                          'isAvailable': false
-                        }
-                      ]
-                    : []
-              }),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'});
-        }));
-    final reply = await api.kioskInfo('partner', kioskId: 'pet');
-    expect(bodies, [
-      {'partnerId': 'partner'},
-      {
-        'partnerIds': ['partner']
-      }
-    ]);
-    expect((reply['kiosks'] as List).single['currentCapacity'], 250);
-    api.close();
+    for (final firstRows in [
+      [],
+      [
+        {'kioskID': 'pet', 'currentCapacity': null, 'maxCapacity': 0}
+      ]
+    ]) {
+      final session = MemorySession()
+        ..token = 'fixture'
+        ..id = 31;
+      final bodies = <Map>[];
+      final api = ApiService(
+          tokens: session,
+          client: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map;
+            bodies.add(body);
+            expect(request.headers['Authorization'], 'Bearer fixture');
+            return http.Response(
+                jsonEncode({
+                  'ret': 1,
+                  'kiosks': body.containsKey('partnerIds')
+                      ? [
+                          {
+                            'kioskID': 'pet',
+                            'currentCapacity': 250,
+                            'maxCapacity': 1000,
+                            'isAvailable': false
+                          }
+                        ]
+                      : firstRows
+                }),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'});
+          }));
+      final reply = await api.kioskInfo('partner', kioskId: 'pet');
+      expect(bodies, [
+        {'partnerId': 'partner'},
+        {
+          'partnerIds': ['partner']
+        }
+      ]);
+      expect((reply['kiosks'] as List).single['currentCapacity'], 250);
+      api.close();
+    }
   });
   test('collector query never retries a rejected authorization', () async {
     final session = MemorySession()
