@@ -1,3 +1,4 @@
+import '../widgets/glass_action_bar.dart';
 import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
 import '../services/app_shortcut.dart';
@@ -562,7 +563,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (values is! List) throw ApiFailure('수거기 현황을 불러오지 못했습니다.');
       final matches = values
           .whereType<Map>()
-          .where((r) => r['kioskId'].toString() == kiosk)
+          .where((r) => (r['kioskId'] ?? r['kioskID']).toString() == kiosk)
           .toList();
       if (matches.isEmpty) throw ApiFailure('배정된 수거기를 찾을 수 없습니다.');
       final data = matches.first;
@@ -653,7 +654,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (kiosks is! List) throw ApiFailure('기기 현황을 불러오지 못했습니다.');
       final matches = kiosks
           .whereType<Map>()
-          .where((k) => k['kioskId'].toString() == kioskId)
+          .where((k) => (k['kioskId'] ?? k['kioskID']).toString() == kioskId)
           .toList();
       if (matches.isEmpty) throw ApiFailure('배정된 기기를 찾을 수 없습니다.');
       final kiosk = matches.first;
@@ -1562,11 +1563,12 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   automaticallyImplyLeading: false,
                   title: Text('수호천사'),
                   actions: [
-                      IconButton(
-                          tooltip: '커뮤니티',
-                          onPressed:
-                              saving || awaitingSave ? null : showCommunity,
-                          icon: AppIcon(AppIconKind.community)),
+                      if (!AppStyle.isBeta(context))
+                        IconButton(
+                            tooltip: '커뮤니티',
+                            onPressed:
+                                saving || awaitingSave ? null : showCommunity,
+                            icon: AppIcon(AppIconKind.community)),
                       if (PasskeyService().enrolled)
                         IconButton(
                             tooltip: '앱 잠그기',
@@ -1581,24 +1583,56 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                   MaterialPageRoute<void>(
                                       builder: (_) => PasskeyScreen())),
                           icon: AppIcon(AppIconKind.passkey)),
-                      IconButton(
-                          tooltip: '기기 상태',
-                          onPressed: saving || awaitingSave ? null : showDevice,
-                          icon: Icon(Icons.devices)),
-                      IconButton(
-                          tooltip: '작업 기록',
-                          onPressed: saving || awaitingSave
-                              ? null
-                              : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                      builder: (_) => ResultLogScreen())),
-                          icon: AppIcon(AppIconKind.history)),
+                      if (!AppStyle.isBeta(context))
+                        IconButton(
+                            tooltip: '기기 상태',
+                            onPressed:
+                                saving || awaitingSave ? null : showDevice,
+                            icon: Icon(Icons.devices)),
+                      if (!AppStyle.isBeta(context))
+                        IconButton(
+                            tooltip: '작업 기록',
+                            onPressed: saving || awaitingSave
+                                ? null
+                                : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                        builder: (_) => ResultLogScreen())),
+                            icon: AppIcon(AppIconKind.history)),
                       IconButton(
                           tooltip: '로그아웃',
                           onPressed: saving ? null : logout,
                           icon: Icon(Icons.logout))
                     ]),
+          bottomNavigationBar: AppStyle.isBeta(context) &&
+                  !questionVisible &&
+                  !complete &&
+                  workStatus == null
+              ? GlassActionBar(actions: [
+                  (
+                    label: '기기 상태',
+                    icon: AppIconKind.collector,
+                    onPressed:
+                        saving || awaitingSave || loading ? null : showDevice
+                  ),
+                  (
+                    label: '커뮤니티',
+                    icon: AppIconKind.community,
+                    onPressed:
+                        saving || awaitingSave || loading ? null : showCommunity
+                  ),
+                  (
+                    label: '작업 기록',
+                    icon: AppIconKind.history,
+                    onPressed: saving || awaitingSave || loading
+                        ? null
+                        : () => Navigator.push<void>(
+                            context,
+                            MaterialPageRoute<void>(
+                                builder: (_) => ResultLogScreen()))
+                  ),
+                ])
+              : null,
           body: SafeArea(
               child: Center(
                   child: ConstrainedBox(

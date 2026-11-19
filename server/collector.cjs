@@ -37,7 +37,7 @@ function createCollector({blob,read,write,upstream,fail,now}) {
   try {
    const reply=await upstream('/api/admin/kiosk_info',{partnerId:device.partner},token,false);
    if(reply.status!==200||!Array.isArray(reply.data.kiosks))throw Error('upstream');
-   const row=reply.data.kiosks.find(r=>id(r.kioskId)===device.kiosk);
+   const row=reply.data.kiosks.find(r=>id(r.kioskId??r.kioskID)===device.kiosk);
    if(!row){reading.error='배정된 수거기를 찾을 수 없습니다.';reading.error_code='DVC-102';}
    else {
     reading.name=typeof row.name==='string'?row.name.slice(0,100):device.partner;

@@ -15,7 +15,7 @@ let debugPage;
   if(path.endsWith('/login'))reply={ret:1,user_id:31,name:'정훈',access_token:'device-test-only',company_device_name:'partner',kiosk_id:'pet'};
   else if(path.endsWith('/validate_token'))reply={ret:1};
   else if(path.endsWith('/work_info'))reply={ret:1,work:{work_id:8,work_name:'적재율 검증'},process:{current_version_id:1},steps:[{step_id:1,step_name:'확인',start_ment:'확인',work_seconds:0}]};
-  else if(path.endsWith('/kiosk_info')){calls++;reply={ret:1,kiosks:[{kioskId:'pet',name:'수호천사05',currentCapacity:current,maxCapacity:1000,isAvailable:true}]};}
+  else if(path.endsWith('/kiosk_info')){calls++;reply={ret:1,kiosks:[{kioskID:'pet',name:'수호천사05',currentCapacity:current,maxCapacity:1000,isAvailable:true}]};}
   else throw Error('Unexpected API '+path);
   return route.fulfill({status:200,headers,body:JSON.stringify(reply)});
  });

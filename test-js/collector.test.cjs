@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
 const {createCommunity}=require('../server/community.cjs');
-function setup(){
+function setup({idKey='kioskId'}={}){
  let time=Date.now(),down=false,storageDown=false,revoked=false,calls=0;
  const objects=new Map();
  const blob={get:async key=>objects.has(key)?{statusCode:200,stream:new Response(JSON.stringify(objects.get(key))).body}:null,
@@ -15,7 +15,7 @@ function setup(){
   if(url.endsWith('/validate_token'))return Response.json({ret:revoked?0:1});
   assert.ok(url.endsWith('/kiosk_info'));assert.equal(body.packetid,undefined);assert.equal(body.partnerId,'partner');calls++;
   if(down)throw Error('offline');
-  return Response.json({kiosks:[{kioskId:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true}]});
+  return Response.json({kiosks:[{[idKey]:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true}]});
  }});
  const connect=async name=>{const reply=await handle({action:'login',username:name,password:'a'.repeat(64)});return {reply,headers:{authorization:'Bearer token-'+name,'x-community-session':reply.data.community_session}};};
  return {handle,objects,connect,get calls(){return calls;},get time(){return time;},tick:()=>{time+=600000;},revoke:()=>{revoked=true;},down:()=>{down=true;},storageDown:()=>{storageDown=true;}};
@@ -72,3 +72,5 @@ test('collector survives expired community ticket only with the original valid t
 });
 
 test('expired collector ticket cannot bypass upstream token revocation',async()=>{const s=setup(),a=await s.connect('a');for(let i=0;i<73;i++)s.tick();s.revoke();await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-005');assert.equal(s.calls,0);});
+
+test('collector accepts kioskID as used by the original portal parser',async()=>{const s=setup({idKey:'kioskID'}),a=await s.connect('a');const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;assert.equal(r.error_code,null);assert.equal(r.current,250);assert.equal(r.capacity,1000);});
