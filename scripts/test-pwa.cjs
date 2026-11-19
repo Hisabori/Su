@@ -40,7 +40,7 @@ let debugPage;
   else throw Error(`Unexpected API: ${path}`);
   await route.fulfill({status:200,headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'},body:JSON.stringify(reply)});
  });
- const page=await context.newPage();await page.clock.setFixedTime(new Date('2026-11-15T00:15:00Z'));debugPage=page;page.on('pageerror',e=>errors.push(e.message));
+ const page=await context.newPage();await page.clock.setFixedTime(new Date('2026-11-14T23:59:50Z'));debugPage=page;page.on('pageerror',e=>errors.push(e.message));
  async function ready(){await page.locator('flutter-view').waitFor({timeout:60000});await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());}
  await page.goto(process.env.PWA_TEST_URL || 'http://127.0.0.1:8765/');await ready();
  await page.getByRole('button',{name:'레거시 모드 켜기',exact:true}).waitFor();
@@ -68,8 +68,11 @@ let debugPage;
   await page.screenshot({path:require('node:path').join(process.env.PWA_SCREENSHOT_DIR,'work-waiting-landscape.png')});
   await page.setViewportSize({width:390,height:844});
  }
- await page.getByRole('button',{name:'작업 시작',exact:true}).click();
+ // Keep screenshots before the scheduled start; then exercise server-scheduled auto start.
+ await page.clock.setFixedTime(new Date('2026-11-15T00:15:00Z'));
  await page.waitForFunction(()=>window.__speechCalls.length>0);
+ await page.getByText('질문 1 / 2',{exact:true}).waitFor();
+ console.log('PASS scheduled start follows server time after portrait/landscape inspection');
  const spoken=await page.evaluate(()=>window.__speechCalls[0]);
  assert.equal(spoken.text,'첫 번째 확인');assert.equal(spoken.rate,0.95);assert.equal(spoken.lang,'ko-KR');
  await page.getByRole('button',{name:'기기 상태',exact:true}).click();
