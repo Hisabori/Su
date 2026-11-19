@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
 const {createCommunity}=require('../server/community.cjs');
-function setup({idKey='kioskId'}={}){
+function setup({idKey='kioskId',portalOnly=false}={}){
  let time=Date.now(),down=false,storageDown=false,revoked=false,calls=0;
  const objects=new Map();
  const blob={get:async key=>objects.has(key)?{statusCode:200,stream:new Response(JSON.stringify(objects.get(key))).body}:null,
@@ -13,7 +13,8 @@ function setup({idKey='kioskId'}={}){
   const body=JSON.parse(options.body);
   if(url.endsWith('/login'))return Response.json({ret:1,user_id:body.username==='b'?42:31,name:'서버 사용자',access_token:'token-'+body.username,company_device_name:body.username==='other'?'elsewhere':'partner',kiosk_id:body.username==='unassigned'?null:7});
   if(url.endsWith('/validate_token'))return Response.json({ret:revoked?0:1});
-  assert.ok(url.endsWith('/kiosk_info'));assert.equal(body.packetid,undefined);assert.equal(body.partnerId,'partner');calls++;
+  assert.ok(url.endsWith('/kiosk_info'));assert.equal(body.packetid,undefined);if(body.partnerIds)assert.deepEqual(body.partnerIds,['partner']);else assert.equal(body.partnerId,'partner');calls++;
+  if(portalOnly&&!body.partnerIds)return Response.json({kiosks:[]});
   if(down)throw Error('offline');
   return Response.json({kiosks:[{[idKey]:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true}]});
  }});
@@ -74,3 +75,5 @@ test('collector survives expired community ticket only with the original valid t
 test('expired collector ticket cannot bypass upstream token revocation',async()=>{const s=setup(),a=await s.connect('a');for(let i=0;i<73;i++)s.tick();s.revoke();await assert.rejects(s.handle({action:'device_history'},a.headers),e=>e.errorCode==='DVC-005');assert.equal(s.calls,0);});
 
 test('collector accepts kioskID as used by the original portal parser',async()=>{const s=setup({idKey:'kioskID'}),a=await s.connect('a');const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;assert.equal(r.error_code,null);assert.equal(r.current,250);assert.equal(r.capacity,1000);});
+
+test('collector retries the verified portal partnerIds contract when the APK query cannot find the assigned device',async()=>{const s=setup({idKey:'kioskID',portalOnly:true}),a=await s.connect('a');const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;assert.equal(r.current/r.capacity*100,25);assert.equal(r.error_code,null);assert.equal(s.calls,2);});

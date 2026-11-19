@@ -99,6 +99,18 @@ void main() {
       'capacity percentage distinguishes empty, unknown, full and over capacity',
       () {
     final at = DateTime.now();
+    expect(
+        DeviceReading(
+                userId: 31,
+                partner: 'partner',
+                kiosk: 'pet',
+                name: '수거기',
+                at: at,
+                current: 250,
+                capacity: 1000,
+                available: false)
+            .percent,
+        25);
     expect(reading(at, current: 0).percent, 0);
     expect(reading(at, current: 1000).percent, 100);
     expect(reading(at, current: 1250).percent, 125);

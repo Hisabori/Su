@@ -35,9 +35,13 @@ function createCollector({blob,read,write,upstream,fail,now}) {
   if(prior)return {status:200,data:{reading:prior,cached:true}};
   let reading={...device,at:new Date(at).toISOString(),name:device.partner,current:null,capacity:null,available:null,error:null,error_code:null};
   try {
-   const reply=await upstream('/api/admin/kiosk_info',{partnerId:device.partner},token,false);
+   let reply=await upstream('/api/admin/kiosk_info',{partnerId:device.partner},token,false);
+   const matched=reply.status===200&&Array.isArray(reply.data.kiosks)&&reply.data.kiosks.some(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk);
+   if(reply.status===400||reply.status===422||(reply.status===200&&!matched)) {
+    reply=await upstream('/api/admin/kiosk_info',{partnerIds:[device.partner]},token,false);
+   }
    if(reply.status!==200||!Array.isArray(reply.data.kiosks))throw Error('upstream');
-   const row=reply.data.kiosks.find(r=>id(r.kioskId??r.kioskID)===device.kiosk);
+   const row=reply.data.kiosks.find(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk);
    if(!row){reading.error='배정된 수거기를 찾을 수 없습니다.';reading.error_code='DVC-102';}
    else {
     reading.name=typeof row.name==='string'?row.name.slice(0,100):device.partner;

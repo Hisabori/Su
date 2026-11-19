@@ -205,8 +205,30 @@ class ApiService {
     return integer(result['result_id']);
   }
 
-  Future<Map<String, dynamic>> kioskInfo(String partnerId) =>
-      _put('/api/admin/kiosk_info', {'partnerId': partnerId});
+  Future<Map<String, dynamic>> kioskInfo(String partnerId,
+      {String? kioskId}) async {
+    Map<String, dynamic> reply;
+    try {
+      reply = await _put('/api/admin/kiosk_info', {'partnerId': partnerId});
+    } on ApiFailure catch (error) {
+      if (error.code != 400 && error.code != 422) rethrow;
+      return _put('/api/admin/kiosk_info', {
+        'partnerIds': [partnerId]
+      });
+    }
+    final rows = reply['kiosks'];
+    final found = rows is List &&
+        rows.isNotEmpty &&
+        (kioskId == null ||
+            rows.whereType<Map>().any(
+                (row) => '${row['kioskId'] ?? row['kioskID']}' == kioskId));
+    if (found) return reply;
+    // Verified against the original management portal's public client.
+    return _put('/api/admin/kiosk_info', {
+      'partnerIds': [partnerId]
+    });
+  }
+
   Future<void> logout() async {
     final userId = await tokens.userId();
     try {

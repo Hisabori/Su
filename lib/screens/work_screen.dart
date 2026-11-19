@@ -558,7 +558,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (partner.isEmpty || kiosk.isEmpty) return null;
     final at = DateTime.now();
     try {
-      final response = await api.kioskInfo(partner);
+      final response = await api.kioskInfo(partner, kioskId: kiosk);
       final values = response['kiosks'];
       if (values is! List) throw ApiFailure('수거기 현황을 불러오지 못했습니다.');
       final matches = values
@@ -649,7 +649,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     await stopAudio();
     if (!mounted) return;
     try {
-      final response = await api.kioskInfo(partner);
+      final response = await api.kioskInfo(partner, kioskId: kioskId);
       final kiosks = response['kiosks'];
       if (kiosks is! List) throw ApiFailure('기기 현황을 불러오지 못했습니다.');
       final matches = kiosks
