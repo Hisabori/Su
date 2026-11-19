@@ -608,7 +608,39 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> showDeviceHistory() async {
+  bool _recordingDeviceCheck = false;
+
+  Future<void> recordDeviceCheck(DeviceReading reading) async {
+    if (_recordingDeviceCheck || !started || complete || awaitingSave ||
+        saving || checkedOut || checkingOut || reading.error != null ||
+        reading.available == null) return;
+    final current = reading.current;
+    final capacity = reading.capacity;
+    if (reading.available == true &&
+        (current == null || capacity == null || !current.isFinite ||
+         !capacity.isFinite || current < 0 || capacity <= 0)) return;
+    _recordingDeviceCheck = true;
+    try {
+      final record = DeviceCheckRecord(
+        name: reading.name, at: reading.at, available: reading.available!,
+        current: current, capacity: capacity,
+      ).toResultJson();
+      if (deviceChecks.any((item) =>
+          item['type'] == 'device_check' &&
+          item['device_name'] == record['device_name'] &&
+          item['시간'] == record['시간'])) return;
+      deviceChecks.add(record);
+      await checkpoint();
+      if (draftWarning) {
+        deviceChecks.remove(record);
+        notice('수거기 점검 기록을 저장하지 못했습니다.');
+      }
+    } finally {
+      _recordingDeviceCheck = false;
+    }
+  }
+
+  Future<void> showDeviceHistory({bool recordOnOpen = true}) async {
     final user = await api.tokens.userId();
     final device = await api.tokens.device();
     final partner = (device['company_device_name'] ?? '').toString().trim();
@@ -622,6 +654,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     await stopAudio();
     if (!mounted) return;
     try {
+      if (recordOnOpen) {
+        final reading = await fetchDeviceReading();
+        if (reading != null) await recordDeviceCheck(reading);
+      }
       await pollDevice(announce: false);
       if (!mounted) return;
       await Navigator.push<void>(
@@ -632,7 +668,11 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   userId: user,
                   partner: partner,
                   kiosk: kiosk,
-                  onRefresh: () => pollDevice(force: true))));
+                  onRefresh: () async {
+                    final reading = await fetchDeviceReading();
+                    if (reading != null) await recordDeviceCheck(reading);
+                    await pollDevice(force: true);
+                  })));
     } finally {
       if (mounted) releaseMedia();
     }
@@ -679,19 +719,17 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                           ? '비어있음'
                           : '사용중';
       final name = (kiosk['name'] ?? partner).toString();
-      if (started && !complete && !awaitingSave && available != null) {
-        deviceChecks.add(DeviceCheckRecord(
-                name: name,
-                at: DateTime.now(),
-                current: current,
-                capacity: max,
-                available: available)
-            .toResultJson());
-        await checkpoint();
+      final currentUser = await api.tokens.userId();
+      if (currentUser != null) {
+        await recordDeviceCheck(DeviceReading(
+          userId: currentUser, partner: partner, kiosk: kioskId, name: name,
+          at: DateTime.now(), current: current, capacity: max,
+          available: available,
+        ));
       }
       if (!mounted) return;
       if (AppStyle.isBeta(context)) {
-        await showDeviceHistory();
+        await showDeviceHistory(recordOnOpen: false);
         return;
       }
       holdMedia();
@@ -1201,7 +1239,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               runSpacing: 10,
               children: [
                 OutlinedButton.icon(
-                    onPressed: showDeviceHistory,
+                    onPressed: () => showDeviceHistory(),
                     icon: AppIcon(AppIconKind.collector),
                     label: Text('수거기 기록')),
                 OutlinedButton.icon(
