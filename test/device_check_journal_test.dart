@@ -29,8 +29,10 @@ void main() {
     final records = <Map<String, dynamic>>[], keys = <String>[];
     final journal =
         DeviceCheckJournal(records: records, keys: keys, persist: () async {});
-    await journal.record(sample(), userId: 69);
-    await journal.record(sample(), userId: 69);
+    expect(await journal.record(sample(), userId: 69),
+        DeviceCheckOutcome.recorded);
+    expect(await journal.record(sample(), userId: 69),
+        DeviceCheckOutcome.duplicate);
     await journal.record(sample(kiosk: 'other'), userId: 69);
     await journal.record(sample(at: DateTime(2026, 11, 19, 9, 1, 35, 100)),
         userId: 69);
@@ -106,7 +108,8 @@ void main() {
       sample(current: null),
       sample(user: 53)
     ]) {
-      await journal.record(reading, userId: 69);
+      expect(await journal.record(reading, userId: 69),
+          DeviceCheckOutcome.rejected);
     }
     expect(records.length, 1);
     await journal.record(

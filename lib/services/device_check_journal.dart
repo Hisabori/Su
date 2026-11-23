@@ -2,6 +2,8 @@ import 'dart:convert';
 import '../models/device_check_record.dart';
 import 'device_history_service.dart';
 
+enum DeviceCheckOutcome { recorded, duplicate, rejected }
+
 /// A work-local journal. It never calls an API or edits a submitted result.
 class DeviceCheckJournal {
   DeviceCheckJournal(
@@ -12,7 +14,8 @@ class DeviceCheckJournal {
   Future<void> _writes = Future<void>.value();
   bool persistenceFailed = false;
 
-  Future<void> record(DeviceReading reading, {required int userId}) {
+  Future<DeviceCheckOutcome> record(DeviceReading reading,
+      {required int userId}) {
     final operation = _writes.then((_) async {
       if (reading.userId != userId ||
           reading.error != null ||
@@ -20,7 +23,7 @@ class DeviceCheckJournal {
           reading.partner.isEmpty ||
           reading.kiosk.isEmpty ||
           (reading.available == true && reading.percent == null)) {
-        return;
+        return DeviceCheckOutcome.rejected;
       }
       final key = jsonEncode([
         userId,
@@ -28,7 +31,8 @@ class DeviceCheckJournal {
         reading.kiosk,
         reading.at.toUtc().toIso8601String()
       ]);
-      if (!keys.contains(key)) {
+      final duplicate = keys.contains(key);
+      if (!duplicate) {
         records.add(DeviceCheckRecord(
                 name: reading.name,
                 at: reading.at,
@@ -40,6 +44,9 @@ class DeviceCheckJournal {
       }
       // A failed local write must not discard a valid in-memory observation.
       await _persist();
+      return duplicate
+          ? DeviceCheckOutcome.duplicate
+          : DeviceCheckOutcome.recorded;
     });
     _writes =
         operation.then<void>((_) {}, onError: (Object _, StackTrace __) {});

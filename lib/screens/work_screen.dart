@@ -34,6 +34,7 @@ import '../widgets/completion_panel.dart';
 import 'result_log_screen.dart';
 import 'community_screen.dart';
 import 'device_history_screen.dart';
+import '../utils/kiosk_values.dart';
 import '../services/device_history_service.dart';
 import 'passkey_screen.dart';
 import '../services/passkey_service.dart';
@@ -99,6 +100,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final answers = <Map<String, dynamic>>[];
   final deviceChecks = <Map<String, dynamic>>[];
   final deviceCheckKeys = <String>[];
+  final workCheckNotice = ValueNotifier<String>('');
+  String? manualCheckIssue;
   final _manualDeviceReads = <Future<DeviceReading?>>{};
   late final deviceCheckJournal = DeviceCheckJournal(
       records: deviceChecks,
@@ -171,6 +174,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     speech.onErrorMessage = null;
     unawaited(stopAudio());
     api.close();
+    workCheckNotice.dispose();
     super.dispose();
   }
 
@@ -346,6 +350,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (!draftWarning) notice('기기 내 자동 저장에 실패했습니다. 창을 닫기 전에 작업을 완료해 주세요.');
       draftWarning = true;
     }
+    updateWorkCheckNotice();
   }
 
   void attachServerHours(Map<String, dynamic> record) {
@@ -507,7 +512,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
             DateTime.now().difference(lastCheckpoint!).inSeconds >= 10)) {
       unawaited(checkpoint());
     }
-    if (mounted) setState(() {});
+    if (mounted) {
+      updateWorkCheckNotice();
+      setState(() {});
+    }
   }
 
   void start() {
@@ -578,7 +586,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       if (values is! List) throw ApiFailure('수거기 현황을 불러오지 못했습니다.');
       final matches = values
           .whereType<Map>()
-          .where((r) => (r['kioskId'] ?? r['kioskID']).toString() == kiosk)
+          .where((r) => kioskIdentity(r) == kiosk)
           .toList();
       if (matches.isEmpty) throw ApiFailure('배정된 수거기를 찾을 수 없습니다.');
       final data = matches.first;
@@ -589,8 +597,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
           kiosk: kiosk,
           name: '${data['name'] ?? partner}',
           at: at,
-          current: num.tryParse('${data['currentCapacity']}'),
-          capacity: num.tryParse('${data['maxCapacity']}'),
+          current: kioskNumber(data['currentCapacity']),
+          capacity: kioskNumber(data['maxCapacity']),
           available: raw == true || raw == 1
               ? true
               : raw == false || raw == 0
@@ -627,12 +635,30 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       started &&
       !complete &&
       !awaitingSave &&
-      !saving &&
       !submitting &&
       !checkedOut &&
       !checkingOut &&
       pendingRecord == null &&
       sessionUser != null;
+
+  void updateWorkCheckNotice() {
+    if (!mounted) return;
+    if (checkedOut || complete) {
+      workCheckNotice.value = '근무가 끝난 뒤의 조회입니다. 기존 근무 결과에 점검을 추가하지 않습니다.';
+    } else if (!started) {
+      workCheckNotice.value =
+          '작업 시작 전 조회입니다. 그래프에는 표시되지만 근무 결과 점검에는 추가되지 않습니다.';
+    } else if (draftWarning || deviceCheckJournal.persistenceFailed) {
+      workCheckNotice.value =
+          '점검 ${deviceChecks.length}건을 현재 창에 보관 중입니다. 기기 저장에 실패해 새로고침하면 잃을 수 있습니다.';
+    } else if (awaitingSave || submitting || pendingRecord != null) {
+      workCheckNotice.value =
+          '점검 ${deviceChecks.length}건의 근무 결과 저장을 확인 중입니다. 지금 조회로 기존 결과를 다시 전송하지 않습니다.';
+    } else {
+      workCheckNotice.value =
+          '근무 결과에 포함할 점검 ${deviceChecks.length}건 · 근무 종료 시 함께 전송합니다.${manualCheckIssue == null ? '' : '\n$manualCheckIssue'}';
+    }
+  }
 
   Future<void> recordDeviceCheck(DeviceReading reading) async {
     if (!canRecordDeviceCheck) return;
@@ -640,14 +666,18 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (deviceCheckJournal.persistenceFailed) {
       notice('점검 기록은 보관 중입니다. 기기 내 저장을 다시 시도해 주세요.');
     }
+    updateWorkCheckNotice();
   }
 
-  Future<DeviceReading?> fetchManualDeviceReading() {
+  Future<DeviceReading?> fetchManualDeviceReading(
+      {Future<void> Function()? beforeRead}) {
     final recordForWork = canRecordDeviceCheck;
     final user = sessionUser;
     late final Future<DeviceReading?> request;
-    request = (() async {
+    // Register the user's intent before audio/storage preparation can yield to finish.
+    request = Future<void>.value().then((_) async {
       try {
+        await beforeRead?.call();
         final reading = await fetchDeviceReading();
         // Finish drains reads that began during work before freezing its payload.
         if (recordForWork &&
@@ -657,7 +687,11 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
             !checkedOut &&
             pendingRecord == null &&
             sessionUser == user) {
-          await deviceCheckJournal.record(reading, userId: user!);
+          final outcome =
+              await deviceCheckJournal.record(reading, userId: user!);
+          manualCheckIssue = outcome == DeviceCheckOutcome.rejected
+              ? '이번 조회는 상태·용량·배정 정보를 확인하지 못해 근무 점검에 추가되지 않았습니다.'
+              : null;
           if (deviceCheckJournal.persistenceFailed) {
             notice('점검 기록은 보관 중입니다. 기기 내 저장을 다시 시도해 주세요.');
           }
@@ -668,31 +702,37 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         return null;
       } finally {
         _manualDeviceReads.remove(request);
+        updateWorkCheckNotice();
       }
-    })();
+    });
     if (recordForWork) _manualDeviceReads.add(request);
     return request;
   }
 
   Future<void> showDeviceHistory({bool recordOnOpen = true}) async {
-    final user = await api.tokens.userId();
-    final device = await api.tokens.device();
-    final partner = (device['company_device_name'] ?? '').toString().trim();
-    final kiosk = (device['kiosk_id'] ?? '').toString().trim();
-    if (!mounted) return;
-    if (user == null || partner.isEmpty || kiosk.isEmpty || checkedOut) {
-      notice('로그인한 계정에 배정된 수거기가 없습니다.');
-      return;
-    }
+    if (!mounted || checkedOut || checkingOut) return;
     holdMedia();
-    await stopAudio();
-    if (!mounted) return;
+    final reading =
+        recordOnOpen ? fetchManualDeviceReading(beforeRead: stopAudio) : null;
     try {
-      if (recordOnOpen) {
-        await fetchManualDeviceReading();
+      final user = await api.tokens.userId();
+      final device = await api.tokens.device();
+      final partner = (device['company_device_name'] ?? '').toString().trim();
+      final kiosk = (device['kiosk_id'] ?? '').toString().trim();
+      if (!mounted) return;
+      if (user == null || partner.isEmpty || kiosk.isEmpty || checkedOut) {
+        notice('로그인한 계정에 배정된 수거기가 없습니다.');
+        return;
       }
+      if (reading != null) {
+        await reading;
+      } else {
+        await stopAudio();
+      }
+      if (!mounted) return;
       await pollDevice(announce: false);
       if (!mounted) return;
+      updateWorkCheckNotice();
       await Navigator.push<void>(
           context,
           MaterialPageRoute(
@@ -701,6 +741,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                   userId: user,
                   partner: partner,
                   kiosk: kiosk,
+                  workCheckNotice: workCheckNotice,
                   onRefresh: () async {
                     await fetchManualDeviceReading();
                     await pollDevice(force: true);
@@ -714,8 +755,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     if (!mounted || checkedOut || checkingOut) return;
     holdMedia();
     try {
-      await stopAudio();
-      final reading = await fetchManualDeviceReading();
+      final reading = await fetchManualDeviceReading(beforeRead: stopAudio);
       if (!mounted || reading == null) return;
       if (reading.error != null) throw ApiFailure(reading.error!);
       if (AppStyle.isBeta(context)) {
@@ -934,6 +974,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     }
     submitting = true;
     setState(() => saving = true);
+    updateWorkCheckNotice();
     try {
       await Future.wait(_manualDeviceReads.toList());
       await deviceCheckJournal.flush();
@@ -987,6 +1028,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     } finally {
       submitting = false;
       if (mounted) setState(() => saving = false);
+      updateWorkCheckNotice();
     }
   }
 
@@ -1582,7 +1624,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                                           if (sheet.mounted) updateSheet(() {});
                                         },
                                   icon: const Icon(Icons.refresh))),
-                          Text('수호천사 v1.24.0',
+                          Text('수호천사 v1.24.2',
                               style: TextStyle(color: Colors.grey)),
                         ])))))).whenComplete(() {
       if (mounted) releaseMedia();

@@ -33,6 +33,94 @@ class MemorySession extends TokenStorageService {
 }
 
 void main() {
+  test('collector accepts a trimmed alternate ID without unnecessary fallback',
+      () async {
+    final session = MemorySession()..token = 'fixture';
+    var calls = 0;
+    final api = ApiService(
+        tokens: session,
+        client: MockClient((_) async {
+          calls++;
+          return http.Response(
+              jsonEncode({
+                'ret': 1,
+                'kiosks': [
+                  {
+                    'kioskId': 'other',
+                    'currentCapacity': 999,
+                    'maxCapacity': 1000
+                  },
+                  {
+                    'kioskId': ' ',
+                    'kioskID': ' pet ',
+                    'currentCapacity': '14',
+                    'maxCapacity': '1000',
+                    'isAvailable': 1
+                  }
+                ]
+              }),
+              200);
+        }));
+    await api.kioskInfo('partner', kioskId: 'pet');
+    expect(calls, 1);
+    api.close();
+  });
+
+  test('collector HTTP 400/422 retries partnerIds once', () async {
+    for (final status in [400, 422]) {
+      final session = MemorySession()
+        ..token = 'fixture'
+        ..id = 69;
+      final bodies = <Map>[];
+      final api = ApiService(
+          tokens: session,
+          client: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map;
+            bodies.add(body);
+            if (bodies.length == 1) {
+              return http.Response('invalid partnerId', status);
+            }
+            return http.Response(
+                jsonEncode({
+                  'ret': 1,
+                  'kiosks': [
+                    {
+                      'kioskID': 'pet',
+                      'currentCapacity': 12,
+                      'maxCapacity': 1000,
+                      'isAvailable': true
+                    }
+                  ]
+                }),
+                200);
+          }));
+      final reply = await api.kioskInfo('assigned-partner', kioskId: 'pet');
+      expect(bodies, [
+        {'partnerId': 'assigned-partner'},
+        {
+          'partnerIds': ['assigned-partner']
+        }
+      ]);
+      expect((reply['kiosks'] as List).single['currentCapacity'], 12);
+      api.close();
+    }
+  });
+
+  test('collector fallback stops after its second HTTP failure', () async {
+    final session = MemorySession()..token = 'fixture';
+    var calls = 0;
+    final api = ApiService(
+        tokens: session,
+        client: MockClient((_) async {
+          calls++;
+          return http.Response('invalid parameters', 422);
+        }));
+    await expectLater(api.kioskInfo('partner', kioskId: 'pet'),
+        throwsA(isA<ApiFailure>().having((e) => e.code, 'HTTP status', 422)));
+    expect(calls, 2);
+    api.close();
+  });
+
   test('collector query retries portal contract and accepts alternate kiosk ID',
       () async {
     for (final firstRows in [
@@ -80,20 +168,22 @@ void main() {
     }
   });
   test('collector query never retries a rejected authorization', () async {
-    final session = MemorySession()
-      ..token = 'fixture'
-      ..id = 31;
-    var calls = 0;
-    final api = ApiService(
-        tokens: session,
-        client: MockClient((_) async {
-          calls++;
-          return http.Response(jsonEncode({'message': 'denied'}), 401);
-        }));
-    await expectLater(
-        api.kioskInfo('partner', kioskId: 'pet'), throwsA(isA<ApiFailure>()));
-    expect(calls, 1);
-    api.close();
+    for (final status in [401, 403, 500]) {
+      final session = MemorySession()
+        ..token = 'fixture'
+        ..id = 31;
+      var calls = 0;
+      final api = ApiService(
+          tokens: session,
+          client: MockClient((_) async {
+            calls++;
+            return http.Response(jsonEncode({'message': 'denied'}), status);
+          }));
+      await expectLater(
+          api.kioskInfo('partner', kioskId: 'pet'), throwsA(isA<ApiFailure>()));
+      expect(calls, 1);
+      api.close();
+    }
   });
 
   test('work status 7 stays distinct from authorization and saving failures',

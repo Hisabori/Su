@@ -2,6 +2,12 @@ const {createHash}=require('node:crypto');
 const INTERVAL=600000,RETENTION=7*86400000;
 const id=v=>v==null?'':String(v).trim();
 const number=v=>!['number','string'].includes(typeof v)||(typeof v==='string'&&!v.trim())?null:Number.isFinite(Number(v))?Number(v):null;
+const kioskId=r=>{
+ const identity=v=>['string','number'].includes(typeof v)?id(v):'';
+ return identity(r.kioskId)||identity(r.kioskID);
+};
+const usable=r=>{const c=number(r.currentCapacity),m=number(r.maxCapacity);return c!=null&&c>=0&&m!=null&&m>0&&Number.isFinite(c/m*100);};
+const accepted=r=>r.status===200&&(r.data.ret==null||[0,1].includes(Number(r.data.ret)));
 function createCollector({blob,read,write,upstream,fail,now}) {
  function assignment(s) {
   if(!s.partner||!s.kiosk)fail(409,'서버 기록을 연결하려면 근무를 마친 뒤 다시 로그인해 주세요.','DVC-002');
@@ -36,18 +42,18 @@ function createCollector({blob,read,write,upstream,fail,now}) {
   let reading={...device,at:new Date(at).toISOString(),name:device.partner,current:null,capacity:null,available:null,error:null,error_code:null};
   try {
    let reply=await upstream('/api/admin/kiosk_info',{partnerId:device.partner},token,false);
-   const matched=reply.status===200&&Array.isArray(reply.data.kiosks)&&reply.data.kiosks.some(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk&&number(r.currentCapacity)!=null&&number(r.currentCapacity)>=0&&number(r.maxCapacity)>0);
-   if(reply.status===400||reply.status===422||(reply.status===200&&!matched)) {
+   const matched=accepted(reply)&&Array.isArray(reply.data.kiosks)&&reply.data.kiosks.some(r=>r&&kioskId(r)===device.kiosk&&usable(r));
+   if(reply.status===400||reply.status===422||(accepted(reply)&&!matched)) {
     reply=await upstream('/api/admin/kiosk_info',{partnerIds:[device.partner]},token,false);
    }
-   if(reply.status!==200||!Array.isArray(reply.data.kiosks))throw Error('upstream');
-   const row=reply.data.kiosks.find(r=>r&&id(r.kioskId??r.kioskID)===device.kiosk);
+   if(!accepted(reply)||!Array.isArray(reply.data.kiosks))throw Error('upstream');
+   const row=reply.data.kiosks.find(r=>r&&kioskId(r)===device.kiosk);
    if(!row){reading.error='배정된 수거기를 찾을 수 없습니다.';reading.error_code='DVC-102';}
    else {
     reading.name=typeof row.name==='string'?row.name.slice(0,100):device.partner;
     reading.current=number(row.currentCapacity);reading.capacity=number(row.maxCapacity);
     reading.available=row.isAvailable===true||row.isAvailable===1?true:row.isAvailable===false||row.isAvailable===0?false:null;
-    if(reading.current==null||reading.current<0||reading.capacity==null||reading.capacity<=0){reading.error='기기 용량을 확인하지 못했습니다.';reading.error_code='DVC-103';}
+    if(!usable(row)){reading.error='기기 용량을 확인하지 못했습니다.';reading.error_code='DVC-103';}
    }
   }catch {reading.error='수거기 서버에 연결하지 못했습니다.';reading.error_code='DVC-101';}
   try {await write(path,reading);}catch {

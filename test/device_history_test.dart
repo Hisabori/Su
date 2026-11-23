@@ -29,6 +29,35 @@ class FullStore extends MemoryStore {
 }
 
 void main() {
+  testWidgets('work check notice updates while the graph remains open',
+      (tester) async {
+    final notice = ValueNotifier<String>('작업 시작 전 조회입니다.');
+    final monitor = DeviceMonitor(
+        history: DeviceHistoryService(store: MemoryStore()),
+        fetch: () async => null);
+    await tester.pumpWidget(MaterialApp(
+        home: DeviceHistoryScreen(
+            monitor: monitor,
+            userId: 69,
+            partner: 'partner',
+            kiosk: 'pet',
+            workCheckNotice: notice,
+            onRefresh: () async {})));
+    await tester.pumpAndSettle();
+    expect(find.text('작업 시작 전 조회입니다.'), findsOneWidget);
+    notice.value = '근무 결과에 포함할 점검 1건';
+    await tester.pump();
+    expect(find.text('근무 결과에 포함할 점검 1건'), findsOneWidget);
+    expect(find.text('작업 시작 전 조회입니다.'), findsNothing);
+    notice.value = '기기 저장에 실패했습니다.';
+    await tester.pump();
+    expect(find.text('기기 저장에 실패했습니다.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    monitor.dispose();
+    notice.dispose();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('refresh failure keeps records and permits retry',
       (tester) async {
     final history = DeviceHistoryService(store: MemoryStore());

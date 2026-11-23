@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import '../utils/client_platform.dart';
+import '../utils/kiosk_values.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../config/community_config.dart';
@@ -53,7 +54,7 @@ class ApiService {
       throw ApiFailure('로그인이 필요하거나 접근 권한이 없습니다.', code: response.statusCode);
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ApiFailure('서버에 연결하지 못했습니다.');
+      throw ApiFailure('서버에 연결하지 못했습니다.', code: response.statusCode);
     }
     dynamic data;
     try {
@@ -219,18 +220,10 @@ class ApiService {
     final rows = reply['kiosks'];
     final found = rows is List &&
         rows.whereType<Map>().any((row) {
-          if (kioskId != null &&
-              '${row['kioskId'] ?? row['kioskID']}' != kioskId) {
+          if (kioskId != null && kioskIdentity(row) != kioskId.trim()) {
             return false;
           }
-          final current = num.tryParse('${row['currentCapacity']}');
-          final capacity = num.tryParse('${row['maxCapacity']}');
-          return current != null &&
-              capacity != null &&
-              current.isFinite &&
-              capacity.isFinite &&
-              current >= 0 &&
-              capacity > 0;
+          return kioskHasUsableCapacity(row);
         });
     if (found) return reply;
     // Verified against the original management portal's public client.

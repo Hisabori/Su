@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
 const {createCommunity}=require('../server/community.cjs');
-function setup({idKey='kioskId',portalOnly=false}={}){
+function setup({idKey='kioskId',portalOnly=false,rowPatch={},replyStatus=200,replyRet=null}={}){
  let time=Date.now(),down=false,storageDown=false,revoked=false,calls=0;
  const objects=new Map();
  const blob={get:async key=>objects.has(key)?{statusCode:200,stream:new Response(JSON.stringify(objects.get(key))).body}:null,
@@ -16,7 +16,7 @@ function setup({idKey='kioskId',portalOnly=false}={}){
   assert.ok(url.endsWith('/kiosk_info'));assert.equal(body.packetid,undefined);if(body.partnerIds)assert.deepEqual(body.partnerIds,['partner']);else assert.equal(body.partnerId,'partner');calls++;
   if(portalOnly&&!body.partnerIds)return Response.json({kiosks:portalOnly==='metadata'?[{kioskID:7,currentCapacity:null,maxCapacity:0}]:[]});
   if(down)throw Error('offline');
-  return Response.json({kiosks:[{[idKey]:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true}]});
+  return Response.json({...(replyRet==null?{}:{ret:replyRet}),kiosks:[{[idKey]:7,name:'수거기 7',currentCapacity:250,maxCapacity:1000,isAvailable:true,...rowPatch}]},{status:replyStatus});
  }});
  const connect=async name=>{const reply=await handle({action:'login',username:name,password:'a'.repeat(64)});return {reply,headers:{authorization:'Bearer token-'+name,'x-community-session':reply.data.community_session}};};
  return {handle,objects,connect,get calls(){return calls;},get time(){return time;},tick:()=>{time+=600000;},revoke:()=>{revoked=true;},down:()=>{down=true;},storageDown:()=>{storageDown=true;}};
@@ -79,3 +79,21 @@ test('collector accepts kioskID as used by the original portal parser',async()=>
 test('collector retries the verified portal partnerIds contract when the APK query cannot find the assigned device',async()=>{const s=setup({idKey:'kioskID',portalOnly:true}),a=await s.connect('a');const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;assert.equal(r.current/r.capacity*100,25);assert.equal(r.error_code,null);assert.equal(s.calls,2);});
 
 test('collector retries portal lookup when device metadata has no usable capacity',async()=>{const s=setup({portalOnly:'metadata'}),a=await s.connect('a');const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;assert.equal(r.current/r.capacity*100,25);assert.equal(s.calls,2);});
+
+test('collector normalizes blank canonical/trimmed alternate IDs and mixed capacity types',async()=>{
+ const s=setup({rowPatch:{kioskId:' ',kioskID:' 7 ',currentCapacity:'14',maxCapacity:'1000'}}),a=await s.connect('a');
+ const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;
+ assert.equal(r.current,14);assert.equal(r.capacity,1000);assert.equal(r.error_code,null);assert.equal(s.calls,1);
+});
+test('collector refuses denied HTTP/body replies without a compatibility retry',async()=>{
+ for(const options of [{replyStatus:401},{replyStatus:403},{replyStatus:500},{replyRet:403},{replyRet:7}]){
+  const s=setup(options),a=await s.connect('a');
+  const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;
+  assert.equal(r.error_code,'DVC-101');assert.equal(r.current,null);assert.equal(s.calls,1);
+ }
+});
+test('collector treats overflowing percentages as unknown instead of a valid sample',async()=>{
+ const s=setup({rowPatch:{currentCapacity:1e308,maxCapacity:1e-308}}),a=await s.connect('a');
+ const r=(await s.handle({action:'device_sample'},a.headers)).data.reading;
+ assert.equal(r.error_code,'DVC-103');assert.equal(s.calls,2);
+});

@@ -7,6 +7,7 @@ import '../widgets/app_icon.dart';
 import '../theme/glass_surface.dart';
 import '../theme/app_style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import '../services/device_history_service.dart';
 import '../widgets/device_history_chart.dart';
 
@@ -17,10 +18,12 @@ class DeviceHistoryScreen extends StatefulWidget {
       required this.userId,
       required this.partner,
       required this.kiosk,
+      this.workCheckNotice,
       required this.onRefresh});
   final DeviceMonitor monitor;
   final int userId;
   final String partner, kiosk;
+  final ValueListenable<String>? workCheckNotice;
   final Future<void> Function() onRefresh;
   @override
   State<DeviceHistoryScreen> createState() => _DeviceHistoryScreenState();
@@ -150,6 +153,20 @@ class _DeviceHistoryScreenState extends State<DeviceHistoryScreen> {
                               Text('페트병 수거기 · 10분마다 적재율 조회',
                                   style: TextStyle(height: 1.6)),
                               SizedBox(height: 16),
+                              if (widget.workCheckNotice != null) ...[
+                                ValueListenableBuilder<String>(
+                                    valueListenable: widget.workCheckNotice!,
+                                    builder: (context, message, _) => Semantics(
+                                        liveRegion: true,
+                                        child: GlassCard(
+                                            child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(16),
+                                                child: Text(message,
+                                                    style: const TextStyle(
+                                                        height: 1.6)))))),
+                                const SizedBox(height: 16),
+                              ],
                               Row(children: [
                                 ChoiceChip(
                                     label: Text('오늘'),
