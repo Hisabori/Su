@@ -1,4 +1,5 @@
 import '../services/device_check_journal.dart';
+import '../services/kiosk_result_sync69.dart';
 import '../widgets/glass_action_bar.dart';
 import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
@@ -48,6 +49,14 @@ class WorkScreen extends StatefulWidget {
 
 class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final api = ApiService();
+  late final kioskResultSync69 = KioskResultSync69(api);
+  String? adminCheckNotice69;
+  bool adminSyncing69 = false;
+  bool get adminSyncBlocksSession {
+    if (!adminSyncing69) return false;
+    notice('관리자 점검 저장을 확인 중입니다. 완료 후 다시 시도해 주세요.');
+    return true;
+  }
   final tts = TtsService();
   final speech = SpeechService();
   final logs = WorkLogService();
@@ -519,6 +528,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   void start() {
+    if (adminSyncBlocksSession) return;
     if (workStatus != null || work == null || work!.steps.isEmpty) return;
     if (plannedStart != null &&
         !DateTime.now()
@@ -643,6 +653,10 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   void updateWorkCheckNotice() {
     if (!mounted) return;
+    if (sessionUser == 69 && adminCheckNotice69 != null) {
+      workCheckNotice.value = adminCheckNotice69!;
+      return;
+    }
     if (checkedOut || complete) {
       workCheckNotice.value = '근무가 끝난 뒤의 조회입니다. 기존 근무 결과에 점검을 추가하지 않습니다.';
     } else if (!started) {
@@ -672,6 +686,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   Future<DeviceReading?> fetchManualDeviceReading(
       {Future<void> Function()? beforeRead}) {
     final recordForWork = canRecordDeviceCheck;
+    adminCheckNotice69 = null;
     final user = sessionUser;
     late final Future<DeviceReading?> request;
     // Register the user's intent before audio/storage preparation can yield to finish.
@@ -694,6 +709,26 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
               : null;
           if (deviceCheckJournal.persistenceFailed) {
             notice('점검 기록은 보관 중입니다. 기기 내 저장을 다시 시도해 주세요.');
+          }
+        }
+        final workActive = started && !complete ||
+            awaitingSave ||
+            submitting ||
+            pendingRecord != null;
+        if (reading != null &&
+            sessionUser == user &&
+            user == 69 &&
+            !recordForWork &&
+            !workActive) {
+          adminSyncing69 = true;
+          try {
+            adminCheckNotice69 =
+                await kioskResultSync69.sync(reading, workActive: false);
+          } finally {
+            adminSyncing69 = false;
+          }
+          if (mounted && adminCheckNotice69 != null) {
+            notice(adminCheckNotice69!);
           }
         }
         return reading;
@@ -1070,6 +1105,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> lockApp() async {
+    if (adminSyncBlocksSession) return;
     if (saving) return;
     await checkpoint();
     await stopAudio();
@@ -1081,6 +1117,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> checkout() async {
+    if (adminSyncBlocksSession) return;
     if (checkingOut || checkedOut || (!complete && workStatus == null)) return;
     setState(() => checkingOut = true);
     try {
@@ -1110,6 +1147,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   }
 
   Future<void> logout() async {
+    if (adminSyncBlocksSession) return;
     if (started && !complete) {
       final ok = await showDialog<bool>(
           context: context,

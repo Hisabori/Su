@@ -206,6 +206,31 @@ class ApiService {
     return integer(result['result_id']);
   }
 
+  Future<List<Map<String, dynamic>>> ownKioskResults69(String day) async {
+    if (await tokens.userId() != 69) throw ApiFailure('허용된 사용자가 아닙니다.');
+    final reply = await _put('/api/admin/list_work_result', {
+      'packetid': 'list_work_result',
+      'user_id': 69,
+      'start_date': day,
+      'end_date': day,
+    });
+    final rows = reply['results'];
+    if (integer(reply['ret']) != 1 || rows is! List) {
+      throw ApiFailure('기존 근무 결과를 확인하지 못했습니다.');
+    }
+    return rows.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+  }
+
+  Future<void> deleteOwnKioskDay69(String day) async {
+    if (await tokens.userId() != 69) throw ApiFailure('허용된 사용자가 아닙니다.');
+    final reply = await _put('/api/admin/delete_work_result_manual', {
+      'packetid': 'delete_work_result_manual',
+      'user_id': 69,
+      'work_date': day,
+    });
+    if (integer(reply['ret']) != 1) throw ApiFailure('기존 결과 삭제를 확인하지 못했습니다.');
+  }
+
   Future<Map<String, dynamic>> kioskInfo(String partnerId,
       {String? kioskId}) async {
     Map<String, dynamic> reply;

@@ -12,7 +12,7 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
    window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
    Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{getVoices:()=>[{name:'Korean fixture',lang:'ko-KR'}],addEventListener:()=>{},cancel:()=>{},speak:u=>setTimeout(()=>{u.onstart?.();setTimeout(()=>u.onend?.(),10);},0)}});
   });
-  const state={current:12,offline:false,saves:[],delay:null,started:null,kioskRequests:[]};
+  const state={current:12,offline:false,saves:[],delay:null,started:null,kioskRequests:[],results:null,deletes:0};
   await context.route('https://suho-angel.vercel.app/api/community',route=>route.fulfill({status:503,headers,body:'fixture fallback'}));
   await context.route('https://api-suho1004.innaim.com/**',async route=>{
    const request=route.request(),path=new URL(request.url()).pathname;
@@ -30,9 +30,14 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
    } else if(path.endsWith('/work_result')){
     assert.equal(request.method(),'PUT');assert.equal(body.user_id,69);
     state.saves.push(body);reply={ret:1,result_id:900001};
+    if(state.results!==null)state.results=[{...body,result_id:900001,actual_start_time:body.start_time,actual_end_time:body.end_time}];
+   } else if(path.endsWith('/delete_work_result_manual')){
+    assert.equal(assignment.kiosk,'VixVL4sPtmkwPaGHBWoR');
+    assert.equal(body.user_id,69);assert.equal(body.work_date,'2026-11-19');
+    assert.notEqual(state.results,null);state.deletes++;state.results=[];reply={ret:1};
    } else if(path.endsWith('/list_work_result')){
     assert.equal(body.user_id,69);assert.equal(body.packetid,'list_work_result');
-    reply={ret:1,results:state.saves.map(saved=>({...saved,result_id:900001}))};
+    reply={ret:1,results:state.results??state.saves.map(saved=>({...saved,result_id:900001}))};
    } else throw Error(`Unmocked original API ${path}`);
    return route.fulfill({status:200,headers,body:JSON.stringify(reply)});
   });
@@ -80,6 +85,21 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
   await flow.context.close();
  }
  try {
+  if(process.env.PWA_DEVICE_TEST_CASE==='admin-sync69'){
+   const flow=await fixture({startWork:false,assignment:{partner:'greenhug',kiosk:'VixVL4sPtmkwPaGHBWoR'},kiosks:[{kioskID:'VixVL4sPtmkwPaGHBWoR',name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
+   const original=[{stepid:74,'비고':1}];
+   flow.state.results=[{result_id:1950,user_id:69,work_id:2,process_version_id:25,work_date:'2026-11-19',work_minutes:5,rest_minutes:0,actual_start_time:'08:00:00',actual_end_time:'08:05:00',result_json:JSON.stringify(original)}];
+   await flow.page.getByRole('button',{name:'기기 상태',exact:true}).click();
+   await flow.page.getByText('1.4% 관리자 기록 저장·대조 완료',{exact:true}).last().waitFor({timeout:30000});
+   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,1);
+   const rows=JSON.parse(flow.state.saves[0].result_json);
+   assert.deepEqual(rows[0],original[0]);assert.equal(rows[1]['기기상태체크'],'1.4%');
+   await flow.page.getByRole('button',{name:/지금 기기 조회/}).click();
+   await flow.page.getByText('이 조회는 이미 관리자에 기록돼 있습니다.',{exact:true}).last().waitFor();
+   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,1);
+   console.log('PASS UID69 PWA query: Web Lock + secure backup + one delete/create + readback + replay deduplication (mock APIs only)');
+   await flow.context.close();return;
+  }
   await preparationRace();
   if(process.env.PWA_DEVICE_TEST_CASE==='prepare-race')return;
   const {context,page,state,ready}=await fixture();
