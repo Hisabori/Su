@@ -52,7 +52,8 @@ class KioskResultSync {
         reading.available == null ||
         reading.percent == null ||
         row['result_id'] is! int ||
-        row['work_id'] != KioskSyncScope.workId ||
+        row['work_id'] is! int ||
+        !reading.assignedWorkIds.contains(row['work_id']) ||
         row['process_version_id'] is! int ||
         row['work_minutes'] is! num ||
         row['rest_minutes'] is! num) {
@@ -135,6 +136,9 @@ class KioskResultSync {
         return '이전 관리자 갱신의 복구 확인이 필요합니다. 자동 재전송을 중단했습니다.';
       }
       final day = formatDate(reading.at);
+      if (reading.assignedWorkIds.isEmpty) {
+        return '서버에서 본인의 수거기 업무 배정을 확인하지 못해 관리자 갱신을 중단했습니다.';
+      }
       final rows = await api.ownKioskResults(day, userId: reading.userId);
       if (rows.length != 1) {
         return rows.isEmpty

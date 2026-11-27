@@ -9,8 +9,20 @@ import 'package:suho_angel/services/kiosk_sync_scope.dart';
 import 'api_contract_test.dart' show MemorySession;
 import 'storage_submission_test.dart' show MemoryStore;
 
+const fixtureKiosks = <int, String>{
+  69: 'VixVL4sPtmkwPaGHBWoR',
+  58: '05QzbVT2QtndWtyDQj0O',
+  64: '05QzbVT2QtndWtyDQj0O',
+  44: 'NerkOOJXXhIEOxEsONfS',
+  81: 'Nfwj3VJuxUBdeNcI72ga',
+  41: 'iXtg3zJq7KpJeZZUjwv1',
+  46: 'BiYKefLhrK54OjIP16FN',
+  500: 'unlisted-device',
+  901: 'other-company-device'
+};
 DeviceReading reading({int user = 69}) => DeviceReading(
     userId: user,
+    assignedWorkIds: const {2},
     partner: 'greenhug',
     kiosk: 'VixVL4sPtmkwPaGHBWoR',
     name: '여주아울렛06',
@@ -34,21 +46,34 @@ Map<String, dynamic> row() => {
     };
 
 void main() {
-  test('all seven accounts synchronize only their own assigned result and keys',
+  test('missing fresh assignment never queries or deletes results', () async {
+    final api = ApiService(
+        tokens: MemorySession()..id = 69,
+        client: MockClient(
+            (_) async => fail('unassigned query must not call API')));
+    final cached = DeviceReading.fromJson(reading().toJson());
+    expect(
+        await KioskResultSync(api, store: MemoryStore())
+            .sync(cached, workActive: false),
+        contains('업무 배정을 확인하지 못해'));
+  });
+  test(
+      'arbitrary authenticated accounts synchronize only their own assigned result and keys',
       () async {
     final store = MemoryStore();
-    for (final user in KioskSyncScope.kiosks.keys) {
+    for (final user in fixtureKiosks.keys) {
       final sample = DeviceReading(
           userId: user,
-          partner: 'greenhug',
-          kiosk: KioskSyncScope.kiosks[user]!,
+          partner: user == 901 ? 'other-company' : 'greenhug',
+          assignedWorkIds: {user == 901 ? 7 : 2},
+          kiosk: fixtureKiosks[user]!,
           name: '배정 기기',
           at: DateTime(2026, 11, 27, 13),
           current: 14,
           capacity: 1000,
           available: true);
       var rows = [
-        {...row(), 'user_id': user}
+        {...row(), 'user_id': user, 'work_id': user == 901 ? 7 : 2}
       ];
       var deletes = 0, creates = 0;
       final api = ApiService(
@@ -99,13 +124,12 @@ void main() {
               .sync(sample, workActive: false),
           isNull);
     }
-    expect(KioskSyncScope.kiosks.keys.toSet(), {69, 58, 64, 44, 81, 41, 46});
-    expect(
-        KioskSyncScope.kiosks.keys
-            .map(KioskResultSync.pendingKeyFor)
-            .toSet()
-            .length,
-        7);
+    expect(KioskSyncScope.allows(500000), isTrue);
+    expect(KioskSyncScope.allows(0), isFalse);
+    expect(KioskSyncScope.allows(-1), isFalse);
+    expect(KioskSyncScope.allows(null), isFalse);
+    expect(fixtureKiosks.keys.map(KioskResultSync.pendingKeyFor).toSet().length,
+        9);
     expect(KioskResultSync.pendingKeyFor(69), 'kiosk_result_sync69_pending_v1');
   });
   test('allowed user cannot query or delete another allowed user result',
@@ -117,12 +141,22 @@ void main() {
         throwsA(isA<ApiFailure>()));
     expect(() => api.deleteOwnKioskDay('2026-11-27', userId: 64),
         throwsA(isA<ApiFailure>()));
-    for (final user in KioskSyncScope.kiosks.keys) {
-      expect(KioskSyncScope.matches(user, 'greenhug', 'wrong-device'), isFalse);
-      expect(
-          KioskSyncScope.matches(user, 'other', KioskSyncScope.kiosks[user]!),
-          isFalse);
-    }
+    expect(
+        KioskSyncScope.assignedWorkIds({
+          'assignedWorkers': [
+            {'user_id': 58, 'work_id': 7}
+          ]
+        }, 64),
+        isEmpty);
+    expect(
+        KioskSyncScope.assignedWorkIds({
+          'assignedWorkers': [
+            {'user_id': 58, 'work_id': 7}
+          ]
+        }, 58),
+        {7});
+    expect(KioskSyncScope.assignedWorkIds({}, 58), isEmpty);
+    expect(DeviceReading.fromJson(reading().toJson()).assignedWorkIds, isEmpty);
   });
   for (final count in [0, 2]) {
     test('$count existing results never triggers deletion', () async {

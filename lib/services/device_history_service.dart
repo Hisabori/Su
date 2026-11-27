@@ -17,7 +17,10 @@ class DeviceReading {
       this.capacity,
       this.available,
       this.error,
-      this.errorCode});
+      this.errorCode,
+      this.assignedWorkIds = const {}});
+  // Fresh server assignment evidence; deliberately not persisted in history.
+  final Set<int> assignedWorkIds;
   final int userId;
   final String partner, kiosk, name;
   final DateTime at;

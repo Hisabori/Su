@@ -604,6 +604,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
       final data = matches.first;
       final raw = data['isAvailable'];
       return DeviceReading(
+          assignedWorkIds: KioskSyncScope.assignedWorkIds(data, userId),
           userId: userId,
           partner: partner,
           kiosk: kiosk,

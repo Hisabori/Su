@@ -5,7 +5,7 @@ let debugPage;
 const headers={'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-methods':'PUT,POST,OPTIONS','access-control-allow-headers':'content-type,authorization'};
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
- async function fixture({rejectPartnerId=false,assignment={partner:'fixture-partner',kiosk:'fixture-kiosk'},kiosks=null,startWork=true,userId=69}={}){
+ async function fixture({rejectPartnerId=false,assignment={partner:'fixture-partner',kiosk:'fixture-kiosk'},kiosks=null,startWork=true,userId=69,workId=2}={}){
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Asia/Seoul'});
   await require('./access-fixture.cjs')(context);
   await context.addInitScript(()=>{
@@ -20,19 +20,19 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
    const body=request.postDataJSON();let reply;
    if(path.endsWith('/login'))reply={ret:1,user_id:userId,name:'호환 검증용',access_token:'device-check-fixture',company_device_name:assignment.partner,kiosk_id:assignment.kiosk};
    else if(path.endsWith('/validate_token'))reply={ret:1};
-   else if(path.endsWith('/work_info'))reply={ret:1,work:{work_id:2,work_name:'가상 호환 검증'},process:{current_version_id:25},steps:[{step_id:74,step_name:'확인',start_ment:'확인해 주세요.',work_seconds:0,display_order:1}]};
+   else if(path.endsWith('/work_info'))reply={ret:1,work:{work_id:workId,work_name:'가상 호환 검증'},process:{current_version_id:25},steps:[{step_id:74,step_name:'확인',start_ment:'확인해 주세요.',work_seconds:0,display_order:1}]};
    else if(path.endsWith('/kiosk_info')){
     state.kioskRequests.push(body);
     if(rejectPartnerId && Object.hasOwn(body,'partnerId'))return route.fulfill({status:422,headers,body:JSON.stringify({message:'fixture requires partnerIds'})});
     if(state.delay){state.started?.();await state.delay;}
     if(state.offline)return route.fulfill({status:503,headers,body:JSON.stringify({message:'fixture offline'})});
-    reply={ret:1,kiosks:kiosks||[{kioskID:'fixture-kiosk',name:'검증 수거기',currentCapacity:state.current,maxCapacity:1000,isAvailable:true}]};
+    reply={ret:1,kiosks:(kiosks||[{kioskID:'fixture-kiosk',name:'검증 수거기',currentCapacity:state.current,maxCapacity:1000,isAvailable:true}]).map(k=>({...k,assignedWorkers:k.assignedWorkers??[{user_id:userId,work_id:workId}]}))};
    } else if(path.endsWith('/work_result')){
     assert.equal(request.method(),'PUT');assert.equal(body.user_id,userId);
     state.saves.push(body);reply={ret:1,result_id:900001};
     if(state.results!==null)state.results=[{...body,result_id:900001,actual_start_time:body.start_time,actual_end_time:body.end_time}];
    } else if(path.endsWith('/delete_work_result_manual')){
-    assert(['VixVL4sPtmkwPaGHBWoR','05QzbVT2QtndWtyDQj0O','NerkOOJXXhIEOxEsONfS','Nfwj3VJuxUBdeNcI72ga','iXtg3zJq7KpJeZZUjwv1','BiYKefLhrK54OjIP16FN'].includes(assignment.kiosk));
+    assert(assignment.partner&&assignment.kiosk);
     assert.equal(body.user_id,userId);assert.equal(body.work_date,'2026-11-19');
     assert.notEqual(state.results,null);state.deletes++;state.results=[];reply={ret:1};
    } else if(path.endsWith('/list_work_result')){
@@ -86,12 +86,12 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
  }
  try {
   if(['admin-sync69','admin-sync-scoped'].includes(process.env.PWA_DEVICE_TEST_CASE)){
-   const targets=[[69,'VixVL4sPtmkwPaGHBWoR'],[58,'05QzbVT2QtndWtyDQj0O'],[64,'05QzbVT2QtndWtyDQj0O'],[44,'NerkOOJXXhIEOxEsONfS'],[81,'Nfwj3VJuxUBdeNcI72ga'],[41,'iXtg3zJq7KpJeZZUjwv1'],[46,'BiYKefLhrK54OjIP16FN']];
+   const targets=[[69,'VixVL4sPtmkwPaGHBWoR'],[58,'05QzbVT2QtndWtyDQj0O'],[64,'05QzbVT2QtndWtyDQj0O'],[44,'NerkOOJXXhIEOxEsONfS'],[81,'Nfwj3VJuxUBdeNcI72ga'],[41,'iXtg3zJq7KpJeZZUjwv1'],[46,'BiYKefLhrK54OjIP16FN'],[500,'unlisted-device']];
    const requestedUser=process.env.PWA_SYNC_USER_ID?Number(process.env.PWA_SYNC_USER_ID):null;
    assert(requestedUser===null||targets.some(([id])=>id===requestedUser),'Unknown scoped fixture user');
    for(const [userId,kiosk] of targets) {
    if(requestedUser!==null&&userId!==requestedUser)continue;
-   const flow=await fixture({userId,assignment:{partner:'greenhug',kiosk},kiosks:[{kioskID:kiosk,name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
+   const flow=await fixture({userId,workId:userId===500?7:2,assignment:{partner:userId===500?'new-partner':'greenhug',kiosk},kiosks:[{kioskID:kiosk,name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
    flow.state.results=[];
    await flow.page.getByRole('button',{name:'예',exact:true}).click();
    await flow.page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
@@ -158,12 +158,12 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
   await page.getByRole('button',{name:'기기 상태',exact:true}).click();
   await page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
   await page.getByRole('button',{name:/지금 기기 조회/}).click();await page.waitForTimeout(500);
-  assert.equal(state.saves.length,1,'completed work must not be resubmitted by a reading');
+  assert.equal(state.saves.length,1,'completed result without confirmed actual server times must not be rewritten');
   const admin=await page.evaluate(async()=>{
    const response=await fetch('https://api-suho1004.innaim.com/api/admin/list_work_result',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer fixture-admin'},body:JSON.stringify({packetid:'list_work_result',user_id:69,start_date:'2026-11-19',end_date:'2026-11-19'})});return response.json();
   });
   assert.deepEqual(JSON.parse(admin.results[0].result_json).filter(row=>row.type==='device_check'),checks);
-  console.log('PASS mocked manual reads, refresh, network retry, journal restore, one work submission, post-completion read-only and admin JSON comparison');
+  console.log('PASS mocked manual reads, refresh, network retry, journal restore, one work submission, unverifiable completed result protection and admin JSON comparison');
   await context.close();
   const race=await fixture();let release,entered;
   race.state.delay=new Promise(resolve=>release=resolve);
@@ -223,7 +223,7 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
   const beforeWork=await fixture({startWork:false});
   await beforeWork.page.getByRole('button',{name:'기기 상태',exact:true}).click();
   await beforeWork.page.getByText('수거기 적재율 기록',{exact:true}).waitFor();
-  await beforeWork.page.getByText(/작업 시작 전 조회입니다/).waitFor();
+  await beforeWork.page.getByText(/오늘 근무 결과가 없어/).last().waitFor();
   if(process.env.PWA_AUDIT_SCREENSHOTS)await beforeWork.page.screenshot({path:'build/collector-status-before-work.png',fullPage:true});
   assert.equal(beforeWork.state.saves.length,0);
   await beforeWork.page.getByRole('button',{name:'Back',exact:true}).click();

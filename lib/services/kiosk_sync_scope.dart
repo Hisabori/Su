@@ -1,18 +1,21 @@
-/// Explicit rollout list, verified against the server's kiosk assignments.
-/// This client scope is not a replacement for server authorization.
+/// All authenticated owners may sync, but only server-confirmed assignments.
+/// This client check is not a replacement for server authorization.
 class KioskSyncScope {
-  static const partner = 'greenhug';
-  static const workId = 2;
-  static const kiosks = <int, String>{
-    69: 'VixVL4sPtmkwPaGHBWoR',
-    58: '05QzbVT2QtndWtyDQj0O',
-    64: '05QzbVT2QtndWtyDQj0O',
-    44: 'NerkOOJXXhIEOxEsONfS',
-    81: 'Nfwj3VJuxUBdeNcI72ga',
-    41: 'iXtg3zJq7KpJeZZUjwv1',
-    46: 'BiYKefLhrK54OjIP16FN',
-  };
-  static bool allows(int? userId) => kiosks.containsKey(userId);
+  static bool allows(int? userId) => userId != null && userId > 0;
   static bool matches(int userId, String assignedPartner, String kiosk) =>
-      allows(userId) && assignedPartner == partner && kiosks[userId] == kiosk;
+      allows(userId) &&
+      assignedPartner.trim().isNotEmpty &&
+      kiosk.trim().isNotEmpty;
+
+  static Set<int> assignedWorkIds(Map kiosk, int userId) {
+    final workers = kiosk['assignedWorkers'];
+    if (!allows(userId) || workers is! List) return {};
+    return workers
+        .whereType<Map>()
+        .where((w) => int.tryParse('${w['user_id']}') == userId)
+        .map((w) => int.tryParse('${w['work_id']}'))
+        .whereType<int>()
+        .where((id) => id > 0)
+        .toSet();
+  }
 }
