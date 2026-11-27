@@ -34,7 +34,7 @@ Map<String, dynamic> row() => {
     };
 
 void main() {
-  test('all six accounts synchronize only their own assigned result and keys',
+  test('all seven accounts synchronize only their own assigned result and keys',
       () async {
     final store = MemoryStore();
     for (final user in KioskSyncScope.kiosks.keys) {
@@ -99,13 +99,13 @@ void main() {
               .sync(sample, workActive: false),
           isNull);
     }
-    expect(KioskSyncScope.kiosks.keys.toSet(), {69, 58, 64, 44, 81, 41});
+    expect(KioskSyncScope.kiosks.keys.toSet(), {69, 58, 64, 44, 81, 41, 46});
     expect(
         KioskSyncScope.kiosks.keys
             .map(KioskResultSync.pendingKeyFor)
             .toSet()
             .length,
-        6);
+        7);
     expect(KioskResultSync.pendingKeyFor(69), 'kiosk_result_sync69_pending_v1');
   });
   test('allowed user cannot query or delete another allowed user result',

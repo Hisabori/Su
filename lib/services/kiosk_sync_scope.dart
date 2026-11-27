@@ -10,6 +10,7 @@ class KioskSyncScope {
     44: 'NerkOOJXXhIEOxEsONfS',
     81: 'Nfwj3VJuxUBdeNcI72ga',
     41: 'iXtg3zJq7KpJeZZUjwv1',
+    46: 'BiYKefLhrK54OjIP16FN',
   };
   static bool allows(int? userId) => kiosks.containsKey(userId);
   static bool matches(int userId, String assignedPartner, String kiosk) =>

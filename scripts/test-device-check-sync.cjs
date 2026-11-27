@@ -32,7 +32,7 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
     state.saves.push(body);reply={ret:1,result_id:900001};
     if(state.results!==null)state.results=[{...body,result_id:900001,actual_start_time:body.start_time,actual_end_time:body.end_time}];
    } else if(path.endsWith('/delete_work_result_manual')){
-    assert(['VixVL4sPtmkwPaGHBWoR','05QzbVT2QtndWtyDQj0O','NerkOOJXXhIEOxEsONfS','Nfwj3VJuxUBdeNcI72ga','iXtg3zJq7KpJeZZUjwv1'].includes(assignment.kiosk));
+    assert(['VixVL4sPtmkwPaGHBWoR','05QzbVT2QtndWtyDQj0O','NerkOOJXXhIEOxEsONfS','Nfwj3VJuxUBdeNcI72ga','iXtg3zJq7KpJeZZUjwv1','BiYKefLhrK54OjIP16FN'].includes(assignment.kiosk));
     assert.equal(body.user_id,userId);assert.equal(body.work_date,'2026-11-19');
     assert.notEqual(state.results,null);state.deletes++;state.results=[];reply={ret:1};
    } else if(path.endsWith('/list_work_result')){
@@ -86,7 +86,11 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
  }
  try {
   if(['admin-sync69','admin-sync-scoped'].includes(process.env.PWA_DEVICE_TEST_CASE)){
-   for(const [userId,kiosk] of [[69,'VixVL4sPtmkwPaGHBWoR'],[58,'05QzbVT2QtndWtyDQj0O'],[64,'05QzbVT2QtndWtyDQj0O'],[44,'NerkOOJXXhIEOxEsONfS'],[81,'Nfwj3VJuxUBdeNcI72ga'],[41,'iXtg3zJq7KpJeZZUjwv1']]) {
+   const targets=[[69,'VixVL4sPtmkwPaGHBWoR'],[58,'05QzbVT2QtndWtyDQj0O'],[64,'05QzbVT2QtndWtyDQj0O'],[44,'NerkOOJXXhIEOxEsONfS'],[81,'Nfwj3VJuxUBdeNcI72ga'],[41,'iXtg3zJq7KpJeZZUjwv1'],[46,'BiYKefLhrK54OjIP16FN']];
+   const requestedUser=process.env.PWA_SYNC_USER_ID?Number(process.env.PWA_SYNC_USER_ID):null;
+   assert(requestedUser===null||targets.some(([id])=>id===requestedUser),'Unknown scoped fixture user');
+   for(const [userId,kiosk] of targets) {
+   if(requestedUser!==null&&userId!==requestedUser)continue;
    const flow=await fixture({userId,assignment:{partner:'greenhug',kiosk},kiosks:[{kioskID:kiosk,name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
    flow.state.results=[];
    await flow.page.getByRole('button',{name:'예',exact:true}).click();
