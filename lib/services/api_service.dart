@@ -9,6 +9,7 @@ import '../models/work_info.dart';
 import '../utils/password_utils.dart';
 import 'token_storage_service.dart';
 import 'diagnostic_log.dart';
+import 'kiosk_sync_scope.dart';
 
 class ApiFailure implements Exception {
   final String message;
@@ -206,11 +207,14 @@ class ApiService {
     return integer(result['result_id']);
   }
 
-  Future<List<Map<String, dynamic>>> ownKioskResults69(String day) async {
-    if (await tokens.userId() != 69) throw ApiFailure('허용된 사용자가 아닙니다.');
+  Future<List<Map<String, dynamic>>> ownKioskResults(String day,
+      {required int userId}) async {
+    if (!KioskSyncScope.allows(userId) || await tokens.userId() != userId) {
+      throw ApiFailure('허용된 사용자가 아닙니다.');
+    }
     final reply = await _put('/api/admin/list_work_result', {
       'packetid': 'list_work_result',
-      'user_id': 69,
+      'user_id': userId,
       'start_date': day,
       'end_date': day,
     });
@@ -221,11 +225,13 @@ class ApiService {
     return rows.map((r) => Map<String, dynamic>.from(r as Map)).toList();
   }
 
-  Future<void> deleteOwnKioskDay69(String day) async {
-    if (await tokens.userId() != 69) throw ApiFailure('허용된 사용자가 아닙니다.');
+  Future<void> deleteOwnKioskDay(String day, {required int userId}) async {
+    if (!KioskSyncScope.allows(userId) || await tokens.userId() != userId) {
+      throw ApiFailure('허용된 사용자가 아닙니다.');
+    }
     final reply = await _put('/api/admin/delete_work_result_manual', {
       'packetid': 'delete_work_result_manual',
-      'user_id': 69,
+      'user_id': userId,
       'work_date': day,
     });
     if (integer(reply['ret']) != 1) throw ApiFailure('기존 결과 삭제를 확인하지 못했습니다.');

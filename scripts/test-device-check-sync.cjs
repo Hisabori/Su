@@ -5,7 +5,7 @@ let debugPage;
 const headers={'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-methods':'PUT,POST,OPTIONS','access-control-allow-headers':'content-type,authorization'};
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
- async function fixture({rejectPartnerId=false,assignment={partner:'fixture-partner',kiosk:'fixture-kiosk'},kiosks=null,startWork=true}={}){
+ async function fixture({rejectPartnerId=false,assignment={partner:'fixture-partner',kiosk:'fixture-kiosk'},kiosks=null,startWork=true,userId=69}={}){
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Asia/Seoul'});
   await require('./access-fixture.cjs')(context);
   await context.addInitScript(()=>{
@@ -18,7 +18,7 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
    const request=route.request(),path=new URL(request.url()).pathname;
    if(request.method()==='OPTIONS')return route.fulfill({status:204,headers});
    const body=request.postDataJSON();let reply;
-   if(path.endsWith('/login'))reply={ret:1,user_id:69,name:'호환 검증용',access_token:'device-check-fixture',company_device_name:assignment.partner,kiosk_id:assignment.kiosk};
+   if(path.endsWith('/login'))reply={ret:1,user_id:userId,name:'호환 검증용',access_token:'device-check-fixture',company_device_name:assignment.partner,kiosk_id:assignment.kiosk};
    else if(path.endsWith('/validate_token'))reply={ret:1};
    else if(path.endsWith('/work_info'))reply={ret:1,work:{work_id:2,work_name:'가상 호환 검증'},process:{current_version_id:25},steps:[{step_id:74,step_name:'확인',start_ment:'확인해 주세요.',work_seconds:0,display_order:1}]};
    else if(path.endsWith('/kiosk_info')){
@@ -28,15 +28,15 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
     if(state.offline)return route.fulfill({status:503,headers,body:JSON.stringify({message:'fixture offline'})});
     reply={ret:1,kiosks:kiosks||[{kioskID:'fixture-kiosk',name:'검증 수거기',currentCapacity:state.current,maxCapacity:1000,isAvailable:true}]};
    } else if(path.endsWith('/work_result')){
-    assert.equal(request.method(),'PUT');assert.equal(body.user_id,69);
+    assert.equal(request.method(),'PUT');assert.equal(body.user_id,userId);
     state.saves.push(body);reply={ret:1,result_id:900001};
     if(state.results!==null)state.results=[{...body,result_id:900001,actual_start_time:body.start_time,actual_end_time:body.end_time}];
    } else if(path.endsWith('/delete_work_result_manual')){
-    assert.equal(assignment.kiosk,'VixVL4sPtmkwPaGHBWoR');
-    assert.equal(body.user_id,69);assert.equal(body.work_date,'2026-11-19');
+    assert(['VixVL4sPtmkwPaGHBWoR','05QzbVT2QtndWtyDQj0O','NerkOOJXXhIEOxEsONfS','Nfwj3VJuxUBdeNcI72ga','iXtg3zJq7KpJeZZUjwv1'].includes(assignment.kiosk));
+    assert.equal(body.user_id,userId);assert.equal(body.work_date,'2026-11-19');
     assert.notEqual(state.results,null);state.deletes++;state.results=[];reply={ret:1};
    } else if(path.endsWith('/list_work_result')){
-    assert.equal(body.user_id,69);assert.equal(body.packetid,'list_work_result');
+    assert.equal(body.user_id,userId);assert.equal(body.packetid,'list_work_result');
     reply={ret:1,results:state.results??state.saves.map(saved=>({...saved,result_id:900001}))};
    } else throw Error(`Unmocked original API ${path}`);
    return route.fulfill({status:200,headers,body:JSON.stringify(reply)});
@@ -85,8 +85,9 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
   await flow.context.close();
  }
  try {
-  if(process.env.PWA_DEVICE_TEST_CASE==='admin-sync69'){
-   const flow=await fixture({assignment:{partner:'greenhug',kiosk:'VixVL4sPtmkwPaGHBWoR'},kiosks:[{kioskID:'VixVL4sPtmkwPaGHBWoR',name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
+  if(['admin-sync69','admin-sync-scoped'].includes(process.env.PWA_DEVICE_TEST_CASE)){
+   for(const [userId,kiosk] of [[69,'VixVL4sPtmkwPaGHBWoR'],[58,'05QzbVT2QtndWtyDQj0O'],[64,'05QzbVT2QtndWtyDQj0O'],[44,'NerkOOJXXhIEOxEsONfS'],[81,'Nfwj3VJuxUBdeNcI72ga'],[41,'iXtg3zJq7KpJeZZUjwv1']]) {
+   const flow=await fixture({userId,assignment:{partner:'greenhug',kiosk},kiosks:[{kioskID:kiosk,name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
    flow.state.results=[];
    await flow.page.getByRole('button',{name:'예',exact:true}).click();
    await flow.page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
@@ -107,8 +108,10 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
    await flow.page.getByText('1.4% 관리자 기록 저장·대조 완료',{exact:true}).last().waitFor({timeout:30000});
    assert.equal(flow.state.deletes,2);assert.equal(flow.state.saves.length,3);
    assert.equal(JSON.parse(flow.state.saves[2].result_json).filter(r=>r.type==='device_check').length,2);
-   console.log('PASS UID69 completed and restored PWA: Web Lock + backup + delete/create + readback + replay deduplication (mock APIs only)');
-   await flow.context.close();return;
+   console.log(`PASS UID${userId} completed/restored PWA: own scope, backup, delete/create, readback, replay deduplication (mock APIs only)`);
+   await flow.context.close();
+   }
+   return;
   }
   await preparationRace();
   if(process.env.PWA_DEVICE_TEST_CASE==='prepare-race')return;

@@ -1,5 +1,6 @@
 import '../services/device_check_journal.dart';
-import '../services/kiosk_result_sync69.dart';
+import '../services/kiosk_result_sync.dart';
+import '../services/kiosk_sync_scope.dart';
 import '../widgets/glass_action_bar.dart';
 import '../widgets/app_switch_tile.dart';
 import '../services/update_checkpoint.dart';
@@ -49,11 +50,11 @@ class WorkScreen extends StatefulWidget {
 
 class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   final api = ApiService();
-  late final kioskResultSync69 = KioskResultSync69(api);
-  String? adminCheckNotice69;
-  bool adminSyncing69 = false;
+  late final kioskResultSync = KioskResultSync(api);
+  String? adminCheckNotice;
+  bool adminSyncing = false;
   bool get adminSyncBlocksSession {
-    if (!adminSyncing69) return false;
+    if (!adminSyncing) return false;
     notice('관리자 점검 저장을 확인 중입니다. 완료 후 다시 시도해 주세요.');
     return true;
   }
@@ -654,8 +655,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
 
   void updateWorkCheckNotice() {
     if (!mounted) return;
-    if (sessionUser == 69 && adminCheckNotice69 != null) {
-      workCheckNotice.value = adminCheckNotice69!;
+    if (KioskSyncScope.allows(sessionUser) && adminCheckNotice != null) {
+      workCheckNotice.value = adminCheckNotice!;
       return;
     }
     if (checkedOut || complete) {
@@ -687,7 +688,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
   Future<DeviceReading?> fetchManualDeviceReading(
       {Future<void> Function()? beforeRead}) {
     final recordForWork = canRecordDeviceCheck;
-    adminCheckNotice69 = null;
+    adminCheckNotice = null;
     final user = sessionUser;
     late final Future<DeviceReading?> request;
     // Register the user's intent before audio/storage preparation can yield to finish.
@@ -719,18 +720,18 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
                 pendingRecord!['server_submitted'] != true);
         if (reading != null &&
             sessionUser == user &&
-            user == 69 &&
+            KioskSyncScope.allows(user) &&
             !recordForWork &&
             !workActive) {
-          adminSyncing69 = true;
+          adminSyncing = true;
           try {
-            adminCheckNotice69 =
-                await kioskResultSync69.sync(reading, workActive: false);
+            adminCheckNotice =
+                await kioskResultSync.sync(reading, workActive: false);
           } finally {
-            adminSyncing69 = false;
+            adminSyncing = false;
           }
-          if (mounted && adminCheckNotice69 != null) {
-            notice(adminCheckNotice69!);
+          if (mounted && adminCheckNotice != null) {
+            notice(adminCheckNotice!);
           }
         }
         return reading;

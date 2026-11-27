@@ -1,2 +1,3 @@
-Future<String?> withKioskSyncLock(Future<String?> Function() action) =>
+Future<String?> withKioskSyncLock(
+        int userId, Future<String?> Function() action) =>
     action();

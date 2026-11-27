@@ -5,17 +5,22 @@ import 'api_service.dart';
 import 'device_history_service.dart';
 import 'local_store.dart';
 import 'kiosk_sync_lock.dart';
+import 'kiosk_sync_scope.dart';
 
 /// Explicitly scoped experiment. This is NOT an atomic server update.
 /// A persisted pending operation blocks all further writes after uncertainty.
-class KioskResultSync69 {
-  KioskResultSync69(this.api, {LocalStore? store})
+class KioskResultSync {
+  KioskResultSync(this.api, {LocalStore? store})
       : store = store ?? const SecureLocalStore();
   final ApiService api;
   final LocalStore store;
   static bool _busy = false;
   static const key = 'kiosk_result_sync69_pending_v1';
   static const backupKey = 'kiosk_result_sync69_last_backup_v1';
+  static String pendingKeyFor(int userId) =>
+      userId == 69 ? key : 'kiosk_result_sync${userId}_pending_v1';
+  static String backupKeyFor(int userId) =>
+      userId == 69 ? backupKey : 'kiosk_result_sync${userId}_last_backup_v1';
 
   static String fingerprint(List<Map<String, dynamic>> rows) {
     dynamic canonical(dynamic value) {
@@ -38,17 +43,16 @@ class KioskResultSync69 {
   static Map<String, dynamic> candidate(
       Map<String, dynamic> row, DeviceReading reading) {
     final day = formatDate(reading.at);
-    if (reading.userId != 69 ||
-        row['user_id'] != 69 ||
+    if (!KioskSyncScope.matches(
+            reading.userId, reading.partner, reading.kiosk) ||
+        row['user_id'] != reading.userId ||
         row['work_date'] != day ||
-        reading.partner != 'greenhug' ||
-        reading.kiosk != 'VixVL4sPtmkwPaGHBWoR' ||
         reading.name.trim().isEmpty ||
         reading.error != null ||
         reading.available == null ||
         reading.percent == null ||
         row['result_id'] is! int ||
-        row['work_id'] is! int ||
+        row['work_id'] != KioskSyncScope.workId ||
         row['process_version_id'] is! int ||
         row['work_minutes'] is! num ||
         row['rest_minutes'] is! num) {
@@ -87,7 +91,8 @@ class KioskResultSync69 {
         r['기기상태체크'] == point['기기상태체크'] &&
         r['isAvailable'] == point['isAvailable']);
     return {
-      'packetid': 'kiosk_sync69_${reading.at.microsecondsSinceEpoch}',
+      'packetid':
+          'kiosk_sync${reading.userId}_${reading.at.microsecondsSinceEpoch}',
       for (final field in [
         'user_id',
         'work_id',
@@ -105,27 +110,32 @@ class KioskResultSync69 {
 
   Future<String?> sync(DeviceReading reading,
       {required bool workActive}) async {
-    if (reading.userId != 69 || await api.tokens.userId() != 69) return null;
-    if (reading.partner != 'greenhug' ||
-        reading.kiosk != 'VixVL4sPtmkwPaGHBWoR' ||
+    if (!KioskSyncScope.allows(reading.userId) ||
+        await api.tokens.userId() != reading.userId) {
+      return null;
+    }
+    if (!KioskSyncScope.matches(
+            reading.userId, reading.partner, reading.kiosk) ||
         reading.error != null ||
         reading.available == null ||
         reading.percent == null) {
       return null;
     }
     if (workActive) return '근무 중 점검은 보관되며 근무 완료 시 전송합니다.';
-    return withKioskSyncLock(() => _sync(reading));
+    return withKioskSyncLock(reading.userId, () => _sync(reading));
   }
 
   Future<String?> _sync(DeviceReading reading) async {
+    final operationKey = pendingKeyFor(reading.userId);
+    final recoveryKey = backupKeyFor(reading.userId);
     if (_busy) return '이전 점검의 관리자 저장을 확인 중입니다.';
     _busy = true;
     try {
-      if (await store.read(key) != null) {
+      if (await store.read(operationKey) != null) {
         return '이전 관리자 갱신의 복구 확인이 필요합니다. 자동 재전송을 중단했습니다.';
       }
       final day = formatDate(reading.at);
-      final rows = await api.ownKioskResults69(day);
+      final rows = await api.ownKioskResults(day, userId: reading.userId);
       if (rows.length != 1) {
         return rows.isEmpty
             ? '오늘 근무 결과가 없어 관리자 점검을 추가하지 않았습니다.'
@@ -138,24 +148,27 @@ class KioskResultSync69 {
       }
       // Read-back verifies durable storage before any destructive call.
       final journal = jsonEncode({'before': rows, 'request': body});
-      await store.write(backupKey, journal);
-      if (await store.read(backupKey) != journal) {
+      await store.write(recoveryKey, journal);
+      if (await store.read(recoveryKey) != journal) {
         throw ApiFailure('복구 백업 저장 실패');
       }
-      await store.write(key, journal);
-      if (await store.read(key) != journal) throw ApiFailure('복구 상태 저장 실패');
-      final current = await api.ownKioskResults69(day);
+      await store.write(operationKey, journal);
+      if (await store.read(operationKey) != journal) {
+        throw ApiFailure('복구 상태 저장 실패');
+      }
+      final current = await api.ownKioskResults(day, userId: reading.userId);
       if (fingerprint(current) != fingerprint(rows)) {
-        await store.delete(key); // No destructive request has started.
+        await store.delete(operationKey); // No destructive request has started.
         return '다른 곳에서 근무 기록이 변경돼 갱신을 중단했습니다.';
       }
-      await api.deleteOwnKioskDay69(day); // Never retry this request.
-      if ((await api.ownKioskResults69(day)).isNotEmpty) {
+      await api.deleteOwnKioskDay(day,
+          userId: reading.userId); // Never retry this request.
+      if ((await api.ownKioskResults(day, userId: reading.userId)).isNotEmpty) {
         throw ApiFailure('삭제 후 상태가 예상과 다릅니다.');
       }
       final id =
           await api.submitWorkResult(body); // Never retry on uncertainty.
-      final after = await api.ownKioskResults69(day);
+      final after = await api.ownKioskResults(day, userId: reading.userId);
       if (id == null || after.length != 1 || after.single['result_id'] != id) {
         throw ApiFailure('재등록 결과 확인 실패');
       }
@@ -184,7 +197,7 @@ class KioskResultSync69 {
           body['result_json']) {
         throw ApiFailure('재등록 점검 데이터 대조 실패');
       }
-      await store.delete(key);
+      await store.delete(operationKey);
       return '${reading.percentLabel} 관리자 기록 저장·대조 완료';
     } catch (_) {
       return '관리자 갱신을 완료하지 못했습니다. 복구 확인 전 자동 재시도하지 않습니다.';
