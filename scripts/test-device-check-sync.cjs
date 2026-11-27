@@ -86,18 +86,28 @@ const headers={'content-type':'application/json; charset=utf-8','access-control-
  }
  try {
   if(process.env.PWA_DEVICE_TEST_CASE==='admin-sync69'){
-   const flow=await fixture({startWork:false,assignment:{partner:'greenhug',kiosk:'VixVL4sPtmkwPaGHBWoR'},kiosks:[{kioskID:'VixVL4sPtmkwPaGHBWoR',name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
-   const original=[{stepid:74,'비고':1}];
-   flow.state.results=[{result_id:1950,user_id:69,work_id:2,process_version_id:25,work_date:'2026-11-19',work_minutes:5,rest_minutes:0,actual_start_time:'08:00:00',actual_end_time:'08:05:00',result_json:JSON.stringify(original)}];
+   const flow=await fixture({assignment:{partner:'greenhug',kiosk:'VixVL4sPtmkwPaGHBWoR'},kiosks:[{kioskID:'VixVL4sPtmkwPaGHBWoR',name:'검증 수거기',currentCapacity:14,maxCapacity:1000,isAvailable:true}]});
+   flow.state.results=[];
+   await flow.page.getByRole('button',{name:'예',exact:true}).click();
+   await flow.page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
+   assert.equal(flow.state.saves.length,1);
+   const original=JSON.parse(flow.state.saves[0].result_json);
    await flow.page.getByRole('button',{name:'기기 상태',exact:true}).click();
    await flow.page.getByText('1.4% 관리자 기록 저장·대조 완료',{exact:true}).last().waitFor({timeout:30000});
-   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,1);
-   const rows=JSON.parse(flow.state.saves[0].result_json);
+   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,2);
+   const rows=JSON.parse(flow.state.saves[1].result_json);
    assert.deepEqual(rows[0],original[0]);assert.equal(rows[1]['기기상태체크'],'1.4%');
    await flow.page.getByRole('button',{name:/지금 기기 조회/}).click();
    await flow.page.getByText('이 조회는 이미 관리자에 기록돼 있습니다.',{exact:true}).last().waitFor();
-   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,1);
-   console.log('PASS UID69 PWA query: Web Lock + secure backup + one delete/create + readback + replay deduplication (mock APIs only)');
+   assert.equal(flow.state.deletes,1);assert.equal(flow.state.saves.length,2);
+   await flow.page.reload();await flow.ready();
+   await flow.page.getByText('서버에 작업 결과를 저장했습니다.',{exact:true}).last().waitFor();
+   await flow.page.clock.setFixedTime(new Date('2026-11-19T00:02:00Z'));
+   await flow.page.getByRole('button',{name:'기기 상태',exact:true}).click();
+   await flow.page.getByText('1.4% 관리자 기록 저장·대조 완료',{exact:true}).last().waitFor({timeout:30000});
+   assert.equal(flow.state.deletes,2);assert.equal(flow.state.saves.length,3);
+   assert.equal(JSON.parse(flow.state.saves[2].result_json).filter(r=>r.type==='device_check').length,2);
+   console.log('PASS UID69 completed and restored PWA: Web Lock + backup + delete/create + readback + replay deduplication (mock APIs only)');
    await flow.context.close();return;
   }
   await preparationRace();

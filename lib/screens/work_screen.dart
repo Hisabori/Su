@@ -57,6 +57,7 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
     notice('관리자 점검 저장을 확인 중입니다. 완료 후 다시 시도해 주세요.');
     return true;
   }
+
   final tts = TtsService();
   final speech = SpeechService();
   final logs = WorkLogService();
@@ -714,7 +715,8 @@ class _WorkScreenState extends State<WorkScreen> with WidgetsBindingObserver {
         final workActive = started && !complete ||
             awaitingSave ||
             submitting ||
-            pendingRecord != null;
+            (pendingRecord != null &&
+                pendingRecord!['server_submitted'] != true);
         if (reading != null &&
             sessionUser == user &&
             user == 69 &&
